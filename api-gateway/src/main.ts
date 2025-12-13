@@ -1,0 +1,27 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Enable CORS with permissive settings for development
+  app.enableCors({
+    origin: true, // Allow all origins in development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 3600,
+  });
+  
+  app.useGlobalPipes(new ValidationPipe());
+  app.setGlobalPrefix('');
+
+  const port = process.env.PORT || 8000;
+  await app.listen(port);
+  console.log(`🚀 API Gateway (Nest) running on port ${port}`);
+}
+
+bootstrap();
