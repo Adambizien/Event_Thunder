@@ -35,6 +35,7 @@ export class AuthController {
       console.log('🔄 Exchanging code for token...');
       const result = await this.authService.googleAuth({ code: decodedCode });
       console.log('✅ Google auth successful for:', result.user.email);
+      console.log( process.env.FRONTEND_URL );
       
       return this.serveClosePage(res, 'success', null, result.token, result.user);
       

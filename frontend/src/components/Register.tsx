@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import { authService } from '../services/auth';
+import { useState } from 'react';
+import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
+import type { User } from '../types/AuthTypes';
 
-const Register = ({ onSwitchToLogin, onRegister }) => {
+interface RegisterProps {
+  onSwitchToLogin: () => void;
+  onRegister: (user: User) => void;
+}
+
+const Register = ({ onSwitchToLogin, onRegister }: RegisterProps) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -11,7 +17,7 @@ const Register = ({ onSwitchToLogin, onRegister }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -19,7 +25,7 @@ const Register = ({ onSwitchToLogin, onRegister }) => {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -32,18 +38,18 @@ const Register = ({ onSwitchToLogin, onRegister }) => {
       localStorage.setItem('user', JSON.stringify(response.user));
       
       onRegister(response.user);
-    } catch (error) {
+    } catch (error: any) {
       setError(error.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSuccess = (user) => {
+  const handleGoogleSuccess = (user: User) => {
     onRegister(user);
   };
 
-  const handleGoogleError = (error) => {
+  const handleGoogleError = (error: string) => {
     setError(error);
   };
 
@@ -110,7 +116,7 @@ const Register = ({ onSwitchToLogin, onRegister }) => {
               required
               style={styles.input}
               disabled={loading}
-              minLength="6"
+                minLength={6}
             />
             <div style={styles.passwordHint}>Must be at least 6 characters</div>
           </div>
@@ -152,7 +158,7 @@ const Register = ({ onSwitchToLogin, onRegister }) => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   container: {
     display: 'flex',
     justifyContent: 'center',
@@ -207,14 +213,6 @@ const styles = {
     transition: 'all 0.2s ease',
     backgroundColor: '#fff',
     boxSizing: 'border-box',
-    ':focus': {
-      borderColor: '#007bff',
-      boxShadow: '0 0 0 3px rgba(0, 123, 255, 0.1)'
-    },
-    ':disabled': {
-      backgroundColor: '#f8f9fa',
-      cursor: 'not-allowed'
-    }
   },
   passwordHint: {
     fontSize: '12px',
@@ -238,10 +236,6 @@ const styles = {
   registerButton: {
     backgroundColor: '#28a745',
     color: 'white',
-    ':hover': {
-      backgroundColor: '#218838',
-      transform: 'translateY(-1px)'
-    }
   },
   disabledButton: {
     opacity: 0.6,
@@ -274,15 +268,6 @@ const styles = {
     position: 'relative',
     textAlign: 'center',
     margin: '32px 0',
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      top: '50%',
-      left: 0,
-      right: 0,
-      height: '1px',
-      backgroundColor: '#e1e5e9'
-    }
   },
   dividerText: {
     backgroundColor: 'white',
@@ -311,13 +296,6 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     textDecoration: 'none',
-    ':hover': {
-      textDecoration: 'underline'
-    },
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed'
-    }
   }
 };
 

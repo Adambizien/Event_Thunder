@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
-import { authService } from '../services/auth';
+import { useState } from 'react';
+import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
+import type { User } from '../types/AuthTypes';
 
-const Login = ({ onSwitchToRegister, onLogin }) => {
+interface LoginProps {
+  onSwitchToRegister: () => void;
+  onLogin: (user: User) => void;
+}
+
+const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -10,18 +17,18 @@ const Login = ({ onSwitchToRegister, onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError('');
+    //setError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    // setError('');
 
     try {
       const response = await authService.login(formData);
@@ -31,18 +38,18 @@ const Login = ({ onSwitchToRegister, onLogin }) => {
       localStorage.setItem('user', JSON.stringify(response.user));
       
       onLogin(response.user);
-    } catch (error) {
+    } catch (error: any) {
       setError(error.response?.data?.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSuccess = (user) => {
+  const handleGoogleSuccess = (user: User) => {
     onLogin(user);
   };
 
-  const handleGoogleError = (error) => {
+  const handleGoogleError = (error: string) => {
     setError(error);
   };
 
@@ -149,7 +156,7 @@ const Login = ({ onSwitchToRegister, onLogin }) => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties }  = {
   container: {
     display: 'flex',
     justifyContent: 'center',
@@ -212,14 +219,6 @@ const styles = {
     transition: 'all 0.2s ease',
     backgroundColor: '#fff',
     boxSizing: 'border-box',
-    ':focus': {
-      borderColor: '#007bff',
-      boxShadow: '0 0 0 3px rgba(0, 123, 255, 0.1)'
-    },
-    ':disabled': {
-      backgroundColor: '#f8f9fa',
-      cursor: 'not-allowed'
-    }
   },
   button: {
     width: '100%',
@@ -238,10 +237,6 @@ const styles = {
   loginButton: {
     backgroundColor: '#007bff',
     color: 'white',
-    ':hover': {
-      backgroundColor: '#0056b3',
-      transform: 'translateY(-1px)'
-    }
   },
   disabledButton: {
     opacity: 0.6,
@@ -288,23 +283,11 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
     textDecoration: 'none',
-    ':hover': {
-      textDecoration: 'underline'
-    }
   },
   divider: {
     position: 'relative',
     textAlign: 'center',
     margin: '32px 0',
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      top: '50%',
-      left: 0,
-      right: 0,
-      height: '1px',
-      backgroundColor: '#e1e5e9'
-    }
   },
   dividerText: {
     backgroundColor: 'white',
@@ -333,13 +316,6 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     textDecoration: 'none',
-    ':hover': {
-      textDecoration: 'underline'
-    },
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed'
-    }
   },
   footer: {
     marginTop: '24px',

@@ -18,7 +18,6 @@ import { UsersModule } from './users/users.module';
           url,
           autoLoadEntities: true,
           synchronize: configService.get<string>('NODE_ENV') !== 'production',
-          // You can add extra options here such as ssl depending on env
         } as any;
       },
     }),

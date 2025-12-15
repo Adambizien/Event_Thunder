@@ -1,7 +1,12 @@
-import React from 'react';
-import { authService } from '../services/auth';
+import { authService } from '../services/AuthServices';
+import type { User } from '../types/AuthTypes';
 
-const Dashboard = ({ user, onLogout }) => {
+interface DashboardProps {
+  user: User;
+  onLogout: () => void;
+}
+
+const Dashboard = ({ user, onLogout }:DashboardProps) => {
   const handleLogout = () => {
     authService.logout();
     onLogout();
@@ -69,7 +74,7 @@ const Dashboard = ({ user, onLogout }) => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties }  = {
   container: {
     display: 'flex',
     justifyContent: 'center',
@@ -153,10 +158,6 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: '#c82333',
-      transform: 'translateY(-1px)'
-    }
   }
 };
 

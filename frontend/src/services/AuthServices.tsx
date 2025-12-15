@@ -1,7 +1,10 @@
 import axios from 'axios';
+import type { RegisterData, LoginCredentials } from '../types/AuthTypes';
 
 const getApiBaseUrl = () => {
-  return process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
 };
 const API_URL = getApiBaseUrl();
 
@@ -41,13 +44,13 @@ api.interceptors.response.use(
 
 export const authService = {
   // Register new user
-  register: async (userData) => {
+  register: async (userData: RegisterData) => {
     const response = await api.post('/api/auth/register', userData);
     return response.data;
   },
 
   // Login user
-  login: async (credentials) => {
+  login: async (credentials: LoginCredentials) => {
     const response = await api.post('/api/auth/login', credentials);
     return response.data;
   },
@@ -64,32 +67,22 @@ export const authService = {
     localStorage.removeItem('user');
   },
 
-  // Check if user is authenticated
+  // Check if user is authenticated fonction non utilisée pour l'instant
   isAuthenticated: () => {
     return !!localStorage.getItem('token');
   },
 
-  // Google OAuth2 methods
-  getGoogleAuthUrl: async () => {
-    const response = await api.get('/api/auth/google/url');
-    return response.data;
-  },
-
-  handleGoogleCallback: async (code) => {
-    const response = await api.post('/api/auth/google/callback', { code });
-    return response.data;
-  },
-
-  // Get stored user data
+  // Get stored user data fonction non utilisée pour l'instant
   getStoredUser: () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
-  // Get stored token
+  // Get stored token fonction non utilisée pour l'instant
   getStoredToken: () => {
     return localStorage.getItem('token');
-  }
+  },
+
 };
 
 export default api;

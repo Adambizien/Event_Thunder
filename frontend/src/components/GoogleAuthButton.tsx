@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { User } from '../types/AuthTypes';
 
-const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continue with Google" }) => {
+interface GoogleAuthButtonProps {
+  onSuccess: (user: User) => void;
+  onError: (message: string) => void;
+  buttonText?: string;
+}
+
+const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continue with Google" }: GoogleAuthButtonProps) => {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/api/auth/google/url`);
       const { authUrl: googleAuthUrl } = await response.json();
       
@@ -49,7 +56,7 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continue with Goog
         }
       }, 500);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google auth error:', error);
       onError(error.message || 'Failed to start Google authentication');
       setLoading(false);
@@ -80,7 +87,7 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continue with Goog
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   googleButton: {
     width: '100%',
     padding: '12px 16px',
@@ -97,19 +104,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '12px',
-    ':hover': {
-      backgroundColor: '#f8f9fa',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      borderColor: '#ccc'
-    }
   },
   disabledButton: {
     opacity: 0.6,
     cursor: 'not-allowed',
-    ':hover': {
-      backgroundColor: 'white',
-      boxShadow: 'none'
-    }
   },
   buttonContent: {
     display: 'flex',

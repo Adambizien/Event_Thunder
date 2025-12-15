@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
-import { authService } from './services/auth';
+import { authService } from './services/AuthServices';
+import type { User } from './types/AuthTypes';
+
 
 function App() {
   const [currentView, setCurrentView] = useState('login');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Vérifier d'abord les paramètres d'URL (Google OAuth)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
       const userParam = urlParams.get('user');
@@ -23,12 +24,11 @@ function App() {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(userData));
           setUser(userData);
-          window.history.replaceState({}, '', '/'); // Nettoyer l'URL
+          window.history.replaceState({}, '', '/');
         } catch (error) {
           console.error('OAuth error:', error);
         }
       } else {
-        // Vérifier le localStorage
         const savedToken = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
 
@@ -47,12 +47,10 @@ function App() {
     initializeAuth();
   }, []);
 
-  // Écouteur SIMPLE pour les messages
   useEffect(() => {
-    const handleMessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       console.log('Message received:', event.data);
       
-      // Accepter les messages de localhost:8000 ET localhost:3000
       if (event.data.type === 'OAUTH_SUCCESS') {
         const { token, user } = event.data;
         localStorage.setItem('token', token);
@@ -65,11 +63,11 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const handleLogin = (userData) => {
+  const handleLogin = (userData: User) => {
     setUser(userData);
   };
 
-  const handleRegister = (userData) => {
+  const handleRegister = (userData: User) => {
     setUser(userData);
   };
 
@@ -109,7 +107,7 @@ function App() {
   );
 }
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   loading: {
     display: 'flex',
     flexDirection: 'column',
