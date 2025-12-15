@@ -1,8 +1,8 @@
 services:
-  # Postgres (replaces previous MongoDB)
+  # Postgres Database
   postgres:
     image: postgres:15
-    container_name: eventora_postgres
+    container_name: event_thunder_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -22,7 +22,6 @@ services:
       - PORT=${API_GATEWAY_PORT}
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
       - USER_SERVICE_URL=${USER_SERVICE_URL}
-      - NODE_ENV=${NODE_ENV}
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     depends_on:
@@ -42,7 +41,6 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
-      - NODE_ENV=${NODE_ENV}
       - FRONTEND_URL=${FRONTEND_URL}
     ports:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
@@ -72,11 +70,9 @@ services:
     build: ./frontend
     container_name: auth_frontend
     environment:
-      - REACT_APP_API_URL=${API_GATEWAY_URL}
-      - REACT_APP_NODE_ENV=${NODE_ENV}
       - VITE_API_URL=${API_GATEWAY_URL}
     ports:
-      - "${FRONTEND_PORT}:3000"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     depends_on:
       - api-gateway
 
