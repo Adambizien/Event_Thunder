@@ -22,13 +22,13 @@ const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
       ...formData,
       [e.target.name]: e.target.value
     });
-    //setError('');
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    // setError('');
+    setError('');
 
     try {
       const response = await authService.login(formData);
