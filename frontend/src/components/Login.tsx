@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
 import type { User } from '../types/AuthTypes';
@@ -8,8 +9,8 @@ interface LoginProps {
   onLogin: (user: User) => void;
 }
 
-const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
-  
+const Login = ({ onLogin }: LoginProps) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,7 +23,6 @@ const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -32,12 +32,10 @@ const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
 
     try {
       const response = await authService.login(formData);
-      
-      // Save token and user data
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-      
       onLogin(response.user);
+      navigate('/dashboard');
     } catch (error: any) {
       setError(error.response?.data?.message || 'Login failed. Please check your credentials and try again.');
     } finally {
@@ -47,6 +45,7 @@ const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
 
   const handleGoogleSuccess = (user: User) => {
     onLogin(user);
+    navigate('/dashboard');
   };
 
   const handleGoogleError = (error: string) => {
@@ -54,100 +53,132 @@ const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Welcome Back</h2>
-          <p style={styles.subtitle}>Sign in to your account</p>
+    <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-black text-thunder-gold mb-2">
+            ⚡
+          </h1>
+          <h2 className="text-3xl font-black text-thunder-yellow mb-2">
+            EVENT THUNDER
+          </h2>
+          <p className="text-gray-300 text-lg">Welcome Back</p>
+          <p className="text-gray-400 text-sm">Sign in to your account</p>
         </div>
-        
+
+        {/* Error Message */}
         {error && (
-          <div style={styles.error}>
-            <div style={styles.errorIcon}>⚠️</div>
-            <div style={styles.errorMessage}>{error}</div>
+          <div className="error-box mb-6">
+            <span className="text-xl">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold">Error</p>
+              <p className="text-sm">{error}</p>
+            </div>
+            <button
+              onClick={() => setError('')}
+              className="text-red-700 hover:text-red-900 font-bold text-lg leading-none"
+              aria-label="Close error"
+            >
+              ✕
+            </button>
           </div>
         )}
-        
-        {/* Google OAuth Button */}
-        <GoogleAuthButton 
-          onSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
-          buttonText="Continue with Google"
-        />
-        
-        <div style={styles.divider}>
-          <span style={styles.dividerText}>or with email</span>
-        </div>
-        
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              disabled={loading}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <div style={styles.passwordHeader}>
-              <label style={styles.label}>Password</label>
-              <button type="button" style={styles.forgotButton}>
-                Forgot password?
-              </button>
+
+        {/* Card */}
+        <div className="card p-8 mb-6">
+          {/* Google Auth Button */}
+          <GoogleAuthButton 
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            buttonText="Continue with Google"
+          />
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
             </div>
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              disabled={loading}
-            />
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-600">or with email</span>
+            </div>
           </div>
-          
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{
-              ...styles.button,
-              ...styles.loginButton,
-              ...(loading && styles.disabledButton)
-            }}
-          >
-            {loading ? (
-              <div style={styles.loadingContent}>
-                <div style={styles.spinner}></div>
-                Signing in...
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Password
+                </label>
+                <button 
+                  type="button" 
+                  className="text-sm font-semibold text-thunder-gold hover:text-thunder-orange transition-colors"
+                >
+                  Forgot password?
+                </button>
               </div>
-            ) : (
-              'Sign in to your account'
-            )}
-          </button>
-        </form>
-        
-        <div style={styles.switchContainer}>
-          <span style={styles.switchText}>
-            Don't have an account?
-          </span>
-          <button 
-            onClick={onSwitchToRegister}
-            style={styles.switchButton}
-            disabled={loading}
-          >
-            Sign up
-          </button>
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className="input-field"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="btn-primary mt-6 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Signing in...
+                </>
+              ) : (
+                'Sign in to your account'
+              )}
+            </button>
+          </form>
         </div>
-        
-        <div style={styles.footer}>
-          <p style={styles.footerText}>
+
+        {/* Sign Up Link */}
+        <div className="text-center py-4 border-t border-gray-200">
+          <p className="text-gray-600 text-sm">
+            Don't have an account?{' '}
+            <Link 
+              to="/register"
+              className="btn-secondary ml-1"
+            >
+              Sign up
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-6">
+          <p className="text-gray-400 text-xs leading-relaxed">
             By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
@@ -155,187 +186,5 @@ const Login = ({ onSwitchToRegister, onLogin }: LoginProps) => {
     </div>
   );
 };
-
-const styles: { [key: string]: React.CSSProperties }  = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    padding: '20px',
-    backgroundColor: '#f8f9fa',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  card: {
-    background: 'white',
-    padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-    width: '100%',
-    maxWidth: '440px',
-    border: '1px solid #e1e5e9'
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '32px'
-  },
-  title: {
-    marginBottom: '8px',
-    color: '#1a1a1a',
-    fontSize: '32px',
-    fontWeight: '700'
-  },
-  subtitle: {
-    color: '#666',
-    fontSize: '16px',
-    margin: 0
-  },
-  form: {
-    width: '100%'
-  },
-  inputGroup: {
-    marginBottom: '24px'
-  },
-  label: {
-    display: 'block',
-    marginBottom: '8px',
-    color: '#333',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  passwordHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px'
-  },
-  input: {
-    width: '100%',
-    padding: '14px 16px',
-    border: '2px solid #e1e5e9',
-    borderRadius: '8px',
-    fontSize: '16px',
-    outline: 'none',
-    transition: 'all 0.2s ease',
-    backgroundColor: '#fff',
-    boxSizing: 'border-box',
-  },
-  button: {
-    width: '100%',
-    padding: '16px',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px'
-  },
-  loginButton: {
-    backgroundColor: '#007bff',
-    color: 'white',
-  },
-  disabledButton: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-    transform: 'none !important'
-  },
-  loadingContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  spinner: {
-    width: '16px',
-    height: '16px',
-    border: '2px solid transparent',
-    borderTop: '2px solid currentColor',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite'
-  },
-  error: {
-    backgroundColor: '#fef2f2',
-    color: '#dc2626',
-    padding: '16px',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    border: '1px solid #fecaca',
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '12px'
-  },
-  errorIcon: {
-    fontSize: '16px',
-    flexShrink: 0
-  },
-  errorMessage: {
-    fontSize: '14px',
-    lineHeight: '1.4'
-  },
-  forgotButton: {
-    background: 'none',
-    border: 'none',
-    color: '#007bff',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    textDecoration: 'none',
-  },
-  divider: {
-    position: 'relative',
-    textAlign: 'center',
-    margin: '32px 0',
-  },
-  dividerText: {
-    backgroundColor: 'white',
-    padding: '0 16px',
-    color: '#666',
-    fontSize: '14px',
-    position: 'relative',
-    display: 'inline-block'
-  },
-  switchContainer: {
-    textAlign: 'center',
-    marginTop: '32px',
-    paddingTop: '24px',
-    borderTop: '1px solid #e1e5e9'
-  },
-  switchText: {
-    color: '#666',
-    fontSize: '14px',
-    marginRight: '8px'
-  },
-  switchButton: {
-    background: 'none',
-    border: 'none',
-    color: '#007bff',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    textDecoration: 'none',
-  },
-  footer: {
-    marginTop: '24px',
-    textAlign: 'center'
-  },
-  footerText: {
-    color: '#666',
-    fontSize: '12px',
-    lineHeight: '1.4',
-    margin: 0
-  }
-};
-
-// Add CSS animation
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`, styleSheet.cssRules.length);
 
 export default Login;

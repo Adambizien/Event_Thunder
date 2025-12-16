@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import Header from './components/Header';
+import ProtectedRoute from './components/ProtectedRoute';
+import Home from './pages/Home';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 
-
-function App() {
-  const [currentView, setCurrentView] = useState('login');
+function AppContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -73,67 +75,49 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
-    setCurrentView('login');
-    authService.logout();
   };
 
   if (loading) {
     return (
-      <div style={styles.loading}>
-        <div style={styles.spinner}></div>
-        <p>Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin w-12 h-12 border-4 border-thunder-gold border-t-transparent rounded-full"></div>
+        <p className="text-gray-300 text-lg font-semibold">Chargement...</p>
       </div>
     );
   }
 
-  if (user) {
-    return <Dashboard user={user} onLogout={handleLogout} />;
-  }
-
   return (
-    <div className="App">
-      {currentView === 'login' ? (
-        <Login 
-          onSwitchToRegister={() => setCurrentView('register')} 
-          onLogin={handleLogin}
+    <>
+      <Header user={user} onLogout={handleLogout} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/dashboard" replace /> : <Login onSwitchToRegister={() => {}} onLogin={handleLogin} />}
         />
-      ) : (
-        <Register 
-          onSwitchToLogin={() => setCurrentView('login')} 
-          onRegister={handleRegister}
+        <Route 
+          path="/register" 
+          element={user ? <Navigate to="/dashboard" replace /> : <Register onSwitchToLogin={() => {}} onRegister={handleRegister} />}
         />
-      )}
-    </div>
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute user={user}>
+              <Dashboard user={user!} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 
-const styles: { [key: string]: React.CSSProperties } = {
-  loading: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    fontSize: '18px',
-    color: '#666'
-  },
-  spinner: {
-    border: '4px solid #f3f3f3',
-    borderTop: '4px solid #007bff',
-    borderRadius: '50%',
-    width: '40px',
-    height: '40px',
-    animation: 'spin 1s linear infinite',
-    marginBottom: '20px'
-  }
-};
-
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`, styleSheet.cssRules.length);
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
 
 export default App;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
 import type { User } from '../types/AuthTypes';
@@ -8,7 +9,8 @@ interface RegisterProps {
   onRegister: (user: User) => void;
 }
 
-const Register = ({ onSwitchToLogin, onRegister }: RegisterProps) => {
+const Register = ({ onRegister }: RegisterProps) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -22,7 +24,6 @@ const Register = ({ onSwitchToLogin, onRegister }: RegisterProps) => {
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -32,12 +33,10 @@ const Register = ({ onSwitchToLogin, onRegister }: RegisterProps) => {
 
     try {
       const response = await authService.register(formData);
-      
-      // Save token and user data
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-      
       onRegister(response.user);
+      navigate('/dashboard');
     } catch (error: any) {
       setError(error.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -47,6 +46,7 @@ const Register = ({ onSwitchToLogin, onRegister }: RegisterProps) => {
 
   const handleGoogleSuccess = (user: User) => {
     onRegister(user);
+    navigate('/dashboard');
   };
 
   const handleGoogleError = (error: string) => {
@@ -54,258 +54,149 @@ const Register = ({ onSwitchToLogin, onRegister }: RegisterProps) => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Create Account</h2>
-        <p style={styles.subtitle}>Sign up to get started</p>
-        
+    <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-black text-thunder-gold mb-2">
+            ⚡
+          </h1>
+          <h2 className="text-3xl font-black text-thunder-yellow mb-2">
+            EVENT THUNDER
+          </h2>
+          <p className="text-gray-300 text-lg">Create Account</p>
+          <p className="text-gray-400 text-sm">Sign up to get started</p>
+        </div>
+
+        {/* Error Message */}
         {error && (
-          <div style={styles.error}>
-            {error}
+          <div className="error-box mb-6">
+            <span className="text-xl">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold">Error</p>
+              <p className="text-sm">{error}</p>
+            </div>
+            <button
+              onClick={() => setError('')}
+              className="text-red-700 hover:text-red-900 font-bold text-lg leading-none"
+              aria-label="Close error"
+            >
+              ✕
+            </button>
           </div>
         )}
-        
-        {/* Google OAuth Button */}
-        <GoogleAuthButton 
-          onSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
-          buttonText="Sign up with Google"
-        />
-        
-        <div style={styles.divider}>
-          <span style={styles.dividerText}>or with email</span>
-        </div>
-        
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Username</label>
-            <input
-              type="text"
-              name="username"
-              placeholder="Enter your username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              disabled={loading}
-            />
+
+        {/* Card */}
+        <div className="card p-8 mb-6">
+          {/* Google Auth Button */}
+          <GoogleAuthButton 
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            buttonText="Sign up with Google"
+          />
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-600">or with email</span>
+            </div>
           </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              disabled={loading}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="Create a password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              disabled={loading}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Username
+              </label>
+              <input
+                type="text"
+                name="username"
+                placeholder="Enter your username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                placeholder="Create a password"
+                value={formData.password}
+                onChange={handleChange}
+                required
                 minLength={6}
-            />
-            <div style={styles.passwordHint}>Must be at least 6 characters</div>
-          </div>
-          
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{
-              ...styles.button,
-              ...styles.registerButton,
-              ...(loading && styles.disabledButton)
-            }}
-          >
-            {loading ? (
-              <div style={styles.loadingContent}>
-                <div style={styles.spinner}></div>
-                Creating account...
-              </div>
-            ) : (
-              'Create Account'
-            )}
-          </button>
-        </form>
-        
-        <div style={styles.switchContainer}>
-          <span style={styles.switchText}>
-            Already have an account?
-          </span>
-          <button 
-            onClick={onSwitchToLogin}
-            style={styles.switchButton}
-            disabled={loading}
-          >
-            Sign in
-          </button>
+                disabled={loading}
+                className="input-field"
+              />
+              <p className="text-xs text-gray-500 mt-2">Must be at least 6 characters</p>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="btn-primary mt-6 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Creating account...
+                </>
+              ) : (
+                'Create Account'
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Sign In Link */}
+        <div className="text-center py-4 border-t border-gray-200">
+          <p className="text-gray-600 text-sm">
+            Vous avez déjà un compte?{' '}
+            <Link 
+              to="/login"
+              className={`ml-1 ${loading ? 'opacity-50 cursor-not-allowed' : 'btn-secondary'}`}
+              onClick={(e) => loading && e.preventDefault()}
+            >
+              Se connecter
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-6">
+          <p className="text-gray-400 text-xs leading-relaxed">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+          </p>
         </div>
       </div>
     </div>
   );
 };
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    padding: '20px',
-    backgroundColor: '#f8f9fa',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  card: {
-    background: 'white',
-    padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-    width: '100%',
-    maxWidth: '440px',
-    border: '1px solid #e1e5e9'
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: '8px',
-    color: '#1a1a1a',
-    fontSize: '32px',
-    fontWeight: '700'
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: '32px',
-    color: '#666',
-    fontSize: '16px'
-  },
-  form: {
-    width: '100%'
-  },
-  inputGroup: {
-    marginBottom: '24px'
-  },
-  label: {
-    display: 'block',
-    marginBottom: '8px',
-    color: '#333',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  input: {
-    width: '100%',
-    padding: '14px 16px',
-    border: '2px solid #e1e5e9',
-    borderRadius: '8px',
-    fontSize: '16px',
-    outline: 'none',
-    transition: 'all 0.2s ease',
-    backgroundColor: '#fff',
-    boxSizing: 'border-box',
-  },
-  passwordHint: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '6px'
-  },
-  button: {
-    width: '100%',
-    padding: '16px',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px'
-  },
-  registerButton: {
-    backgroundColor: '#28a745',
-    color: 'white',
-  },
-  disabledButton: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-    transform: 'none !important'
-  },
-  loadingContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  spinner: {
-    width: '16px',
-    height: '16px',
-    border: '2px solid transparent',
-    borderTop: '2px solid currentColor',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite'
-  },
-  error: {
-    backgroundColor: '#f8d7da',
-    color: '#721c24',
-    padding: '16px',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    border: '1px solid #f5c6cb',
-    fontSize: '14px'
-  },
-  divider: {
-    position: 'relative',
-    textAlign: 'center',
-    margin: '32px 0',
-  },
-  dividerText: {
-    backgroundColor: 'white',
-    padding: '0 16px',
-    color: '#666',
-    fontSize: '14px',
-    position: 'relative',
-    display: 'inline-block'
-  },
-  switchContainer: {
-    textAlign: 'center',
-    marginTop: '32px',
-    paddingTop: '24px',
-    borderTop: '1px solid #e1e5e9'
-  },
-  switchText: {
-    color: '#666',
-    fontSize: '14px',
-    marginRight: '8px'
-  },
-  switchButton: {
-    background: 'none',
-    border: 'none',
-    color: '#007bff',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    textDecoration: 'none',
-  }
-};
-
-// Add CSS animation
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`, styleSheet.cssRules.length);
 
 export default Register;

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import type { User } from '../types/AuthTypes';
 
@@ -6,159 +7,117 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-const Dashboard = ({ user, onLogout }:DashboardProps) => {
+const Dashboard = ({ user, onLogout }: DashboardProps) => {
+  const navigate = useNavigate();
+
   const handleLogout = () => {
     authService.logout();
     onLogout();
+    navigate('/');
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>🎉 Welcome to Your Dashboard!</h1>
-          <p style={styles.subtitle}>You are successfully logged in</p>
+    <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Welcome Section */}
+        <div className="text-center mb-12 pt-8">
+          <h1 className="text-6xl mb-4">🎉</h1>
+          <h2 className="text-4xl font-black text-thunder-yellow mb-3">
+            Bienvenue sur votre Tableau de Bord!
+          </h2>
+          <p className="text-xl text-gray-300">Vous êtes maintenant connecté</p>
         </div>
-        
-        <div style={styles.userInfo}>
-          <h2 style={styles.sectionTitle}>Your Profile Information</h2>
-          
-          <div style={styles.infoGrid}>
-            <div style={styles.infoItem}>
-              <strong>Username:</strong>
-              <span style={styles.infoValue}>{user.username}</span>
-            </div>
-            
-            <div style={styles.infoItem}>
-              <strong>Email:</strong>
-              <span style={styles.infoValue}>{user.email}</span>
-            </div>
-            
-            <div style={styles.infoItem}>
-              <strong>User ID:</strong>
-              <span style={styles.infoValue}>{user.id}</span>
-            </div>
-            
-            {user.name && (
-              <div style={styles.infoItem}>
-                <strong>Full Name:</strong>
-                <span style={styles.infoValue}>{user.name}</span>
+
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+          {/* Profile Card */}
+          <div className="lg:col-span-2 card p-8">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 pb-3 border-b-2 border-thunder-gold">
+              Informations de Profil
+            </h3>
+
+            <div className="space-y-4">
+              {/* Username */}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="font-semibold text-gray-700">Nom d'utilisateur</span>
+                <span className="text-gray-600 font-mono">{user.username}</span>
               </div>
-            )}
-            
-            {user.picture && (
-              <div style={styles.infoItem}>
-                <strong>Profile Picture:</strong>
-                <div style={styles.avatarContainer}>
-                  <img 
-                    src={user.picture} 
-                    alt="Profile" 
-                    style={styles.avatar}
-                  />
+
+              {/* Email */}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="font-semibold text-gray-700">Email</span>
+                <span className="text-gray-600 font-mono">{user.email}</span>
+              </div>
+
+              {/* User ID */}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="font-semibold text-gray-700">ID Utilisateur</span>
+                <span className="text-gray-600 text-sm font-mono">{user.id.slice(0, 12)}...</span>
+              </div>
+
+              {/* Full Name */}
+              {user.name && (
+                <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                  <span className="font-semibold text-gray-700">Nom Complet</span>
+                  <span className="text-gray-600">{user.name}</span>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Avatar Card */}
+          <div className="card p-8 flex flex-col items-center justify-center text-center">
+            {user.picture ? (
+              <>
+                <img 
+                  src={user.picture} 
+                  alt="Profile" 
+                  className="w-24 h-24 rounded-full border-4 border-thunder-gold mb-4"
+                />
+                <p className="text-sm text-gray-600 mt-2">Profil Google</p>
+              </>
+            ) : (
+              <>
+                <div className="w-24 h-24 rounded-full bg-thunder-gold flex items-center justify-center mb-4">
+                  <span className="text-4xl">👤</span>
+                </div>
+                <p className="text-sm text-gray-600">Pas de photo</p>
+              </>
             )}
           </div>
         </div>
-        
-        <div style={styles.actions}>
+
+        {/* Stats Section */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="card p-6 text-center">
+            <p className="text-4xl font-bold text-thunder-gold mb-2">⚡</p>
+            <p className="font-semibold text-gray-800">Rapide</p>
+            <p className="text-sm text-gray-600">Accès instantané</p>
+          </div>
+          <div className="card p-6 text-center">
+            <p className="text-4xl font-bold text-thunder-yellow mb-2">🔒</p>
+            <p className="font-semibold text-gray-800">Sécurisé</p>
+            <p className="text-sm text-gray-600">Vos données protégées</p>
+          </div>
+          <div className="card p-6 text-center">
+            <p className="text-4xl font-bold text-thunder-orange mb-2">✓</p>
+            <p className="font-semibold text-gray-800">Vérifié</p>
+            <p className="text-sm text-gray-600">Compte confirmé</p>
+          </div>
+        </div>
+
+        {/* Action Section */}
+        <div className="text-center">
           <button 
             onClick={handleLogout}
-            style={styles.logoutButton}
-          >
-            🚪 Logout
-          </button>
+            className="btn-primary inline-flex items-center gap-2 px-8"
+            >
+              🚪 Se déconnecter
+            </button>
         </div>
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties }  = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    padding: '20px',
-    backgroundColor: '#f8f9fa',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  card: {
-    background: 'white',
-    padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-    width: '100%',
-    maxWidth: '500px',
-    border: '1px solid #e1e5e9'
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '30px'
-  },
-  title: {
-    marginBottom: '8px',
-    color: '#1a1a1a',
-    fontSize: '28px',
-    fontWeight: '700'
-  },
-  subtitle: {
-    color: '#666',
-    fontSize: '16px',
-    margin: 0
-  },
-  userInfo: {
-    marginBottom: '30px'
-  },
-  sectionTitle: {
-    marginBottom: '20px',
-    color: '#333',
-    fontSize: '20px',
-    fontWeight: '600',
-    borderBottom: '2px solid #007bff',
-    paddingBottom: '8px'
-  },
-  infoGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-  infoItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0'
-  },
-  infoValue: {
-    color: '#666',
-    fontWeight: '500'
-  },
-  avatarContainer: {
-    display: 'flex',
-    alignItems: 'center'
-  },
-  avatar: {
-    width: '50px',
-    height: '50px',
-    borderRadius: '50%',
-    border: '2px solid #e1e5e9'
-  },
-  actions: {
-    textAlign: 'center'
-  },
-  logoutButton: {
-    padding: '12px 24px',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  }
 };
 
 export default Dashboard;
