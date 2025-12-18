@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
+import Logo from './Logo';
 import type { User } from '../types/AuthTypes';
 
 interface LoginProps {
@@ -57,12 +58,9 @@ const Login = ({ onLogin }: LoginProps) => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-black text-thunder-gold mb-2">
-            ⚡
-          </h1>
-          <h2 className="text-3xl font-black text-thunder-yellow mb-2">
-            EVENT THUNDER
-          </h2>
+          <div className="mb-6 flex justify-center">
+            <Logo size="md" />
+          </div>
           <p className="text-gray-300 text-lg">Welcome Back</p>
           <p className="text-gray-400 text-sm">Sign in to your account</p>
         </div>

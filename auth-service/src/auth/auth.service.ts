@@ -92,12 +92,16 @@ export class AuthService {
       } catch (error: any) {
         if (error.response?.status === 404) {
           // Créer un nouvel utilisateur via le user-service
-          const username = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
+          // Séparer le nom complet en prénom / nom
+          const parts = name.trim().split(/\s+/);
+          const firstName = parts.shift() || '';
+          const lastName = parts.join(' ') || '';
           const password = Math.random().toString(36).slice(-16) + 'Aa1!';
 
           const createUserResponse = await firstValueFrom(
             this.httpService.post(`${this.userServiceUrl}/api/users`, {
-              username,
+              firstName,
+              lastName,
               email,
               password,
             })
@@ -120,10 +124,9 @@ export class AuthService {
         token,
         user: {
           id: user.id,
-          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
-          name: name || '',
-          picture: picture || '',
         },
       };
     } catch (error) {
@@ -152,7 +155,8 @@ export class AuthService {
         token,
         user: {
           id: user.id,
-          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
         },
       };
@@ -185,7 +189,8 @@ export class AuthService {
         token,
         user: {
           id: user.id,
-          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
         },
       };

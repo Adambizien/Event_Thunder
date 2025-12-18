@@ -37,16 +37,16 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             </h3>
 
             <div className="space-y-4">
-              {/* Username */}
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="font-semibold text-gray-700">Nom d'utilisateur</span>
-                <span className="text-gray-600 font-mono">{user.username}</span>
-              </div>
-
               {/* Email */}
               <div className="flex justify-between items-center py-3 border-b border-gray-200">
                 <span className="font-semibold text-gray-700">Email</span>
                 <span className="text-gray-600 font-mono">{user.email}</span>
+              </div>
+
+              {/* Full Name */}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="font-semibold text-gray-700">Nom Complet</span>
+                <span className="text-gray-600">{`${user.firstName || ''} ${user.lastName || ''}`.trim()}</span>
               </div>
 
               {/* User ID */}
@@ -55,35 +55,18 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                 <span className="text-gray-600 text-sm font-mono">{user.id.slice(0, 12)}...</span>
               </div>
 
-              {/* Full Name */}
-              {user.name && (
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="font-semibold text-gray-700">Nom Complet</span>
-                  <span className="text-gray-600">{user.name}</span>
-                </div>
-              )}
+              
             </div>
           </div>
 
           {/* Avatar Card */}
           <div className="card p-8 flex flex-col items-center justify-center text-center">
-            {user.picture ? (
-              <>
-                <img 
-                  src={user.picture} 
-                  alt="Profile" 
-                  className="w-24 h-24 rounded-full border-4 border-thunder-gold mb-4"
-                />
-                <p className="text-sm text-gray-600 mt-2">Profil Google</p>
-              </>
-            ) : (
-              <>
-                <div className="w-24 h-24 rounded-full bg-thunder-gold flex items-center justify-center mb-4">
-                  <span className="text-4xl">👤</span>
-                </div>
-                <p className="text-sm text-gray-600">Pas de photo</p>
-              </>
-            )}
+            <>
+              <div className="w-24 h-24 rounded-full bg-thunder-gold flex items-center justify-center mb-4">
+                <span className="text-4xl">👤</span>
+              </div>
+              <p className="text-sm text-gray-600">Profil</p>
+            </>
           </div>
         </div>
 

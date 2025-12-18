@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
+import Logo from './Logo';
 import type { User } from '../types/AuthTypes';
 
 interface RegisterProps {
@@ -12,7 +13,8 @@ interface RegisterProps {
 const Register = ({ onRegister }: RegisterProps) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: ''
   });
@@ -58,12 +60,9 @@ const Register = ({ onRegister }: RegisterProps) => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-black text-thunder-gold mb-2">
-            ⚡
-          </h1>
-          <h2 className="text-3xl font-black text-thunder-yellow mb-2">
-            EVENT THUNDER
-          </h2>
+          <div className="mb-6 flex justify-center">
+            <Logo size="md" />
+          </div>
           <p className="text-gray-300 text-lg">Create Account</p>
           <p className="text-gray-400 text-sm">Sign up to get started</p>
         </div>
@@ -107,20 +106,38 @@ const Register = ({ onRegister }: RegisterProps) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Username
-              </label>
-              <input
-                type="text"
-                name="username"
-                placeholder="Enter your username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                className="input-field"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Prénom
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  placeholder="Votre prénom"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nom
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  placeholder="Votre nom"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="input-field"
+                />
+              </div>
             </div>
 
             <div>

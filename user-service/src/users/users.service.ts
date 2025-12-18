@@ -15,18 +15,17 @@ export class UsersService {
   private toUserResponse(user: any): UserResponseDto {
     return {
       id: (user as any).id || (user as any)._id?.toString(),
-      username: (user as any).username,
+      firstName: (user as any).firstName,
+      lastName: (user as any).lastName,
       email: (user as any).email,
     };
   }
 
   async create(createUserDto: CreateUserDto): Promise<{ user: UserResponseDto }> {
-    const existingUser = await this.userRepository.findOne({
-      where: [{ email: createUserDto.email }, { username: createUserDto.username }],
-    });
+    const existingUser = await this.userRepository.findOne({ where: { email: createUserDto.email } });
 
     if (existingUser) {
-      throw new ConflictException('User with this email or username already exists');
+      throw new ConflictException('User with this email already exists');
     }
 
     const user = this.userRepository.create(createUserDto as any);

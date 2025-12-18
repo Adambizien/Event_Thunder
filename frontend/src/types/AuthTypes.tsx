@@ -1,9 +1,8 @@
 export interface User {
     id: string;
     email: string;
-    username?: string;
-    name?: string;
-    picture?: string;
+    firstName?: string;
+    lastName?: string;
 }
 
 export interface AuthResponse {
@@ -17,7 +16,8 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-    username: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
 }

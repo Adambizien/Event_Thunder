@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import { authService } from './services/AuthServices';
@@ -108,6 +109,7 @@ function AppContent() {
           }
         />
       </Routes>
+      <Footer />
     </>
   );
 }

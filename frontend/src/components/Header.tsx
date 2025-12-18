@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
+import Logo from './Logo';
 import type { User } from '../types/AuthTypes';
 
 interface HeaderProps {
@@ -23,12 +24,8 @@ const Header = ({ user, onLogout }: HeaderProps) => {
     <header className="bg-thunder-dark border-b-2 border-thunder-gold shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo/Brand */}
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-3xl">⚡</span>
-          <div className="flex flex-col">
-            <span className="text-xl font-black text-thunder-gold">EVENT</span>
-            <span className="text-xl font-black text-thunder-yellow -mt-1">THUNDER</span>
-          </div>
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <Logo size="md" />
         </Link>
 
         {/* Navigation */}
@@ -71,15 +68,8 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               <div className="flex items-center gap-3 border-r border-gray-600 pr-6">
                 <div className="text-right">
                   <p className="text-sm text-gray-300">Bienvenue</p>
-                  <p className="font-semibold text-thunder-gold">{user.username}</p>
+                  <p className="font-semibold text-thunder-gold">{`${user.firstName || ''} ${user.lastName || ''}`.trim()}</p>
                 </div>
-                {user.picture && (
-                  <img
-                    src={user.picture}
-                    alt="Profile"
-                    className="w-10 h-10 rounded-full border-2 border-thunder-gold"
-                  />
-                )}
               </div>
               <button
                 onClick={handleLogout}

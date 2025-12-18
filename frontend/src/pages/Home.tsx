@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Logo from '../components/Logo';
 
 const Home = () => {
   return (
@@ -6,6 +7,11 @@ const Home = () => {
       {/* Hero Section */}
       <section className="pt-20 pb-32 px-4">
         <div className="max-w-5xl mx-auto text-center">
+          {/* Logo Display */}
+          <div className="mb-8 flex justify-center">
+            <Logo size="lg" />
+          </div>
+          
           <h1 className="text-6xl md:text-7xl font-black mb-6 leading-tight">
             <span className="text-thunder-gold">EVENT</span>
             <br />

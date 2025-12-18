@@ -3,9 +3,15 @@ import { IsString, IsEmail, MinLength, MaxLength, IsNotEmpty } from 'class-valid
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(30)
-  username: string;
+  @MinLength(1)
+  @MaxLength(50)
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(50)
+  lastName: string;
 
   @IsEmail()
   @IsNotEmpty()
