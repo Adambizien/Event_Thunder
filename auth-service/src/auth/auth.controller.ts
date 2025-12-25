@@ -19,7 +19,6 @@ export class AuthController {
   async googleAuthCallback(@Query('code') code: string, @Query() query: any, @Res() res: any) {
     
     try {
-      // Décoder le code s'il est URL-encoded
       const decodedCode = code ? decodeURIComponent(code) : null;
       if (!decodedCode) {
         return this.serveClosePage(res, 'error', `no_code. Params: ${Object.keys(query).join(', ')}`);
