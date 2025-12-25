@@ -61,8 +61,8 @@ const Login = ({ onLogin }: LoginProps) => {
           <div className="mb-6 flex justify-center">
             <Logo size="md" />
           </div>
-          <p className="text-gray-300 text-lg">Welcome Back</p>
-          <p className="text-gray-400 text-sm">Sign in to your account</p>
+          <p className="text-gray-300 text-lg">Bienvenue</p>
+          <p className="text-gray-400 text-sm">Connectez-vous à votre compte</p>
         </div>
 
         {/* Error Message */}
@@ -89,7 +89,7 @@ const Login = ({ onLogin }: LoginProps) => {
           <GoogleAuthButton 
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
-            buttonText="Continue with Google"
+            buttonText="Continuer avec Google"
           />
 
           {/* Divider */}
@@ -98,7 +98,7 @@ const Login = ({ onLogin }: LoginProps) => {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-600">or with email</span>
+              <span className="px-4 bg-white text-gray-600">ou avec l'email</span>
             </div>
           </div>
 
@@ -106,12 +106,12 @@ const Login = ({ onLogin }: LoginProps) => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email Address
+                Adresse e-mail
               </label>
               <input
                 type="email"
                 name="email"
-                placeholder="Enter your email"
+                placeholder="Entrez votre e-mail"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -123,19 +123,19 @@ const Login = ({ onLogin }: LoginProps) => {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Password
+                  Mot de passe
                 </label>
                 <button 
                   type="button" 
                   className="text-sm font-semibold text-thunder-gold hover:text-thunder-orange transition-colors"
                 >
-                  Forgot password?
+                  Mot de passe oublié?
                 </button>
               </div>
               <input
                 type="password"
                 name="password"
-                placeholder="Enter your password"
+                placeholder="Entrez votre mot de passe"
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -152,10 +152,10 @@ const Login = ({ onLogin }: LoginProps) => {
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Signing in...
+                  Connexion en cours...
                 </>
               ) : (
-                'Sign in to your account'
+                'Se connecter à votre compte'
               )}
             </button>
           </form>
@@ -164,12 +164,12 @@ const Login = ({ onLogin }: LoginProps) => {
         {/* Sign Up Link */}
         <div className="text-center py-4 border-t border-gray-200">
           <p className="text-gray-600 text-sm">
-            Don't have an account?{' '}
+            Vous n'avez pas de compte?{' '}
             <Link 
               to="/register"
               className="btn-secondary ml-1"
             >
-              Sign up
+              S'inscrire
             </Link>
           </p>
         </div>
@@ -177,7 +177,7 @@ const Login = ({ onLogin }: LoginProps) => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-400 text-xs leading-relaxed">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
+            En continuant, vous acceptez nos Conditions de service et notre Politique de confidentialité.
           </p>
         </div>
       </div>

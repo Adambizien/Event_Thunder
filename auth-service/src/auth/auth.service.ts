@@ -70,21 +70,21 @@ export class AuthService {
       const payload = ticket.getPayload();
       
       if (!payload) {
-        throw new BadRequestException('Invalid Google token payload');
+        throw new BadRequestException('Charge utile de jeton Google invalide');
       }
 
       const { sub: googleId, email, name, picture } = payload;
 
       if (!email || !name) {
-        throw new BadRequestException('Missing email or name in Google payload');
+        throw new BadRequestException('E-mail ou nom manquant dans la charge Google');
       }
 
-      console.log('Google user:', { googleId, email, name });
+      console.log('Utilisateur Google:', { googleId, email, name });
 
-      // Vérifier si l'utilisateur existe déjà via le user-service
+      // Vérifier si l'utilisateur existe déjà via le service utilisateur
       let user;
       try {
-        // Chercher par email
+        // Chercher par e-mail
         const response = await firstValueFrom(
           this.httpService.get(`${this.userServiceUrl}/api/users/email/${email}`)
         );
@@ -145,13 +145,13 @@ export class AuthService {
       const user = response.data.user;
       
       if (!user?.id) {
-        throw new BadRequestException('User creation failed');
+        throw new BadRequestException('Création d\'utilisateur échouée');
       }
 
       const token = this.generateToken(user.id);
 
       return {
-        message: 'User registered successfully',
+        message: 'Utilisateur enregistré avec succès',
         token,
         user: {
           id: user.id,
@@ -179,13 +179,13 @@ export class AuthService {
       const user = response.data.user;
       
       if (!user?.id) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Identifiants invalides');
       }
 
       const token = this.generateToken(user.id);
 
       return {
-        message: 'Login successful',
+        message: 'Connexion réussie',
         token,
         user: {
           id: user.id,
@@ -196,9 +196,9 @@ export class AuthService {
       };
     } catch (error: any) {
       if (error.response?.status === 400) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Identifiants invalides');
       }
-      throw new UnauthorizedException('Auth service error');
+      throw new UnauthorizedException('Erreur du service d\'authentification');
     }
   }
 
@@ -212,15 +212,15 @@ export class AuthService {
       const user = response.data.user;
       
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException('Utilisateur non trouvé');
       }
 
       return { user };
     } catch (error: any) {
       if (error.response?.status === 404) {
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException('Utilisateur non trouvé');
       }
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException('Jeton invalide');
     }
   }
 

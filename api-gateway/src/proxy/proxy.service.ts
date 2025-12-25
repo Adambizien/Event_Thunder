@@ -18,7 +18,7 @@ export class ProxyService {
   async forward(req: any): Promise<{ status: number; headers: Record<string, unknown>; data: any }> {
     const target = this.routeTarget(req.originalUrl);
     if (!target) {
-      throw new Error('No target service for this path');
+      throw new Error('Aucun service cible pour ce chemin');
     }
 
     const url = `${target}${req.originalUrl}`;
@@ -33,7 +33,7 @@ export class ProxyService {
       timeout: 10000,
     };
 
-    this.logger.log(`[GATEWAY] ${req.method} ${req.originalUrl} -> ${url}`);
+    this.logger.log(`[PASSERELLE] ${req.method} ${req.originalUrl} -> ${url}`);
 
     const response = await axios.request(config);
 

@@ -9,19 +9,19 @@ export class DatabaseExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Database error';
+    let message = 'Erreur de base de données';
 
-    // Postgres unique_violation
+    // Postgresql unique_violation
     const err: any = exception as any;
     if (err?.code === '23505') {
       status = HttpStatus.CONFLICT;
-      message = 'Duplicate key error';
+      message = 'Erreur de clé en doublon';
     }
 
     response.status(status).json({
       statusCode: status,
       message,
-      error: 'Database Error',
+      error: 'Erreur de base de données',
     });
   }
 }

@@ -22,7 +22,7 @@ export class User {
   @BeforeUpdate()
   async hashPassword() {
     if (!this.password) return;
-    // If password already hashed (length check) skip
+    // Si le mot de passe est déjà haché (vérification de longueur) ignorer
     if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) return;
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);

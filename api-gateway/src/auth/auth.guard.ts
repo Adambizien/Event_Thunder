@@ -10,13 +10,13 @@ export class AuthGuard implements CanActivate {
     const authHeader = req.headers?.authorization || req.headers?.Authorization;
 
     if (!authHeader) {
-      throw new ForbiddenException('Missing Authorization header');
+      throw new ForbiddenException('En-tête Authorization manquant');
     }
 
     try {
       const authUrl = (process.env.AUTH_SERVICE_URL || 'http://auth-service:3003') + '/api/auth/verify';
 
-      this.logger.log(`Verifying token at ${authUrl}`);
+      this.logger.log(`Vérification du token à ${authUrl}`);
 
       const response = await axios.get(authUrl, {
         headers: {
@@ -26,16 +26,16 @@ export class AuthGuard implements CanActivate {
       });
 
       if (response.status !== 200) {
-        throw new ForbiddenException('Invalid token');
+        throw new ForbiddenException('Token invalide');
       }
 
-      // Attach user to request for downstream handlers
+      // Attacher l'utilisateur à la requête pour les gestionnaires en aval
       req.user = response.data.user || response.data;
 
       return true;
     } catch (err: any) {
-      this.logger.warn('Token verification failed: ' + (err?.message || err));
-      throw new ForbiddenException('Invalid or expired token');
+      this.logger.warn('Vérification du token échouée: ' + (err?.message || err));
+      throw new ForbiddenException('Token invalide ou expiré');
     }
   }
 }

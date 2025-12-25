@@ -10,7 +10,7 @@ export class ProxyController {
     try {
       const result = await this.proxy.forward(req);
 
-      // copy headers
+      // Copier les en-têtes
       Object.keys(result.headers || {}).forEach((key) => {
         try {
           res.setHeader(key, result.headers[key]);
@@ -19,7 +19,7 @@ export class ProxyController {
 
       res.status(result.status).send(result.data);
     } catch (error: any) {
-      res.status(500).json({ message: 'Gateway error', error: error?.message || error });
+      res.status(500).json({ message: 'Erreur de passerelle', error: error?.message || error });
     }
   }
 }

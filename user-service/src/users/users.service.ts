@@ -25,7 +25,7 @@ export class UsersService {
     const existingUser = await this.userRepository.findOne({ where: { email: createUserDto.email } });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('Un utilisateur avec cet e-mail existe déjà');
     }
 
     const user = this.userRepository.create(createUserDto as any);
@@ -37,12 +37,12 @@ export class UsersService {
   async verify(verifyUserDto: VerifyUserDto): Promise<{ user: UserResponseDto }> {
     const user = await this.userRepository.findOne({ where: { email: verifyUserDto.email } });
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Identifiants invalides');
     }
 
     const isMatch = await user.comparePassword(verifyUserDto.password);
     if (!isMatch) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Identifiants invalides');
     }
 
     return { user: this.toUserResponse(user) };
@@ -51,7 +51,7 @@ export class UsersService {
   async findById(id: string): Promise<{ user: UserResponseDto }> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Utilisateur non trouvé');
     }
     return { user: this.toUserResponse(user) };
   }
@@ -59,12 +59,12 @@ export class UsersService {
   async findByEmail(email: string): Promise<{ user: UserResponseDto }> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Utilisateur non trouvé');
     }
     return { user: this.toUserResponse(user) };
   }
 
   async healthCheck(): Promise<{ message: string }> {
-    return { message: 'User service is running' };
+    return { message: 'Le service utilisateur fonctionne' };
   }
 }

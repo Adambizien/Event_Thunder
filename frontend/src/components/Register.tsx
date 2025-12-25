@@ -63,8 +63,8 @@ const Register = ({ onRegister }: RegisterProps) => {
           <div className="mb-6 flex justify-center">
             <Logo size="md" />
           </div>
-          <p className="text-gray-300 text-lg">Create Account</p>
-          <p className="text-gray-400 text-sm">Sign up to get started</p>
+          <p className="text-gray-300 text-lg">Créer un compte</p>
+          <p className="text-gray-400 text-sm">Inscrivez-vous pour commencer</p>
         </div>
 
         {/* Error Message */}
@@ -91,7 +91,7 @@ const Register = ({ onRegister }: RegisterProps) => {
           <GoogleAuthButton 
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
-            buttonText="Sign up with Google"
+            buttonText="S'inscrire avec Google"
           />
 
           {/* Divider */}
@@ -100,7 +100,7 @@ const Register = ({ onRegister }: RegisterProps) => {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-600">or with email</span>
+              <span className="px-4 bg-white text-gray-600">ou avec l'email</span>
             </div>
           </div>
 
@@ -142,12 +142,12 @@ const Register = ({ onRegister }: RegisterProps) => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email Address
+                Adresse e-mail
               </label>
               <input
                 type="email"
                 name="email"
-                placeholder="Enter your email"
+                placeholder="Entrez votre e-mail"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -158,12 +158,12 @@ const Register = ({ onRegister }: RegisterProps) => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
+                Mot de passe
               </label>
               <input
                 type="password"
                 name="password"
-                placeholder="Create a password"
+                placeholder="Créez un mot de passe"
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -171,7 +171,7 @@ const Register = ({ onRegister }: RegisterProps) => {
                 disabled={loading}
                 className="input-field"
               />
-              <p className="text-xs text-gray-500 mt-2">Must be at least 6 characters</p>
+              <p className="text-xs text-gray-500 mt-2">Doit contenir au moins 6 caractères</p>
             </div>
 
             <button 
@@ -182,10 +182,10 @@ const Register = ({ onRegister }: RegisterProps) => {
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Creating account...
+                  Création du compte...
                 </>
               ) : (
-                'Create Account'
+                'Créer un compte'
               )}
             </button>
           </form>
@@ -208,7 +208,7 @@ const Register = ({ onRegister }: RegisterProps) => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-400 text-xs leading-relaxed">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
+            En continuant, vous acceptez nos Conditions de service et notre Politique de confidentialité.
           </p>
         </div>
       </div>

@@ -5,13 +5,13 @@ import { AuthGuard } from './auth/auth.guard';
 export class AppController {
   @Get('health')
   health() {
-    return { message: 'API Gateway (Nest) is running' };
+    return { message: 'La passerelle API (Nest) fonctionne' };
   }
 
-  // Example protected route
+  // Route protégée exemple
   @Get('api/protected')
   @UseGuards(AuthGuard)
   protectedRoute(@Req() req: any) {
-    return { message: 'You accessed a protected route', user: req.user };
+    return { message: 'Vous avez accédé à une route protégée', user: req.user };
   }
 }
