@@ -53,7 +53,6 @@ export class AuthService {
         throw new BadRequestException('Authorization code is required');
       }
 
-      // Échanger le code contre un token d'accès
       const { tokens } = await this.googleClient.getToken(code);
       this.googleClient.setCredentials(tokens);
 
@@ -61,7 +60,6 @@ export class AuthService {
         throw new BadRequestException('No ID token received from Google');
       }
 
-      // Récupérer les infos utilisateur Google
       const ticket = await this.googleClient.verifyIdToken({
         idToken: tokens.id_token,
         audience: process.env.GOOGLE_CLIENT_ID,
@@ -79,20 +77,14 @@ export class AuthService {
         throw new BadRequestException('E-mail ou nom manquant dans la charge Google');
       }
 
-      console.log('Utilisateur Google:', { googleId, email, name });
-
-      // Vérifier si l'utilisateur existe déjà via le service utilisateur
       let user;
       try {
-        // Chercher par e-mail
         const response = await firstValueFrom(
           this.httpService.get(`${this.userServiceUrl}/api/users/email/${email}`)
         );
         user = response.data.user;
       } catch (error: any) {
         if (error.response?.status === 404) {
-          // Créer un nouvel utilisateur via le user-service
-          // Séparer le nom complet en prénom / nom
           const parts = name.trim().split(/\s+/);
           const firstName = parts.shift() || '';
           const lastName = parts.join(' ') || '';
@@ -116,7 +108,6 @@ export class AuthService {
         throw new BadRequestException('User creation failed');
       }
 
-      // Générer le token JWT
       const token = this.generateToken(user.id);
 
       return {
@@ -137,7 +128,6 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     try {
-      // Appel direct au user-service Express
       const response = await firstValueFrom(
         this.httpService.post(`${this.userServiceUrl}/api/users`, registerDto)
       );
@@ -161,7 +151,6 @@ export class AuthService {
         },
       };
     } catch (error: any) {
-      // Propagation de l'erreur du user-service
       if (error.response) {
         throw new BadRequestException(error.response.data);
       }
@@ -171,7 +160,6 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     try {
-      // Appel direct au user-service Express pour vérifier les credentials
       const response = await firstValueFrom(
         this.httpService.post(`${this.userServiceUrl}/api/users/verify`, loginDto)
       );
@@ -204,7 +192,6 @@ export class AuthService {
 
   async verifyToken(userId: string) {
     try {
-      // Récupérer l'utilisateur via le user-service
       const response = await firstValueFrom(
         this.httpService.get(`${this.userServiceUrl}/api/users/${userId}`)
       );

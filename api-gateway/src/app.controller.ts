@@ -8,7 +8,6 @@ export class AppController {
     return { message: 'La passerelle API (Nest) fonctionne' };
   }
 
-  // Route protégée exemple
   @Get('api/protected')
   @UseGuards(AuthGuard)
   protectedRoute(@Req() req: any) {

@@ -10,7 +10,6 @@ export class ProxyController {
     try {
       const result = await this.proxy.forward(req);
 
-      // Copier les en-têtes
       Object.keys(result.headers || {}).forEach((key) => {
         try {
           res.setHeader(key, result.headers[key]);

@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import * as crypto from 'crypto';
-// Make crypto available globally
 if (!globalThis.crypto) {
   globalThis.crypto = crypto as any;
 }
@@ -12,7 +11,6 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Activer CORS
   app.enableCors({
     origin: true,
     credentials: true,

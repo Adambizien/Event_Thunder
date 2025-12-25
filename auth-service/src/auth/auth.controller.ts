@@ -17,30 +17,18 @@ export class AuthController {
   // Route GET pour le callback Google
   @Get('google/callback')
   async googleAuthCallback(@Query('code') code: string, @Query() query: any, @Res() res: any) {
-    console.log('🔑 Google callback received');
-    console.log('📋 Query params:', JSON.stringify(query, null, 2));
     
     try {
       // Décoder le code s'il est URL-encoded
       const decodedCode = code ? decodeURIComponent(code) : null;
-      console.log('🔐 Original Code:', code);
-      console.log('🔐 Decoded Code:', decodedCode);
-      
       if (!decodedCode) {
-        console.log('❌ No code provided');
-        console.log('Available params:', Object.keys(query));
         return this.serveClosePage(res, 'error', `no_code. Params: ${Object.keys(query).join(', ')}`);
       }
-      
-      console.log('🔄 Exchanging code for token...');
       const result = await this.authService.googleAuth({ code: decodedCode });
-      console.log('✅ Google auth successful for:', result.user.email);
-      console.log( process.env.FRONTEND_URL );
-      
       return this.serveClosePage(res, 'success', null, result.token, result.user);
       
     } catch (error: any) {
-      console.error('❌ Google OAuth error:', error);
+      console.error('Google OAuth error:', error);
       const errorMessage = error?.message || 'Authentication failed';
       return this.serveClosePage(res, 'error', errorMessage);
     }

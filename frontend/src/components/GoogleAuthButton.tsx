@@ -18,7 +18,6 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Goo
       const response = await fetch(`${apiUrl}/api/auth/google/url`);
       const { authUrl: googleAuthUrl } = await response.json();
       
-      console.log('🔗 Opening Google OAuth in popup...');
       
       const width = 500;
       const height = 600;
@@ -38,7 +37,6 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Goo
       const checkPopup = setInterval(() => {
         if (popup.closed) {
           clearInterval(checkPopup);
-          console.log('🔒 Google auth popup closed');
           setLoading(false);
           
           setTimeout(() => {
@@ -46,7 +44,6 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Goo
             const user = localStorage.getItem('user');
             
             if (token && user) {
-              console.log('✅ User authenticated after popup close');
               onSuccess(JSON.parse(user));
             }
           }, 500);

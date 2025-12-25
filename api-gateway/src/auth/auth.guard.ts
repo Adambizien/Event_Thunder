@@ -29,7 +29,6 @@ export class AuthGuard implements CanActivate {
         throw new ForbiddenException('Token invalide');
       }
 
-      // Attacher l'utilisateur à la requête pour les gestionnaires en aval
       req.user = response.data.user || response.data;
 
       return true;

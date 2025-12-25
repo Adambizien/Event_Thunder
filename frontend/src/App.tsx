@@ -21,7 +21,6 @@ function AppContent() {
       const userParam = urlParams.get('user');
       
       if (token && userParam) {
-        console.log('🎯 OAuth detected in URL');
         try {
           const userData = JSON.parse(decodeURIComponent(userParam));
           localStorage.setItem('token', token);
@@ -52,8 +51,6 @@ function AppContent() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log('Message received:', event.data);
-      
       if (event.data.type === 'OAUTH_SUCCESS') {
         const { token, user } = event.data;
         localStorage.setItem('token', token);
