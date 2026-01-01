@@ -1,5 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosRequestConfig } from 'axios';
+import type { Request } from 'express';
+import type { ParsedQs } from 'qs';
+
+export type ProxyResult = {
+  status: number;
+  headers: Record<string, string | number | string[] | boolean | undefined>;
+  data: ArrayBuffer | Buffer | string | Record<string, unknown>;
+};
+
+type GatewayRequest = Request<
+  Record<string, string>,
+  unknown,
+  unknown,
+  ParsedQs
+>;
 
 @Injectable()
 export class ProxyService {
@@ -15,14 +30,14 @@ export class ProxyService {
     return null;
   }
 
-  async forward(req: any): Promise<{ status: number; headers: Record<string, unknown>; data: any }> {
+  async forward(req: GatewayRequest): Promise<ProxyResult> {
     const target = this.routeTarget(req.originalUrl);
     if (!target) {
       throw new Error('Aucun service cible pour ce chemin');
     }
 
     const url = `${target}${req.originalUrl}`;
-    const config: AxiosRequestConfig = {
+    const config: AxiosRequestConfig<unknown> = {
       method: req.method,
       url,
       headers: { ...req.headers, host: undefined },
@@ -35,13 +50,13 @@ export class ProxyService {
 
     this.logger.log(`[PASSERELLE] ${req.method} ${req.originalUrl} -> ${url}`);
 
-    const response = await axios.request(config);
-
-    const headers = response.headers as Record<string, unknown>;
+    const response = await axios.request<
+      ArrayBuffer | Buffer | string | Record<string, unknown>
+    >(config);
 
     return {
       status: response.status,
-      headers,
+      headers: response.headers as ProxyResult['headers'],
       data: response.data,
     };
   }
