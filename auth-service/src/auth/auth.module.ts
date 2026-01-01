@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import type { SignOptions } from 'jsonwebtoken';
 import { HttpModule } from '@nestjs/axios';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -17,14 +18,17 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         if (!jwtSecret) {
           throw new Error('JWT_SECRET is not defined');
         }
-        
-        const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
-        
+
+        const expiresIn = (process.env.JWT_EXPIRES_IN ||
+          '1d') as SignOptions['expiresIn'];
+
+        const signOptions: SignOptions = {
+          expiresIn,
+        };
+
         return {
           secret: jwtSecret,
-          signOptions: { 
-            expiresIn: expiresIn as any
-          },
+          signOptions,
         };
       },
     }),

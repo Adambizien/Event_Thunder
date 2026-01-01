@@ -1,9 +1,29 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Query, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Query,
+  Res,
+} from '@nestjs/common';
+import type { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+
+type UserPayload = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+};
+
+type AuthenticatedRequest = ExpressRequest & { user?: UserPayload };
 
 @Controller('auth')
 export class AuthController {
@@ -16,26 +36,46 @@ export class AuthController {
 
   // Route GET pour le callback Google
   @Get('google/callback')
-  async googleAuthCallback(@Query('code') code: string, @Query() query: any, @Res() res: any) {
-    
+  async googleAuthCallback(
+    @Query('code') code: string,
+    @Query() query: Record<string, string | string[]>,
+    @Res() res: Response,
+  ) {
     try {
       const decodedCode = code ? decodeURIComponent(code) : null;
       if (!decodedCode) {
-        return this.serveClosePage(res, 'error', `no_code. Params: ${Object.keys(query).join(', ')}`);
+        return this.serveClosePage(
+          res,
+          'error',
+          `no_code. Params: ${Object.keys(query).join(', ')}`,
+        );
       }
       const result = await this.authService.googleAuth({ code: decodedCode });
-      return this.serveClosePage(res, 'success', null, result.token, result.user);
-      
-    } catch (error: any) {
+      return this.serveClosePage(
+        res,
+        'success',
+        null,
+        result.token,
+        result.user,
+      );
+    } catch (error: unknown) {
       console.error('Google OAuth error:', error);
-      const errorMessage = error?.message || 'Authentication failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Authentication failed';
       return this.serveClosePage(res, 'error', errorMessage);
     }
   }
 
-  private serveClosePage(res: any, status: string, errorMessage: string | null, token?: string, user?: any) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://testa.bizienadam.fr';
-    
+  private serveClosePage(
+    res: Response,
+    status: string,
+    errorMessage: string | null,
+    token?: string,
+    user?: UserPayload,
+  ) {
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'http://testa.bizienadam.fr';
+
     if (status === 'success' && token && user) {
       const html = `
         <!DOCTYPE html>
@@ -91,16 +131,16 @@ export class AuthController {
             <div class="container">
                 <div class="success-icon">✅</div>
                 <h1>Authentication Successful!</h1>
-                <p class="message">Welcome, ${user.name}!</p>
+                <p class="message">Welcome, ${user.firstName ?? ''} ${user.lastName ?? ''}!</p>
                 <p>Closing window automatically...</p>
             </div>
         </body>
         </html>
       `;
-      
+
       res.setHeader('Content-Type', 'text/html');
-      return res.send(html);
-      
+      res.send(html);
+      return;
     } else {
       const html = `
         <!DOCTYPE html>
@@ -157,9 +197,10 @@ export class AuthController {
         </body>
         </html>
       `;
-      
+
       res.setHeader('Content-Type', 'text/html');
-      return res.send(html);
+      res.send(html);
+      return;
     }
   }
 
@@ -181,8 +222,12 @@ export class AuthController {
 
   @Get('verify')
   @UseGuards(JwtAuthGuard)
-  verifyToken(@Request() req: any) {
-    return this.authService.verifyToken(req.user.id);
+  verifyToken(@Request() req: AuthenticatedRequest) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new BadRequestException('Utilisateur non authentifié');
+    }
+    return this.authService.verifyToken(userId);
   }
 
   @Get('health')

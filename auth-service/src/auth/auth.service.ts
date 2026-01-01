@@ -1,11 +1,31 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { HttpService } from '@nestjs/axios';
+import { isAxiosError } from 'axios';
 import { OAuth2Client } from 'google-auth-library';
 import { firstValueFrom } from 'rxjs';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+
+type UserPayload = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+};
+
+type UserResponse = { user: UserPayload };
+
+type AuthResponse = {
+  message: string;
+  token: string;
+  user: UserPayload;
+};
 
 @Injectable()
 export class AuthService {
@@ -16,11 +36,12 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly httpService: HttpService,
   ) {
-    this.userServiceUrl = process.env.USER_SERVICE_URL || 'http://user-service:3002';
-    
+    this.userServiceUrl =
+      process.env.USER_SERVICE_URL || 'http://user-service:3002';
+
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    
+
     if (!googleClientId || !googleClientSecret) {
       throw new Error('Google OAuth credentials are not defined');
     }
@@ -28,7 +49,8 @@ export class AuthService {
     this.googleClient = new OAuth2Client(
       googleClientId,
       googleClientSecret,
-      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/auth/google/callback',
+      process.env.GOOGLE_REDIRECT_URI ||
+        'http://localhost:8000/api/auth/google/callback',
     );
   }
 
@@ -45,7 +67,7 @@ export class AuthService {
     return { authUrl };
   }
 
-  async googleAuth(googleAuthDto: GoogleAuthDto) {
+  async googleAuth(googleAuthDto: GoogleAuthDto): Promise<AuthResponse> {
     try {
       const { code } = googleAuthDto;
 
@@ -66,37 +88,46 @@ export class AuthService {
       });
 
       const payload = ticket.getPayload();
-      
+
       if (!payload) {
         throw new BadRequestException('Charge utile de jeton Google invalide');
       }
 
-      const { sub: googleId, email, name, picture } = payload;
+      const { email, name } = payload;
 
       if (!email || !name) {
-        throw new BadRequestException('E-mail ou nom manquant dans la charge Google');
+        throw new BadRequestException(
+          'E-mail ou nom manquant dans la charge Google',
+        );
       }
 
-      let user;
+      let user: UserPayload | undefined;
       try {
         const response = await firstValueFrom(
-          this.httpService.get(`${this.userServiceUrl}/api/users/email/${email}`)
+          this.httpService.get<UserResponse>(
+            `${this.userServiceUrl}/api/users/email/${email}`,
+          ),
         );
         user = response.data.user;
-      } catch (error: any) {
-        if (error.response?.status === 404) {
+      } catch (error: unknown) {
+        const isNotFound =
+          isAxiosError(error) && error.response?.status === 404;
+        if (isNotFound) {
           const parts = name.trim().split(/\s+/);
           const firstName = parts.shift() || '';
           const lastName = parts.join(' ') || '';
           const password = Math.random().toString(36).slice(-16) + 'Aa1!';
 
           const createUserResponse = await firstValueFrom(
-            this.httpService.post(`${this.userServiceUrl}/api/users`, {
-              firstName,
-              lastName,
-              email,
-              password,
-            })
+            this.httpService.post<UserResponse>(
+              `${this.userServiceUrl}/api/users`,
+              {
+                firstName,
+                lastName,
+                email,
+                password,
+              },
+            ),
           );
           user = createUserResponse.data.user;
         } else {
@@ -120,22 +151,25 @@ export class AuthService {
           email: user.email,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Google OAuth error:', error);
       throw new UnauthorizedException('Google authentication failed');
     }
   }
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto): Promise<AuthResponse> {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.userServiceUrl}/api/users`, registerDto)
+        this.httpService.post<UserResponse>(
+          `${this.userServiceUrl}/api/users`,
+          registerDto,
+        ),
       );
-      
+
       const user = response.data.user;
-      
+
       if (!user?.id) {
-        throw new BadRequestException('Création d\'utilisateur échouée');
+        throw new BadRequestException("Création d'utilisateur échouée");
       }
 
       const token = this.generateToken(user.id);
@@ -150,22 +184,25 @@ export class AuthService {
           email: user.email,
         },
       };
-    } catch (error: any) {
-      if (error.response) {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.data) {
         throw new BadRequestException(error.response.data);
       }
       throw new BadRequestException('Auth service error');
     }
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<AuthResponse> {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.userServiceUrl}/api/users/verify`, loginDto)
+        this.httpService.post<UserResponse>(
+          `${this.userServiceUrl}/api/users/verify`,
+          loginDto,
+        ),
       );
-      
+
       const user = response.data.user;
-      
+
       if (!user?.id) {
         throw new UnauthorizedException('Identifiants invalides');
       }
@@ -182,29 +219,31 @@ export class AuthService {
           email: user.email,
         },
       };
-    } catch (error: any) {
-      if (error.response?.status === 400) {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 400) {
         throw new UnauthorizedException('Identifiants invalides');
       }
-      throw new UnauthorizedException('Erreur du service d\'authentification');
+      throw new UnauthorizedException("Erreur du service d'authentification");
     }
   }
 
-  async verifyToken(userId: string) {
+  async verifyToken(userId: string): Promise<{ user: UserPayload }> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.userServiceUrl}/api/users/${userId}`)
+        this.httpService.get<UserResponse>(
+          `${this.userServiceUrl}/api/users/${userId}`,
+        ),
       );
-      
+
       const user = response.data.user;
-      
+
       if (!user) {
         throw new UnauthorizedException('Utilisateur non trouvé');
       }
 
       return { user };
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         throw new UnauthorizedException('Utilisateur non trouvé');
       }
       throw new UnauthorizedException('Jeton invalide');
@@ -220,7 +259,7 @@ export class AuthService {
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
-    
+
     return this.jwtService.sign({ id: userId });
   }
 }
