@@ -38,7 +38,7 @@ function AppContent() {
           try {
             const response = await authService.getCurrentUser();
             setUser(response.user);
-          } catch (error) {
+          } catch {
             authService.logout();
           }
         }

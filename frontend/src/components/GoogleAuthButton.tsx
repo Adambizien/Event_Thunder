@@ -10,13 +10,23 @@ interface GoogleAuthButtonProps {
 const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Google" }: GoogleAuthButtonProps) => {
   const [loading, setLoading] = useState(false);
 
+  const getErrorMessage = (err: unknown) => {
+    if (err instanceof Error && err.message) return err.message;
+    return "Échec du démarrage de l'authentification Google";
+  };
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/api/auth/google/url`);
-      const { authUrl: googleAuthUrl } = await response.json();
+      const data: { authUrl?: string } = await response.json();
+      const googleAuthUrl = data.authUrl;
+
+      if (!googleAuthUrl) {
+        throw new Error('URL Google introuvable');
+      }
       
       
       const width = 500;
@@ -50,9 +60,9 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Goo
         }
       }, 500);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google auth error:', error);
-      onError(error.message || 'Échec du démarrage de l\'authentification Google');
+      onError(getErrorMessage(error));
       setLoading(false);
     }
   };

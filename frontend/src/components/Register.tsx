@@ -21,6 +21,17 @@ const Register = ({ onRegister }: RegisterProps) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  type ApiError = { response?: { data?: { message?: string } } };
+  const getErrorMessage = (err: unknown) => {
+    if (typeof err === 'object' && err !== null && 'response' in err) {
+      const maybeResponse = (err as ApiError).response;
+      const message = maybeResponse?.data?.message;
+      if (typeof message === 'string') return message;
+    }
+    if (err instanceof Error && err.message) return err.message;
+    return 'Registration failed. Please try again.';
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -39,8 +50,8 @@ const Register = ({ onRegister }: RegisterProps) => {
       localStorage.setItem('user', JSON.stringify(response.user));
       onRegister(response.user);
       navigate('/dashboard');
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -19,6 +19,17 @@ const Login = ({ onLogin }: LoginProps) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  type ApiError = { response?: { data?: { message?: string } } };
+  const getErrorMessage = (err: unknown) => {
+    if (typeof err === 'object' && err !== null && 'response' in err) {
+      const maybeResponse = (err as ApiError).response;
+      const message = maybeResponse?.data?.message;
+      if (typeof message === 'string') return message;
+    }
+    if (err instanceof Error && err.message) return err.message;
+    return 'Login failed. Please check your credentials and try again.';
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -37,8 +48,8 @@ const Login = ({ onLogin }: LoginProps) => {
       localStorage.setItem('user', JSON.stringify(response.user));
       onLogin(response.user);
       navigate('/dashboard');
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Login failed. Please check your credentials and try again.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
