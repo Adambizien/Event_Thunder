@@ -9,16 +9,17 @@ import { UsersModule } from './users/users.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         const url =
-          configService.get<string>('DB_CONNECTION') || configService.get<string>('DATABASE_URL');
+          configService.get<string>('DB_CONNECTION') ||
+          configService.get<string>('DATABASE_URL');
 
         return {
           type: 'postgres',
           url,
           autoLoadEntities: true,
           synchronize: configService.get<string>('NODE_ENV') !== 'production',
-        } as any;
+        } as const;
       },
     }),
     UsersModule,

@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  BeforeInsert,
+  BeforeUpdate,
+} from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 @Entity({ name: 'users' })
@@ -22,7 +28,8 @@ export class User {
   @BeforeUpdate()
   async hashPassword() {
     if (!this.password) return;
-    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) return;
+    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$'))
+      return;
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
   }

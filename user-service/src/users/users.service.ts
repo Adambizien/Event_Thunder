@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -6,36 +11,46 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyUserDto } from './dto/verify-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 
+type UserEntity = User & { _id?: string };
+
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  private toUserResponse(user: any): UserResponseDto {
+  private toUserResponse(user: UserEntity): UserResponseDto {
     return {
-      id: (user as any).id || (user as any)._id?.toString(),
-      firstName: (user as any).firstName,
-      lastName: (user as any).lastName,
-      email: (user as any).email,
+      id: user.id || user._id?.toString() || '',
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      email: user.email,
     };
   }
 
-  async create(createUserDto: CreateUserDto): Promise<{ user: UserResponseDto }> {
-    const existingUser = await this.userRepository.findOne({ where: { email: createUserDto.email } });
+  async create(
+    createUserDto: CreateUserDto,
+  ): Promise<{ user: UserResponseDto }> {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
 
     if (existingUser) {
       throw new ConflictException('Un utilisateur avec cet e-mail existe déjà');
     }
 
-    const user = this.userRepository.create(createUserDto as any);
+    const user = this.userRepository.create(createUserDto);
     await this.userRepository.save(user);
 
     return { user: this.toUserResponse(user) };
   }
 
-  async verify(verifyUserDto: VerifyUserDto): Promise<{ user: UserResponseDto }> {
-    const user = await this.userRepository.findOne({ where: { email: verifyUserDto.email } });
+  async verify(
+    verifyUserDto: VerifyUserDto,
+  ): Promise<{ user: UserResponseDto }> {
+    const user = await this.userRepository.findOne({
+      where: { email: verifyUserDto.email },
+    });
     if (!user) {
       throw new UnauthorizedException('Identifiants invalides');
     }
@@ -64,7 +79,7 @@ export class UsersService {
     return { user: this.toUserResponse(user) };
   }
 
-  async healthCheck(): Promise<{ message: string }> {
-    return { message: 'Le service utilisateur fonctionne' };
+  healthCheck(): Promise<{ message: string }> {
+    return Promise.resolve({ message: 'Le service utilisateur fonctionne' });
   }
 }
