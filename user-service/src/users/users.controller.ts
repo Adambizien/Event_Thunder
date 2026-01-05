@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   HttpCode,
@@ -10,6 +11,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyUserDto } from './dto/verify-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @Controller('api/users')
 export class UsersController {
@@ -34,6 +36,12 @@ export class UsersController {
   @Get('email/:email')
   async findByEmail(@Param('email') email: string) {
     return this.usersService.findByEmail(email);
+  }
+
+  @Patch('password')
+  @HttpCode(HttpStatus.OK)
+  async updatePassword(@Body() updatePasswordDto: UpdatePasswordDto) {
+    return this.usersService.updatePassword(updatePasswordDto);
   }
 
   @Get('health')

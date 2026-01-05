@@ -38,6 +38,7 @@ services:
       - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - USER_SERVICE_URL=${USER_SERVICE_URL}
+      - MAILING_SERVICE_URL=${MAILING_SERVICE_URL}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
@@ -46,6 +47,7 @@ services:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
     depends_on:
       - user-service
+      - mailing
     networks:
       - app-network
 
@@ -62,6 +64,20 @@ services:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     depends_on:
       - postgres
+    networks:
+      - app-network
+
+  # Mailing Service
+  mailing:
+    build: ./mailing-service
+    container_name: mailing_service
+    environment:
+      - PORT=${MAILING_SERVICE_PORT}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - MAIL_FROM=${MAIL_FROM}
+      - PRODUCT_NAME=${PRODUCT_NAME}
+    ports:
+      - "${MAILING_SERVICE_PORT}:${MAILING_SERVICE_PORT}"
     networks:
       - app-network
 

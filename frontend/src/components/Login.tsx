@@ -169,6 +169,15 @@ const Login = ({ onLogin }: LoginProps) => {
                 'Se connecter à votre compte'
               )}
             </button>
+
+            <div className="mt-4 text-center">
+              <Link 
+                to="/forgot-password"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Mot de passe oublié?
+              </Link>
+            </div>
           </form>
         </div>
 

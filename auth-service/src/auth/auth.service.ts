@@ -11,6 +11,9 @@ import { firstValueFrom } from 'rxjs';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import * as crypto from 'crypto';
 
 type UserPayload = {
   id: string;
@@ -31,6 +34,9 @@ type AuthResponse = {
 export class AuthService {
   private googleClient: OAuth2Client;
   private userServiceUrl: string;
+  private mailingServiceUrl: string;
+  private resetTokens: Map<string, { email: string; expiresAt: number }> =
+    new Map();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -38,6 +44,8 @@ export class AuthService {
   ) {
     this.userServiceUrl =
       process.env.USER_SERVICE_URL || 'http://user-service:3002';
+    this.mailingServiceUrl =
+      process.env.MAILING_SERVICE_URL || 'http://mailing:3003';
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -252,6 +260,86 @@ export class AuthService {
 
   getHealth() {
     return { message: 'Auth service is running' };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    try {
+      // Verify user exists
+      const response = await firstValueFrom(
+        this.httpService.get<UserResponse>(
+          `${this.userServiceUrl}/api/users/email/${dto.email}`,
+        ),
+      );
+
+      const user = response.data.user;
+      if (!user) {
+        // Return success even if user doesn't exist (security best practice)
+        return { message: 'If the email exists, a reset link has been sent' };
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+
+      // Store token with email
+      this.resetTokens.set(resetToken, {
+        email: dto.email,
+        expiresAt,
+      });
+
+      // Build reset URL
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+      // Send email via mailing service
+      await firstValueFrom(
+        this.httpService.post(`${this.mailingServiceUrl}/mail/password-reset`, {
+          email: dto.email,
+          resetUrl,
+          username: user.firstName || user.email.split('@')[0],
+          expiresInMinutes: 60,
+        }),
+      );
+
+      return { message: 'If the email exists, a reset link has been sent' };
+    } catch (error: unknown) {
+      console.error('Forgot password error:', error);
+      // Always return success message for security
+      return { message: 'If the email exists, a reset link has been sent' };
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const tokenData = this.resetTokens.get(dto.token);
+
+    if (!tokenData) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (Date.now() > tokenData.expiresAt) {
+      this.resetTokens.delete(dto.token);
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    try {
+      // Update password via user service
+      await firstValueFrom(
+        this.httpService.patch(`${this.userServiceUrl}/api/users/password`, {
+          email: tokenData.email,
+          newPassword: dto.newPassword,
+        }),
+      );
+
+      // Delete used token
+      this.resetTokens.delete(dto.token);
+
+      return { message: 'Password reset successfully' };
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.data) {
+        throw new BadRequestException(error.response.data);
+      }
+      throw new BadRequestException('Failed to reset password');
+    }
   }
 
   private generateToken(userId: string): string {

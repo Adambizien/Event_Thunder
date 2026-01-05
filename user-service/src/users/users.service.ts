@@ -10,6 +10,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyUserDto } from './dto/verify-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 type UserEntity = User & { _id?: string };
 
@@ -77,6 +78,23 @@ export class UsersService {
       throw new NotFoundException('Utilisateur non trouvé');
     }
     return { user: this.toUserResponse(user) };
+  }
+
+  async updatePassword(
+    updatePasswordDto: UpdatePasswordDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { email: updatePasswordDto.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    user.password = updatePasswordDto.newPassword;
+    await this.userRepository.save(user);
+
+    return { message: 'Mot de passe mis à jour avec succès' };
   }
 
   healthCheck(): Promise<{ message: string }> {

@@ -6,6 +6,8 @@ import Dashboard from './components/Dashboard';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import Home from './pages/Home';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
@@ -96,6 +98,14 @@ function AppContent() {
         <Route 
           path="/register" 
           element={user ? <Navigate to="/dashboard" replace /> : <Register onSwitchToLogin={() => {}} onRegister={handleRegister} />}
+        />
+        <Route 
+          path="/forgot-password" 
+          element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+        />
+        <Route 
+          path="/reset-password" 
+          element={user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
         />
         <Route 
           path="/dashboard" 
