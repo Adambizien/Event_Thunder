@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+:root {
+  --thunder-navy: #1e3a5f;
+  --thunder-dark: #2d5a8c;
+  --thunder-gold: #ffb020;
+  --thunder-orange: #ff922b;
+  --thunder-yellow: #ffd24a;
+  --thunder-light: #f0f0f0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--thunder-navy);
+  color: #f3f4f6;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+}
+
+button {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: var(--thunder-gold);
+  color: #000;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: var(--thunder-orange);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  color: var(--thunder-gold);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-secondary:hover {
+  color: var(--thunder-yellow);
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  color: #111827;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--thunder-gold);
+  box-shadow: 0 0 0 3px rgba(255, 176, 32, 0.1);
+}
+
+.input-field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.card {
+  background-color: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+}
+
+.error-box {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef5350;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
