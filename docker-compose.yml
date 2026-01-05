@@ -68,7 +68,7 @@ services:
   # Frontend
   frontend:
     build: ./frontend
-    container_name: auth_frontend
+    container_name: frontend
     environment:
       - VITE_API_URL=${API_GATEWAY_URL}
     ports:
