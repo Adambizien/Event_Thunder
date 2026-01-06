@@ -19,4 +19,7 @@ async function bootstrap() {
     console.log(`Mailing service listening on port ${port}`);
   });
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('Failed to start mailing service', error);
+  process.exit(1);
+});
