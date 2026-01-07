@@ -284,11 +284,11 @@ export class AuthService {
 
       const user = response.data.user;
       if (!user) {
-        return { message: 'If the email exists, a reset link has been sent' };
+        return { message: 'Si l\'email existe, un lien de réinitialisation a été envoyé' };
       }
 
       const resetToken = crypto.randomBytes(32).toString('hex');
-      const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+      const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
 
       this.resetTokens.set(resetToken, {
         email: dto.email,
@@ -303,14 +303,14 @@ export class AuthService {
           email: dto.email,
           resetUrl,
           username: user.firstName || user.email.split('@')[0],
-          expiresInMinutes: 60,
+          expiresInMinutes: 30,
         }),
       );
 
-      return { message: 'If the email exists, a reset link has been sent' };
+      return { message: 'Si l\'email existe, un lien de réinitialisation a été envoyé' };
     } catch (error: unknown) {
       console.error('Forgot password error:', error);
-      return { message: 'If the email exists, a reset link has been sent' };
+      return { message: 'Si l\'email existe, un lien de réinitialisation a été envoyé' };
     }
   }
 
@@ -318,12 +318,12 @@ export class AuthService {
     const tokenData = this.resetTokens.get(dto.token);
 
     if (!tokenData) {
-      throw new BadRequestException('Invalid or expired reset token');
+      throw new BadRequestException('Jeton de réinitialisation invalide ou expiré');
     }
 
     if (Date.now() > tokenData.expiresAt) {
       this.resetTokens.delete(dto.token);
-      throw new BadRequestException('Reset token has expired');
+      throw new BadRequestException('Le jeton de réinitialisation a expiré');
     }
 
     try {
@@ -336,12 +336,12 @@ export class AuthService {
 
       this.resetTokens.delete(dto.token);
 
-      return { message: 'Password reset successfully' };
+      return { message: 'Mot de passe réinitialisé avec succès' };
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.data) {
         throw new BadRequestException(error.response.data);
       }
-      throw new BadRequestException('Failed to reset password');
+      throw new BadRequestException('Échec de la réinitialisation du mot de passe');
     }
   }
 

@@ -18,7 +18,7 @@ const ResetPassword = () => {
   useEffect(() => {
     const tokenParam = searchParams.get('token');
     if (!tokenParam) {
-      setError('Invalid reset link');
+      setError('Lien de réinitialisation invalide');
     } else {
       setToken(tokenParam);
     }
@@ -38,13 +38,13 @@ const ResetPassword = () => {
     setMessage('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Les mots de passe ne correspondent pas');
       setLoading(false);
       return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
+      setError('Le mot de passe doit contenir au moins 8 caractères');
       setLoading(false);
       return;
     }
@@ -52,7 +52,7 @@ const ResetPassword = () => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
     if (!passwordRegex.test(formData.password)) {
       setError(
-        'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character'
+        'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial'
       );
       setLoading(false);
       return;
@@ -60,7 +60,7 @@ const ResetPassword = () => {
 
     try {
       const response = await authService.resetPassword(token, formData.password);
-      setMessage(response.message || 'Password reset successfully');
+      setMessage(response.message || 'Mot de passe réinitialisé avec succès');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -69,7 +69,7 @@ const ResetPassword = () => {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
-      setError(errorMsg || 'Failed to reset password. The link may be expired.');
+      setError(errorMsg || 'Échec de la réinitialisation. Le lien a peut-être expiré.');
       console.error('Reset password error:', err);
     } finally {
       setLoading(false);
@@ -93,10 +93,10 @@ const ResetPassword = () => {
           </div>
 
           <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
-            Reset Password
+            Réinitialiser le mot de passe
           </h2>
           <p className="text-center text-gray-600 mb-8">
-            Enter your new password
+            Entrez votre nouveau mot de passe
           </p>
 
           {message && (
@@ -115,7 +115,7 @@ const ResetPassword = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  New Password
+                  Nouveau mot de passe
                 </label>
                 <input
                   type="password"
@@ -125,7 +125,7 @@ const ResetPassword = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter new password"
+                  placeholder="Entrez le nouveau mot de passe"
                   disabled={loading}
                 />
               </div>
@@ -135,7 +135,7 @@ const ResetPassword = () => {
                   htmlFor="confirmPassword"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
-                  Confirm Password
+                  Confirmer le mot de passe
                 </label>
                 <input
                   type="password"
@@ -145,7 +145,7 @@ const ResetPassword = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Confirm new password"
+                  placeholder="Confirmez le nouveau mot de passe"
                   disabled={loading}
                 />
               </div>
@@ -155,7 +155,7 @@ const ResetPassword = () => {
                 disabled={loading}
                 className="w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Resetting...' : 'Reset Password'}
+                {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
               </button>
             </form>
           )}
@@ -165,7 +165,7 @@ const ResetPassword = () => {
               to="/login"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
-              ← Back to Login
+              ← Retour à la connexion
             </Link>
           </div>
         </div>

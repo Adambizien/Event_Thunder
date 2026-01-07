@@ -17,10 +17,10 @@ const ForgotPassword = () => {
 
     try {
       const response = await authService.forgotPassword(email);
-      setMessage(response.message || 'If the email exists, a reset link has been sent');
+      setMessage(response.message || 'Si l\'email existe, un lien de réinitialisation a été envoyé');
       setEmail('');
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Une erreur s\'est produite. Veuillez réessayer.');
       console.error('Forgot password error:', err);
     } finally {
       setLoading(false);
@@ -36,10 +36,10 @@ const ForgotPassword = () => {
           </div>
 
           <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
-            Forgot Password
+            Mot de passe oublié
           </h2>
           <p className="text-center text-gray-600 mb-8">
-            Enter your email to receive a password reset link
+            Entrez votre email pour recevoir un lien de réinitialisation
           </p>
 
           {message && (
@@ -57,7 +57,7 @@ const ForgotPassword = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Adresse email
               </label>
               <input
                 type="email"
@@ -66,7 +66,7 @@ const ForgotPassword = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
-                placeholder="Enter your email"
+                placeholder="Entrez votre email"
                 disabled={loading}
               />
             </div>
@@ -76,7 +76,7 @@ const ForgotPassword = () => {
               disabled={loading}
               className="w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              {loading ? 'Envoi...' : 'Envoyer le lien'}
             </button>
           </form>
 
@@ -85,7 +85,7 @@ const ForgotPassword = () => {
               to="/login"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
-              ← Back to Login
+              ← Retour à la connexion
             </Link>
           </div>
         </div>
