@@ -110,6 +110,7 @@ export class AuthService {
       }
 
       let user: UserPayload | undefined;
+      let isNewUser = false;
       try {
         const response = await firstValueFrom(
           this.httpService.get<UserResponse>(
@@ -138,6 +139,7 @@ export class AuthService {
             ),
           );
           user = createUserResponse.data.user;
+          isNewUser = true;
         } else {
           throw error;
         }
@@ -145,6 +147,12 @@ export class AuthService {
 
       if (!user?.id) {
         throw new BadRequestException('User creation failed');
+      }
+
+      if (isNewUser) {
+        this.sendWelcomeEmail(user.email, user.firstName).catch((error) => {
+          console.error('Failed to send welcome email:', error);
+        });
       }
 
       const token = this.generateToken(user.id);
@@ -181,6 +189,10 @@ export class AuthService {
       }
 
       const token = this.generateToken(user.id);
+
+      this.sendWelcomeEmail(user.email, user.firstName).catch((error) => {
+        console.error('Failed to send welcome email:', error);
+      });
 
       return {
         message: 'Utilisateur enregistré avec succès',
@@ -264,7 +276,6 @@ export class AuthService {
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     try {
-      // Verify user exists
       const response = await firstValueFrom(
         this.httpService.get<UserResponse>(
           `${this.userServiceUrl}/api/users/email/${dto.email}`,
@@ -273,25 +284,20 @@ export class AuthService {
 
       const user = response.data.user;
       if (!user) {
-        // Return success even if user doesn't exist (security best practice)
         return { message: 'If the email exists, a reset link has been sent' };
       }
 
-      // Generate reset token
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
 
-      // Store token with email
       this.resetTokens.set(resetToken, {
         email: dto.email,
         expiresAt,
       });
 
-      // Build reset URL
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-      // Send email via mailing service
       await firstValueFrom(
         this.httpService.post(`${this.mailingServiceUrl}/mail/password-reset`, {
           email: dto.email,
@@ -304,7 +310,6 @@ export class AuthService {
       return { message: 'If the email exists, a reset link has been sent' };
     } catch (error: unknown) {
       console.error('Forgot password error:', error);
-      // Always return success message for security
       return { message: 'If the email exists, a reset link has been sent' };
     }
   }
@@ -322,7 +327,6 @@ export class AuthService {
     }
 
     try {
-      // Update password via user service
       await firstValueFrom(
         this.httpService.patch(`${this.userServiceUrl}/api/users/password`, {
           email: tokenData.email,
@@ -330,7 +334,6 @@ export class AuthService {
         }),
       );
 
-      // Delete used token
       this.resetTokens.delete(dto.token);
 
       return { message: 'Password reset successfully' };
@@ -339,6 +342,23 @@ export class AuthService {
         throw new BadRequestException(error.response.data);
       }
       throw new BadRequestException('Failed to reset password');
+    }
+  }
+
+  private async sendWelcomeEmail(
+    email: string,
+    username?: string,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.post(`${this.mailingServiceUrl}/mail/welcome`, {
+          email,
+          username: username || email.split('@')[0],
+        }),
+      );
+    } catch (error: unknown) {
+      console.error('Error sending welcome email:', error);
+      throw error;
     }
   }
 
