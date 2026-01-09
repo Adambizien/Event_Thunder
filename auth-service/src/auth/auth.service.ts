@@ -285,7 +285,10 @@ export class AuthService {
 
       const user = response.data.user;
       if (!user) {
-        return { message: 'Si l\'email existe, un lien de réinitialisation a été envoyé' };
+        return {
+          message:
+            "Si l'email existe, un lien de réinitialisation a été envoyé",
+        };
       }
 
       const resetToken = crypto.randomBytes(32).toString('hex');
@@ -308,10 +311,14 @@ export class AuthService {
         }),
       );
 
-      return { message: 'Si l\'email existe, un lien de réinitialisation a été envoyé' };
+      return {
+        message: "Si l'email existe, un lien de réinitialisation a été envoyé",
+      };
     } catch (error: unknown) {
       console.error('Forgot password error:', error);
-      return { message: 'Si l\'email existe, un lien de réinitialisation a été envoyé' };
+      return {
+        message: "Si l'email existe, un lien de réinitialisation a été envoyé",
+      };
     }
   }
 
@@ -319,7 +326,9 @@ export class AuthService {
     const tokenData = this.resetTokens.get(dto.token);
 
     if (!tokenData) {
-      throw new BadRequestException('Jeton de réinitialisation invalide ou expiré');
+      throw new BadRequestException(
+        'Jeton de réinitialisation invalide ou expiré',
+      );
     }
 
     if (Date.now() > tokenData.expiresAt) {
@@ -342,12 +351,13 @@ export class AuthService {
       if (isAxiosError(error) && error.response?.data) {
         throw new BadRequestException(error.response.data);
       }
-      throw new BadRequestException('Échec de la réinitialisation du mot de passe');
+      throw new BadRequestException(
+        'Échec de la réinitialisation du mot de passe',
+      );
     }
   }
 
   verifyResetToken(token: string): { valid: boolean; message: string } {
-    
     if (!token) {
       return { valid: false, message: 'Jeton manquant' };
     }
@@ -392,16 +402,16 @@ export class AuthService {
     return this.jwtService.sign({ id: userId });
   }
 
-  async logout(token: string): Promise<{ message: string }> {
+  logout(token: string): { message: string } {
     try {
       const cleanToken = token.replace('Bearer ', '');
-      
+
       this.jwtService.verify(cleanToken);
-      
+
       this.blacklistedTokens.add(cleanToken);
-      
+
       return { message: 'Déconnexion réussie' };
-    } catch (error: unknown) {
+    } catch {
       throw new UnauthorizedException('Token invalide');
     }
   }

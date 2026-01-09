@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
 import Logo from './Logo';
+import { PasswordInput } from './PasswordInput';
+import { validatePassword, type PasswordValidation } from '../utils/passwordValidator';
 import type { User } from '../types/AuthTypes';
 
 interface RegisterProps {
@@ -16,10 +18,12 @@ const Register = ({ onRegister }: RegisterProps) => {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidation | null>(null);
 
   type ApiError = { response?: { data?: { message?: string } } };
   const getErrorMessage = (err: unknown) => {
@@ -33,9 +37,10 @@ const Register = ({ onRegister }: RegisterProps) => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -43,6 +48,19 @@ const Register = ({ onRegister }: RegisterProps) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      setLoading(false);
+      return;
+    }
+
+    const validation = validatePassword(formData.password);
+    if (!validation.isValid) {
+      setError(`Mot de passe invalide: ${validation.errors.join(', ')}`);
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await authService.register(formData);
@@ -168,26 +186,48 @@ const Register = ({ onRegister }: RegisterProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Mot de passe
-              </label>
-              <input
-                type="password"
+              <PasswordInput
+                id="password"
                 name="password"
-                placeholder="Créez un mot de passe"
                 value={formData.password}
-                onChange={handleChange}
-                required
-                minLength={6}
+                onChange={setPasswordValidation}
+                onValueChange={(password) => {
+                  setFormData({
+                    ...formData,
+                    password
+                  });
+                }}
+                placeholder="Créez un mot de passe"
+                label="Mot de passe"
                 disabled={loading}
-                className="input-field"
+                showValidation={true}
+                required={true}
               />
-              <p className="text-xs text-gray-500 mt-2">Doit contenir au moins 6 caractères</p>
+            </div>
+
+            <div>
+              <PasswordInput
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={() => {}} // No validation needed for confirm password
+                onValueChange={(confirmPassword) => {
+                  setFormData({
+                    ...formData,
+                    confirmPassword
+                  });
+                }}
+                placeholder="Confirmez votre mot de passe"
+                label="Confirmer le mot de passe"
+                disabled={loading}
+                showValidation={false}
+                required={true}
+              />
             </div>
 
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={loading || !passwordValidation?.isValid}
               className="btn-primary mt-6 flex items-center justify-center gap-2"
             >
               {loading ? (

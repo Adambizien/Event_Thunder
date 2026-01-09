@@ -28,13 +28,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload.id) {
       throw new UnauthorizedException('Invalid token payload');
     }
-    
+
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    
+
     if (token && this.authService.isTokenBlacklisted(token)) {
       throw new UnauthorizedException('Token has been revoked');
     }
-    
+
     return { id: payload.id };
   }
 }

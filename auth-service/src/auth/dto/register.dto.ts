@@ -4,6 +4,7 @@ import {
   MinLength,
   MaxLength,
   IsNotEmpty,
+  Matches,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -23,6 +24,21 @@ export class RegisterDto {
   email: string = '';
 
   @IsString()
-  @MinLength(6)
+  @MinLength(12, {
+    message: 'Le mot de passe doit contenir au moins 12 caractères',
+  })
+  @Matches(/[a-z]/, {
+    message: 'Le mot de passe doit contenir au moins 1 lettre minuscule',
+  })
+  @Matches(/[A-Z]/, {
+    message: 'Le mot de passe doit contenir au moins 1 lettre majuscule',
+  })
+  @Matches(/\d/, {
+    message: 'Le mot de passe doit contenir au moins 1 chiffre',
+  })
+  @Matches(/[@$!%*?&]/, {
+    message:
+      'Le mot de passe doit contenir au moins 1 caractère spécial (@$!%*?&)',
+  })
   password: string = '';
 }

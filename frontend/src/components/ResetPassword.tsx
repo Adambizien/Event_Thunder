@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
+import { PasswordInput } from './PasswordInput';
+import { validatePassword, type PasswordValidation } from '../utils/passwordValidator';
 import Logo from './Logo';
 
 const ResetPassword = () => {
@@ -15,6 +17,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState('');
   const [verifying, setVerifying] = useState(true);
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidation | null>(null);
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -32,7 +35,7 @@ const ResetPassword = () => {
         if (!result.valid) {
           setError(result.message || 'Le jeton de réinitialisation est invalide ou a expiré');
         }
-      } catch (err) {
+      } catch {
         setError('Impossible de vérifier le jeton. Il est peut-être invalide ou expiré.');
       } finally {
         setVerifying(false);
@@ -41,13 +44,6 @@ const ResetPassword = () => {
 
     verifyToken();
   }, [searchParams]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,17 +57,10 @@ const ResetPassword = () => {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères');
-      setLoading(false);
-      return;
-    }
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-    if (!passwordRegex.test(formData.password)) {
-      setError(
-        'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial'
-      );
+    // Validate password
+    const validation = validatePassword(formData.password);
+    if (!validation.isValid) {
+      setError(`Mot de passe invalide: ${validation.errors.join(', ')}`);
       setLoading(false);
       return;
     }
@@ -142,46 +131,45 @@ const ResetPassword = () => {
 
           {!error && token && (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nouveau mot de passe
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Entrez le nouveau mot de passe"
-                  disabled={loading}
-                />
-              </div>
+              <PasswordInput
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={setPasswordValidation}
+                onValueChange={(password) => {
+                  setFormData({
+                    ...formData,
+                    password,
+                  });
+                }}
+                placeholder="Entrez le nouveau mot de passe"
+                label="Nouveau mot de passe"
+                disabled={loading}
+                showValidation={true}
+                required={true}
+              />
 
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Confirmer le mot de passe
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Confirmez le nouveau mot de passe"
-                  disabled={loading}
-                />
-              </div>
+              <PasswordInput
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={() => {}} // No validation needed for confirm password
+                onValueChange={(confirmPassword) => {
+                  setFormData({
+                    ...formData,
+                    confirmPassword,
+                  });
+                }}
+                placeholder="Confirmez le nouveau mot de passe"
+                label="Confirmer le mot de passe"
+                disabled={loading}
+                showValidation={false}
+                required={true}
+              />
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !passwordValidation?.isValid}
                 className="w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}

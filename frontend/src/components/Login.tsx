@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/AuthServices';
 import GoogleAuthButton from './GoogleAuthButton';
+import { PasswordInput } from './PasswordInput';
 import Logo from './Logo';
 import type { User } from '../types/AuthTypes';
 
@@ -136,23 +137,30 @@ const Login = ({ onLogin }: LoginProps) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Mot de passe
                 </label>
-                <button 
-                  type="button" 
-                  className="text-sm font-semibold text-thunder-gold hover:text-thunder-orange transition-colors"
-                >
-                  Mot de passe oublié?
-                </button>
               </div>
-              <input
-                type="password"
+              <PasswordInput
+                id="password"
                 name="password"
-                placeholder="Entrez votre mot de passe"
                 value={formData.password}
-                onChange={handleChange}
-                required
+                onChange={() => {}} // No validation needed for login
+                onValueChange={(password) => {
+                  setFormData({
+                    ...formData,
+                    password
+                  });
+                }}
+                placeholder="Entrez votre mot de passe"
+                label=""
                 disabled={loading}
-                className="input-field"
+                showValidation={false}
+                required={true}
               />
+              <Link 
+                to="/forgot-password"
+                className="text-sm text-thunder-gold hover:text-thunder-orange transition-colors mt-2 inline-block"
+              >
+                Mot de passe oublié?
+              </Link>
             </div>
 
             <button 
@@ -169,15 +177,6 @@ const Login = ({ onLogin }: LoginProps) => {
                 'Se connecter à votre compte'
               )}
             </button>
-
-            <div className="mt-4 text-center">
-              <Link 
-                to="/forgot-password"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Mot de passe oublié?
-              </Link>
-            </div>
           </form>
         </div>
 
