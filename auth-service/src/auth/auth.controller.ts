@@ -242,8 +242,21 @@ export class AuthController {
     return this.authService.forgotPassword(dto);
   }
 
+  @Get('verify-reset-token')
+  verifyResetToken(@Query('token') token: string | string[]) {
+    const tokenStr = Array.isArray(token) ? token[0] : token;
+    return this.authService.verifyResetToken(tokenStr);
+  }
+
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  logout(@Request() req: AuthenticatedRequest) {
+    const token = req.headers['authorization'] || '';
+    return this.authService.logout(token);
   }
 }

@@ -37,6 +37,7 @@ export class AuthService {
   private mailingServiceUrl: string;
   private resetTokens: Map<string, { email: string; expiresAt: number }> =
     new Map();
+  private blacklistedTokens: Set<string> = new Set();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -345,6 +346,26 @@ export class AuthService {
     }
   }
 
+  verifyResetToken(token: string): { valid: boolean; message: string } {
+    
+    if (!token) {
+      return { valid: false, message: 'Jeton manquant' };
+    }
+
+    const tokenData = this.resetTokens.get(token);
+
+    if (!tokenData) {
+      return { valid: false, message: 'Jeton invalide ou expiré' };
+    }
+
+    const now = Date.now();
+    if (now > tokenData.expiresAt) {
+      this.resetTokens.delete(token);
+      return { valid: false, message: 'Le jeton a expiré' };
+    }
+    return { valid: true, message: 'Jeton valide' };
+  }
+
   private async sendWelcomeEmail(
     email: string,
     username?: string,
@@ -369,5 +390,23 @@ export class AuthService {
     }
 
     return this.jwtService.sign({ id: userId });
+  }
+
+  async logout(token: string): Promise<{ message: string }> {
+    try {
+      const cleanToken = token.replace('Bearer ', '');
+      
+      this.jwtService.verify(cleanToken);
+      
+      this.blacklistedTokens.add(cleanToken);
+      
+      return { message: 'Déconnexion réussie' };
+    } catch (error: unknown) {
+      throw new UnauthorizedException('Token invalide');
+    }
+  }
+
+  isTokenBlacklisted(token: string): boolean {
+    return this.blacklistedTokens.has(token);
   }
 }

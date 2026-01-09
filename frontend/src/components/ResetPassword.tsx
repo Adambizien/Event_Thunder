@@ -14,14 +14,32 @@ const ResetPassword = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState('');
+  const [verifying, setVerifying] = useState(true);
 
   useEffect(() => {
-    const tokenParam = searchParams.get('token');
-    if (!tokenParam) {
-      setError('Lien de réinitialisation invalide');
-    } else {
+    const verifyToken = async () => {
+      const tokenParam = searchParams.get('token');
+      if (!tokenParam) {
+        setError('Lien de réinitialisation invalide');
+        setVerifying(false);
+        return;
+      }
+
       setToken(tokenParam);
-    }
+
+      try {
+        const result = await authService.verifyResetToken(tokenParam);
+        if (!result.valid) {
+          setError(result.message || 'Le jeton de réinitialisation est invalide ou a expiré');
+        }
+      } catch (err) {
+        setError('Impossible de vérifier le jeton. Il est peut-être invalide ou expiré.');
+      } finally {
+        setVerifying(false);
+      }
+    };
+
+    verifyToken();
   }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,10 +94,21 @@ const ResetPassword = () => {
     }
   };
 
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Vérification du lien...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!token && !error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="text-white">Loading...</div>
+        <div className="text-white">Chargement...</div>
       </div>
     );
   }

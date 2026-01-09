@@ -53,9 +53,18 @@ export const authService = {
     return response.data;
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  logout: async () => {
+    try {
+
+      await api.post('/api/auth/logout');
+    } catch (error) {
+
+      console.error('Logout error:', error);
+    } finally {
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   },
 
   isAuthenticated: () => {
@@ -73,6 +82,11 @@ export const authService = {
 
   forgotPassword: async (email: string) => {
     const response = await api.post('/api/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  verifyResetToken: async (token: string) => {
+    const response = await api.get('/api/auth/verify-reset-token', { params: { token } });
     return response.data;
   },
 
