@@ -28,7 +28,7 @@ jobs:
       
       - name: Lint code
         working-directory: ./api-gateway
-        run: npm run lint || echo "Lint non configuré"
+        run: npm run lint
       
       - name: Build
         working-directory: ./api-gateway
@@ -60,7 +60,7 @@ jobs:
       
       - name: Lint code
         working-directory: ./auth-service
-        run: npm run lint || echo "Lint non configuré"
+        run: npm run lint
       
       - name: Build
         working-directory: ./auth-service
@@ -92,7 +92,7 @@ jobs:
       
       - name: Lint code
         working-directory: ./user-service
-        run: npm run lint || echo "Lint non configuré"
+        run: npm run lint
       
       - name: Build
         working-directory: ./user-service
@@ -124,7 +124,7 @@ jobs:
       
       - name: Lint code
         working-directory: ./mailing-service
-        run: npm run lint || echo "Lint non configuré"
+        run: npm run lint
       
       - name: Build
         working-directory: ./mailing-service
@@ -156,7 +156,7 @@ jobs:
       
       - name: Lint code
         working-directory: ./frontend
-        run: npm run lint || echo "Lint non configuré"
+        run: npm run lint
       
       - name: Build
         working-directory: ./frontend
