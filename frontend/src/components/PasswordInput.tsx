@@ -40,7 +40,7 @@ export const PasswordInput = ({
     <div>
       {label && (
         <label htmlFor={id} className="block text-sm font-semibold text-gray-700 mb-2">
-          {label}
+          {label} {required ? <span className="text-red-600">*</span> : null}
         </label>
       )}
       

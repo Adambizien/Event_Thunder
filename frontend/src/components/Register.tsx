@@ -19,7 +19,8 @@ const Register = ({ onRegister }: RegisterProps) => {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phoneNumber: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,6 +117,10 @@ const Register = ({ onRegister }: RegisterProps) => {
 
         {/* Card */}
         <div className="card p-8 mb-6">
+          {/* Required Fields Note */}
+          <p className="text-gray-500 text-xs mb-4">
+            Les champs marqués <span className="text-red-600 font-bold">*</span> sont obligatoires.
+          </p>
           {/* Google Auth Button */}
           <GoogleAuthButton 
             onSuccess={handleGoogleSuccess}
@@ -138,7 +143,7 @@ const Register = ({ onRegister }: RegisterProps) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Prénom
+                  Prénom <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -154,7 +159,7 @@ const Register = ({ onRegister }: RegisterProps) => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nom
+                  Nom <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -171,7 +176,22 @@ const Register = ({ onRegister }: RegisterProps) => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Adresse e-mail
+                Numéro de téléphone <span className="text-gray-500">(optionnel)</span>
+              </label>
+              <input
+                type="tel"
+                name="phoneNumber"
+                placeholder="Votre numéro de téléphone"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                disabled={loading}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Adresse e-mail <span className="text-red-600">*</span>
               </label>
               <input
                 type="email"

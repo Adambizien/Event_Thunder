@@ -23,6 +23,9 @@ type UserPayload = {
   firstName?: string;
   lastName?: string;
   email: string;
+  phoneNumber?: string;
+  role?: string;
+  planId?: string;
 };
 
 type AuthenticatedRequest = ExpressRequest & { user?: UserPayload };

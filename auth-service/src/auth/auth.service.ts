@@ -20,6 +20,9 @@ type UserPayload = {
   firstName?: string;
   lastName?: string;
   email: string;
+  phoneNumber?: string;
+  role?: string;
+  planId?: string;
 };
 
 type UserResponse = { user: UserPayload };
@@ -166,6 +169,9 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+          planId: user.planId,
         },
       };
     } catch (error: unknown) {
@@ -203,6 +209,9 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+          planId: user.planId,
         },
       };
     } catch (error: unknown) {
@@ -238,6 +247,9 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+          planId: user.planId,
         },
       };
     } catch (error: unknown) {

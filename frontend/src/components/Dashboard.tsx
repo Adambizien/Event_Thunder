@@ -55,6 +55,26 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                 <span className="text-gray-600 text-sm font-mono">{user.id.slice(0, 12)}...</span>
               </div>
 
+              {/* Phone Number */}
+              {user.phoneNumber && (
+                <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                  <span className="font-semibold text-gray-700">Téléphone</span>
+                  <span className="text-gray-600">{user.phoneNumber}</span>
+                </div>
+              )}
+
+              {/* Role */}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="font-semibold text-gray-700">Rôle</span>
+                <span className="text-gray-600">{user.role || ''}</span>
+              </div>
+
+              {/* Plan */}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="font-semibold text-gray-700">Plan</span>
+                <span className="text-gray-600">{user.planId || ''}</span>
+              </div>
+
               
             </div>
           </div>

@@ -3,6 +3,9 @@ export interface User {
     email: string;
     firstName?: string;
     lastName?: string;
+    phoneNumber?: string;
+    role?: string;
+    planId?: string;
 }
 
 export interface AuthResponse {
@@ -20,5 +23,6 @@ export interface RegisterData {
     lastName: string;
     email: string;
     password: string;
+    phoneNumber?: string;
     confirmPassword?: string;
 }

@@ -39,12 +39,13 @@ api.interceptors.response.use(
 
 export const authService = {
   register: async (userData: RegisterData) => {
-    const { firstName, lastName, email, password } = userData;
+    const { firstName, lastName, email, password, phoneNumber } = userData;
     const response = await api.post('/api/auth/register', {
       firstName,
       lastName,
       email,
       password,
+      phoneNumber,
     });
     return response.data;
   },

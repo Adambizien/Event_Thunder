@@ -3,4 +3,7 @@ export class UserResponseDto {
   firstName?: string | null;
   lastName?: string | null;
   email: string;
+  phoneNumber?: string | null;
+  role?: string;
+  planId?: string;
 }

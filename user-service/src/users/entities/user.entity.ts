@@ -4,25 +4,30 @@ import {
   PrimaryGeneratedColumn,
   BeforeInsert,
   BeforeUpdate,
+  OneToOne,
 } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { UsersInfo } from './users_info.entity';
 
 @Entity({ name: 'users' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true, default: '' })
-  firstName: string | null;
-
-  @Column({ type: 'varchar', length: 50, nullable: true, default: '' })
-  lastName: string | null;
-
   @Column({ type: 'varchar', unique: true })
   email: string;
 
   @Column({ type: 'varchar' })
   password: string;
+
+  @Column({ type: 'varchar', default: 'User' })
+  role: string;
+
+  @Column({ type: 'varchar', default: 'free-plan-id' })
+  plan_id: string;
+
+  @OneToOne(() => UsersInfo, (info) => info.user)
+  info?: UsersInfo;
 
   @BeforeInsert()
   @BeforeUpdate()

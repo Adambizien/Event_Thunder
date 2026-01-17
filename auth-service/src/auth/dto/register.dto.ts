@@ -4,6 +4,7 @@ import {
   MinLength,
   MaxLength,
   IsNotEmpty,
+  IsOptional,
   Matches,
 } from 'class-validator';
 
@@ -22,6 +23,11 @@ export class RegisterDto {
 
   @IsEmail()
   email: string = '';
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(30)
+  phoneNumber?: string;
 
   @IsString()
   @MinLength(12, {
