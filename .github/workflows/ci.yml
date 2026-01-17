@@ -36,7 +36,7 @@ jobs:
       
       - name: Run tests
         working-directory: ./api-gateway
-        run: npm run test || echo "Tests non configurés"
+        run: npm run test
 
   # Test du service Auth
   test-auth-service:
@@ -68,7 +68,7 @@ jobs:
       
       - name: Run tests
         working-directory: ./auth-service
-        run: npm run test || echo "Tests non configurés"
+        run: npm run test
 
   # Test du service User
   test-user-service:
@@ -100,7 +100,7 @@ jobs:
       
       - name: Run tests
         working-directory: ./user-service
-        run: npm run test || echo "Tests non configurés"
+        run: npm run test
 
   # Test du service Mailing
   test-mailing-service:
@@ -132,7 +132,7 @@ jobs:
       
       - name: Run tests
         working-directory: ./mailing-service
-        run: npm run test || echo "Tests non configurés"
+        run: npm run test
 
   # Test du Frontend
   test-frontend:
@@ -164,7 +164,7 @@ jobs:
       
       - name: Run tests
         working-directory: ./frontend
-        run: npm run test || echo "Tests non configurés"
+        run: npm run test
 
   # Job final qui vérifie que tous les tests sont passés
   all-tests-passed:
