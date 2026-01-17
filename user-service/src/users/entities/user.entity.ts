@@ -9,6 +9,11 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { UsersInfo } from './users_info.entity';
 
+export enum UserRole {
+  User = 'User',
+  Admin = 'Admin',
+}
+
 @Entity({ name: 'users' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -20,8 +25,8 @@ export class User {
   @Column({ type: 'varchar' })
   password: string;
 
-  @Column({ type: 'varchar', default: 'User' })
-  role: string;
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.User })
+  role: UserRole;
 
   @Column({ type: 'varchar', default: 'free-plan-id' })
   plan_id: string;
