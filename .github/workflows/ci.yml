@@ -178,3 +178,25 @@ jobs:
     steps:
       - name: Success
         run: echo "✅ Tous les services ont été testés avec succès!"
+
+  # Déploiement sur le serveur OVH (uniquement sur push vers main)
+  deploy:
+    name: Déployer sur OVH
+    runs-on: ubuntu-latest
+    needs: all-tests-passed
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Déploiement via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OVH_HOST }}
+          username: ${{ secrets.OVH_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: ${{ secrets.OVH_PORT }}
+          script: |
+            cd /var/www/html/Event_Thunder
+            git pull origin main
+            docker compose down
+            docker compose up -d --build
+            docker compose ps
