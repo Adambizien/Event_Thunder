@@ -1,6 +1,9 @@
 import { IsEmail, IsString, IsOptional, Matches } from 'class-validator';
 
 export class UpdateProfileDto {
+  @IsEmail()
+  currentEmail!: string;
+
   @IsString()
   firstName!: string;
 

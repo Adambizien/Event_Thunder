@@ -106,7 +106,14 @@ export const authService = {
 
 export const userService = {
   updateProfile: async (data: { firstName: string; lastName: string; email: string; phoneNumber?: string }) => {
-    const response = await api.put('/api/users/profile', data);
+    const storedUserStr = localStorage.getItem('user');
+    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+    const currentEmail = storedUser?.email;
+    
+    const response = await api.put('/api/users/profile', {
+      currentEmail,
+      ...data,
+    });
     return response.data;
   },
 

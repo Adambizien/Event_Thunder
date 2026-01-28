@@ -130,7 +130,7 @@ export class UsersService {
     updateProfileDto: UpdateProfileDto,
   ): Promise<{ user: UserResponseDto }> {
     const user = await this.userRepository.findOne({
-      where: { email: updateProfileDto.email },
+      where: { email: updateProfileDto.currentEmail },
       relations: ['info'],
     });
 

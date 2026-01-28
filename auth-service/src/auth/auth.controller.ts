@@ -126,9 +126,6 @@ export class AuthController {
                     setTimeout(() => {
                         window.close();
                     }, 1000);
-                } else {
-                    // CORRECTION: Rediriger vers testa.bizienadam.fr
-                    window.location.href = '${frontendUrl}?auth=google&status=success&token=${token}&user=${encodeURIComponent(JSON.stringify(user))}';
                 }
             </script>
         </head>

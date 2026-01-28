@@ -43,7 +43,6 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -66,10 +65,9 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
       newErrors.email = 'Format d\'email invalide';
     }
 
-    // Phone number validation (optional field)
     if (formData.phoneNumber && formData.phoneNumber.trim()) {
       const phone = formData.phoneNumber.trim();
-      const phoneRegex = /^(?:\+?\d{7,15}|0\d{9})$/; // E.164-like or French local
+      const phoneRegex = /^(?:\+?\d{7,15}|0\d{9})$/;
       if (!phoneRegex.test(phone)) {
         newErrors.phoneNumber = 'Format de numéro de téléphone invalide';
       }
@@ -107,18 +105,15 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
 
     try {
       if (isPasswordMode) {
-        // Update password
         await userService.updatePassword({
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
         });
         
-        // Logout immediately after password change
         await authService.logout();
-        onLogout(); // Update React state
+        onLogout();
         navigate('/login');
       } else {
-        // Update profile info
         const response = await userService.updateProfile({
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -126,7 +121,6 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
           phoneNumber: formData.phoneNumber.trim() || undefined,
         });
         
-        // Update local storage and state
         const updatedUser = response.user;
         localStorage.setItem('user', JSON.stringify(updatedUser));
         onUpdate(updatedUser);

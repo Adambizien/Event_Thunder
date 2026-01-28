@@ -48,15 +48,6 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Goo
         if (popup.closed) {
           clearInterval(checkPopup);
           setLoading(false);
-          
-          setTimeout(() => {
-            const token = localStorage.getItem('token');
-            const user = localStorage.getItem('user');
-            
-            if (token && user) {
-              onSuccess(JSON.parse(user));
-            }
-          }, 500);
         }
       }, 500);
       
