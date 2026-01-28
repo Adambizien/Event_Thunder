@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import type { User } from '../types/AuthTypes';
 
 interface GoogleAuthButtonProps {
-  onSuccess: (user: User) => void;
   onError: (message: string) => void;
   buttonText?: string;
 }
 
-const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Google" }: GoogleAuthButtonProps) => {
+const GoogleAuthButton = ({ onError, buttonText = "Continuer avec Google" }: GoogleAuthButtonProps) => {
   const [loading, setLoading] = useState(false);
 
   const getErrorMessage = (err: unknown) => {

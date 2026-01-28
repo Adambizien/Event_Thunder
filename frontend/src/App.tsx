@@ -54,6 +54,14 @@ function AppContent() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiOrigin = new URL(apiUrl).origin;
+      
+      if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
+        console.warn('Untrusted origin:', event.origin);
+        return;
+      }
+
       if (event.data.type === 'OAUTH_SUCCESS') {
         const { token, user } = event.data;
         localStorage.setItem('token', token);
