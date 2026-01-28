@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import {
   Injectable,
   UnauthorizedException,
@@ -129,7 +130,7 @@ export class AuthService {
           const parts = name.trim().split(/\s+/);
           const firstName = parts.shift() || '';
           const lastName = parts.join(' ') || '';
-          const password = Math.random().toString(36).slice(-16) + 'Aa1!';
+          const password = randomBytes(12).toString('hex') + 'Aa1!';
 
           const createUserResponse = await firstValueFrom(
             this.httpService.post<UserResponse>(
