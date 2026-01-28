@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import Profile from './components/Profile';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -77,6 +78,10 @@ function AppContent() {
     setUser(null);
   };
 
+  const handleUpdateProfile = (userData: User) => {
+    setUser(userData);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy flex flex-col items-center justify-center gap-4">
@@ -111,7 +116,15 @@ function AppContent() {
           path="/dashboard" 
           element={
             <ProtectedRoute user={user}>
-              <Dashboard user={user!} onLogout={handleLogout} />
+              <Dashboard user={user!} />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute user={user}>
+              <Profile user={user!} onUpdate={handleUpdateProfile} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />

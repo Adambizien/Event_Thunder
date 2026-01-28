@@ -71,6 +71,26 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                   <p className="font-semibold text-thunder-gold">{`${user.firstName || ''} ${user.lastName || ''}`.trim()}</p>
                 </div>
               </div>
+              <Link
+                to="/dashboard"
+                className={`font-semibold transition-colors ${
+                  isActive('/dashboard') 
+                    ? 'text-thunder-gold' 
+                    : 'text-gray-100 hover:text-thunder-gold'
+                }`}
+              >
+                Tableau de bord
+              </Link>
+              <Link
+                to="/profile"
+                className={`font-semibold transition-colors ${
+                  isActive('/profile') 
+                    ? 'text-thunder-gold' 
+                    : 'text-gray-100 hover:text-thunder-gold'
+                }`}
+              >
+                Mon Profil
+              </Link>
               <button
                 onClick={handleLogout}
                 className="font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"

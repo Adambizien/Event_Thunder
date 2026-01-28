@@ -1,21 +1,10 @@
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/AuthServices';
 import type { User } from '../types/AuthTypes';
 
 interface DashboardProps {
   user: User;
-  onLogout: () => void;
 }
 
-const Dashboard = ({ user, onLogout }: DashboardProps) => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    authService.logout();
-    onLogout();
-    navigate('/');
-  };
-
+const Dashboard = ({ user }: DashboardProps) => {;
   return (
     <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-8">
       <div className="max-w-5xl mx-auto">
@@ -100,16 +89,6 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             <p className="font-semibold text-gray-800">Vérifié</p>
             <p className="text-sm text-gray-600">Compte confirmé</p>
           </div>
-        </div>
-
-        {/* Action Section */}
-        <div className="text-center">
-          <button 
-            onClick={handleLogout}
-            className="btn-primary inline-flex items-center gap-2 px-8"
-            >
-              🚪 Se déconnecter
-            </button>
         </div>
       </div>
     </div>
