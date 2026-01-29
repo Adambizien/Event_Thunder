@@ -1,15 +1,16 @@
-# Schéma des Services lors de l'Inscription
+# Schéma de Connexion (Login)
 
-## 1️⃣ INSCRIPTION NORMALE
+## 1️⃣ CONNEXION NORMALE
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        FRONTEND (React)                          │
-│                      Register.tsx                                │
+│                       Login.tsx                                  │
+│                  (email + password)                              │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-                    POST /api/auth/register
-                    (email, password, firstName, lastName, phoneNumber)
+                    POST /api/auth/login
+                    (email, password)
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -23,68 +24,82 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AUTH SERVICE (NestJS)                          │
 │                  AuthController                                  │
-│                   AuthService.register()                         │
+│                   AuthService.login()                            │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-              1️⃣ POST /api/users (create user)
+         1️⃣ POST /api/users/verify
+            (email, password)
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   USER SERVICE (NestJS)                          │
-│                  UsersController                                 │
-│                   UsersService.create()                          │
-│                  ✓ Hash password (bcrypt)                        │
-│                  ✓ Create user in DB                             │
+│              UsersController.verify()                            │
+│               UsersService.verify()                              │
+│                                                                  │
+│  1. Chercher user par email                                      │
+│  2. Comparer password avec hash bcrypt                           │
+│  3. Si correct → return user                                     │
+│  4. Si incorrect → throw 400 BadRequest                          │
+│  5. Si user n'existe pas → throw 400 BadRequest                 │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-                    Return: {user, id, email...}
+                    Response: user OR 400 Error
                              │
-                             ▼
+         ┌───────────────────────────────────┐
+         │                                   │
+      ✓ Valid              ✗ Invalid/Not Found
+      Credentials           Credentials
+         │                              │
+         ▼                              ▼
+    Return user              throw UnauthorizedException
+         │                    "Identifiants invalides"
+         │                              │
+         └──────────────┬───────────────┘
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AUTH SERVICE                                   │
 │                                                                  │
-│                2️⃣ Generate JWT Token                            │
+│  2️⃣ Generate JWT Token                                         │
+│     (userId as payload)                                          │
 │                                                                  │
-│                3️⃣ POST /api/mail/send-welcome                   │
-│                   (Send welcome email)                           │
+│  Return: {message, token, user}                                  │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  MAILING SERVICE (NestJS)                        │
-│                    MailService                                   │
-│              sendWelcome() via Resend API                        │
-│           📧 Email de bienvenue envoyé                          │
-└──────────────────────────────────────────────────────────────────┘
-                             │
-                    Return to Frontend:
-                  {token, user, message}
+                    Return to Frontend
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                        FRONTEND                                  │
-│                ✓ Save token in localStorage                      │
-│                ✓ Save user in localStorage                       │
-│                ✓ Redirect to /dashboard                          │
+│                                                                  │
+│        ✓ Save token in localStorage                              │
+│        ✓ Save user in localStorage                               │
+│        ✓ Redirect to /dashboard                                  │
+│                                                                  │
+│        OR                                                        │
+│                                                                  │
+│        ✗ Display error message                                   │
+│        ✗ Clear form                                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Résumé Inscription Normale:
-- **Frontend** → **API Gateway** → **Auth Service** → **User Service** → **Mailing Service**
+### Résumé Connexion Normale:
+- **Frontend** → **API Gateway** → **Auth Service** → **User Service**
 - **Processus** :
-  1. Frontend envoie email + password + données
-  2. Auth Service reçoit et crée l'utilisateur via User Service
-  3. User Service hash le password et crée l'utilisateur en DB
-  4. Auth Service génère JWT token
-  5. Auth Service envoie email de bienvenue via Mailing Service
-  6. Retour du token et user au Frontend
-- **Vérifications** : Email unique (ConflictException si existe)
-- **Stockage** : Token + user sauvegardés en localStorage
-- **Redirection** : /dashboard
+  1. Frontend envoie email + password
+  2. Auth Service envoie les identifiants à User Service
+  3. User Service cherche l'utilisateur par email
+  4. User Service compare le password avec le hash bcrypt
+  5. Si correct : retourne l'utilisateur
+  6. Auth Service génère JWT token
+- **Vérifications** : Email + Password hash matching
+- **Stockage** : Token + user en localStorage
+- **Erreur** : "Identifiants invalides" (email ou password incorrect)
+- **Sécurité** : Pas de rate limiting visible (vulnérable brute-force)
 
 ---
 
-## 2️⃣ INSCRIPTION GOOGLE
+## 2️⃣ CONNEXION GOOGLE
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -128,17 +143,15 @@
 │              AuthController.googleAuthCallback()                 │
 │                 AuthService.googleAuth()                         │
 │                                                                  │
-│          2️⃣ Exchange code for Google tokens                      │
-│             (via Google OAuth2Client)                            │
+│     2️⃣ Exchange code for Google tokens                          │
+│        (via Google OAuth2Client)                                 │
 │                                                                  │
-│          3️⃣ Verify Google ID Token                              │
+│     3️⃣ Verify Google ID Token                                   │
+│        Extract: email, firstName, lastName                       │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-         Extract: email, firstName, lastName from Google
-                             │
-                             ▼
          4️⃣ GET /api/users/email/{email}
-         (Check if user already exists)
+         (Check if user exists)
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -151,45 +164,43 @@
          ┌──────────────────────────────────┐
          │                                  │
     User exists              User NOT found
+     (LOGIN)                   (FIRST TIME)
          │                       │
          ▼                       ▼
     Return user          5️⃣ POST /api/users
                          (Create new user)
-                         Generate random password
-                              │
-                              ▼
-                    ┌──────────────────────┐
-                    │   USER SERVICE       │
-                    │  Create user in DB   │
-                    └──────────────────────┘
-                              │
-                    Return: new user
-                              │
-                              ▼
-                    6️⃣ Send Welcome Email
-                    POST /api/mail/send-welcome
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  MAILING SERVICE (NestJS)                        │
-│              MailService.sendWelcome()                           │
-│              📧 Email de bienvenue envoyé                        │
-└──────────────────────────────────────────────────────────────────┘
+         │               Generate random password
+         │                       │
+         │                       ▼
+         │              ┌──────────────────────┐
+         │              │   USER SERVICE       │
+         │              │  Create user in DB   │
+         │              └──────────────────────┘
+         │                       │
+         │             6️⃣ Send Welcome Email
+         │             POST /api/mail/send-welcome
+         │                       │
+         │                       ▼
+         │              ┌──────────────────────────┐
+         │              │  MAILING SERVICE         │
+         │              │ MailService.sendWelcome()│
+         │              │  📧 Email de bienvenue   │
+         │              └──────────────────────────┘
          │
-         └──────────────────┐
-                            │
-                    (Success or async)
-                            │
-                            ▼
+         └──────────────┬──────────────────────┘
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AUTH SERVICE                                   │
 │                                                                  │
-│            7️⃣ Generate JWT Token                                │
+│         7️⃣ Generate JWT Token                                   │
+│            (userId as payload)                                   │
 │                                                                  │
-│    Return: {token, user, message}                               │
+│    Return: {message, token, user}                                │
 │                                                                  │
 │    8️⃣ Serve Close Page HTML                                    │
 │       (Pass token & user to window.opener)                       │
+│       Close popup window                                         │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
@@ -202,17 +213,34 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Résumé Inscription Google:
-- **Frontend** → **API Gateway** → **Auth Service** → **Google OAuth** + **User Service** → **Mailing Service**
+### Résumé Connexion Google:
+- **Frontend** → **API Gateway** → **Auth Service** → **Google OAuth** + **User Service**
 - **Processus** :
   1. Frontend ouvre popup Google Auth
-  2. Auth Service échange le code Google contre des tokens
-  3. Auth Service vérifie le Google ID token
-  4. Auth Service cherche si l'utilisateur existe (User Service)
-  5. Si nouveau : crée l'utilisateur avec password aléatoire + envoie email
-  6. Si existant : retourne directement l'utilisateur
-  7. Auth Service génère JWT token
-- **Vérifications** : Email unique + Google token validity
-- **Email** : Seulement si nouvel utilisateur
-- **Password** : Généré aléatoirement (256-bit)
-- **Sécurité** : OAuth2 Google, pas de password local stocké initialement
+  2. Auth Service échange code contre tokens
+  3. Auth Service vérifie Google ID token
+  4. Auth Service cherche utilisateur par email
+  5. Si trouvé : retourne directement (login classique)
+  6. Auth Service génère JWT token
+- **Cas Nouveau User** : Créé avec email + password aléatoire
+- **Vérifications** : Google token validity + email existence
+- **Sécurité** : OAuth2 Google, délègue authentification
+- **Pas d'email** : Sauf si premier login (nouvel utilisateur)
+
+---
+
+## 🔐 SÉCURITÉ & DIFFÉRENCES
+
+### Connexion Normale
+- ✓ Password hashing avec bcrypt
+- ✓ Validation email/password côté serveur
+- ✓ Token JWT généré après vérification
+
+### Connexion Google
+- ✓ Google OAuth2 standard
+- ✓ Vérification token ID Google
+- ✓ Pas de stockage de password non-chiffré
+- ✓ Random password généré (256-bit) pour les nouveaux utilisateurs
+- ✓ Plus sécurisé (délègue l'authentification à Google)
+
+---
