@@ -8,7 +8,7 @@ type AuthenticatedRequest = Request & { user?: Record<string, unknown> };
 export class AppController {
   @Get('health')
   health() {
-    return { message: 'La passerelle API (Nest) fonctionne' };
+    return { message: 'La passerelle API fonctionne' };
   }
 
   @Get('api/protected')
