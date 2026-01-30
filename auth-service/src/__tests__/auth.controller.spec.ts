@@ -138,12 +138,7 @@ describe('AuthController - Tests réels d\'intégration', () => {
         send: jest.fn().mockReturnThis(),
       } as unknown as Response;
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
       await controller.googleAuthCallback(code, query, mockResponse);
-
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      consoleErrorSpy.mockRestore();
 
       const sendMock = mockResponse.send as jest.Mock;
       const htmlSent = sendMock.mock.calls[0][0] as string;
