@@ -50,7 +50,6 @@ const GoogleAuthButton = ({ onError, buttonText = "Continuer avec Google" }: Goo
       }, 500);
       
     } catch (error: unknown) {
-      console.error('Google auth error:', error);
       onError(getErrorMessage(error));
       setLoading(false);
     }

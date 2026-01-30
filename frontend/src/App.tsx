@@ -30,8 +30,8 @@ function AppContent() {
           localStorage.setItem('user', JSON.stringify(userData));
           setUser(userData);
           window.history.replaceState({}, '', '/');
-        } catch (error) {
-          console.error('OAuth error:', error);
+        } catch {
+          // Silently fail on OAuth parsing error
         }
       } else {
         const savedToken = localStorage.getItem('token');
@@ -58,7 +58,6 @@ function AppContent() {
       const apiOrigin = new URL(apiUrl).origin;
       
       if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
-        console.warn('Untrusted origin:', event.origin);
         return;
       }
 

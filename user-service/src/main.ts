@@ -29,6 +29,5 @@ async function bootstrap() {
   );
 
   await app.listen(3002);
-  console.log(`User service running on port 3002`);
 }
 void bootstrap();

@@ -11,8 +11,7 @@ import { AppController } from './app.controller';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const url =
-          configService.get<string>('DB_CONNECTION')
+        const url = configService.get<string>('DB_CONNECTION');
         return {
           type: 'postgres',
           url,

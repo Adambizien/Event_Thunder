@@ -64,7 +64,6 @@ export class AuthController {
         result.user,
       );
     } catch (error: unknown) {
-      console.error('Google OAuth error:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Authentication failed';
       return this.serveClosePage(res, 'error', errorMessage);
