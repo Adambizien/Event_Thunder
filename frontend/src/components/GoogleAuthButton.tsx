@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import type { User } from '../types/AuthTypes';
 
 interface GoogleAuthButtonProps {
-  onSuccess: (user: User) => void;
   onError: (message: string) => void;
   buttonText?: string;
 }
 
-const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Google" }: GoogleAuthButtonProps) => {
+const GoogleAuthButton = ({ onError, buttonText = "Continuer avec Google" }: GoogleAuthButtonProps) => {
   const [loading, setLoading] = useState(false);
 
   const getErrorMessage = (err: unknown) => {
@@ -48,20 +46,10 @@ const GoogleAuthButton = ({ onSuccess, onError, buttonText = "Continuer avec Goo
         if (popup.closed) {
           clearInterval(checkPopup);
           setLoading(false);
-          
-          setTimeout(() => {
-            const token = localStorage.getItem('token');
-            const user = localStorage.getItem('user');
-            
-            if (token && user) {
-              onSuccess(JSON.parse(user));
-            }
-          }, 500);
         }
       }, 500);
       
     } catch (error: unknown) {
-      console.error('Google auth error:', error);
       onError(getErrorMessage(error));
       setLoading(false);
     }

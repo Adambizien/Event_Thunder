@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import Profile from './components/Profile';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -29,8 +30,8 @@ function AppContent() {
           localStorage.setItem('user', JSON.stringify(userData));
           setUser(userData);
           window.history.replaceState({}, '', '/');
-        } catch (error) {
-          console.error('OAuth error:', error);
+        } catch {
+          // Silently fail on OAuth parsing error
         }
       } else {
         const savedToken = localStorage.getItem('token');
@@ -53,6 +54,13 @@ function AppContent() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiOrigin = new URL(apiUrl).origin;
+      
+      if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
+        return;
+      }
+
       if (event.data.type === 'OAUTH_SUCCESS') {
         const { token, user } = event.data;
         localStorage.setItem('token', token);
@@ -75,6 +83,10 @@ function AppContent() {
 
   const handleLogout = () => {
     setUser(null);
+  };
+
+  const handleUpdateProfile = (userData: User) => {
+    setUser(userData);
   };
 
   if (loading) {
@@ -111,7 +123,15 @@ function AppContent() {
           path="/dashboard" 
           element={
             <ProtectedRoute user={user}>
-              <Dashboard user={user!} onLogout={handleLogout} />
+              <Dashboard user={user!} />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute user={user}>
+              <Profile user={user!} onUpdate={handleUpdateProfile} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />

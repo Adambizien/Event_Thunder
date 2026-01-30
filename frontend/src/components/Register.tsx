@@ -76,10 +76,6 @@ const Register = ({ onRegister }: RegisterProps) => {
     }
   };
 
-  const handleGoogleSuccess = (user: User) => {
-    onRegister(user);
-    navigate('/dashboard');
-  };
 
   const handleGoogleError = (error: string) => {
     setError(error);
@@ -123,7 +119,6 @@ const Register = ({ onRegister }: RegisterProps) => {
           </p>
           {/* Google Auth Button */}
           <GoogleAuthButton 
-            onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
             buttonText="S'inscrire avec Google"
           />

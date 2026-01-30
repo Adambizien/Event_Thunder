@@ -15,11 +15,8 @@ async function bootstrap() {
     }),
   );
   const port = process.env.PORT ?? 3004;
-  await app.listen(port, () => {
-    console.log(`Mailing service listening on port ${port}`);
-  });
+  await app.listen(port);
 }
-bootstrap().catch((error) => {
-  console.error('Failed to start mailing service', error);
+bootstrap().catch(() => {
   process.exit(1);
 });

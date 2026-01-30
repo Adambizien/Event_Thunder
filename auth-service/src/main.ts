@@ -18,8 +18,5 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   await app.listen(process.env.AUTH_SERVICE_PORT || 3003);
-  console.log(
-    `Auth Service (NestJS) running on port ${process.env.AUTH_SERVICE_PORT || 3003}`,
-  );
 }
 void bootstrap();

@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Put,
   Body,
   Param,
   HttpCode,
@@ -12,6 +13,8 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyUserDto } from './dto/verify-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdatePasswordWithEmailDto } from './dto/update-password-with-email.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('api/users')
 export class UsersController {
@@ -42,6 +45,20 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async updatePassword(@Body() updatePasswordDto: UpdatePasswordDto) {
     return this.usersService.updatePassword(updatePasswordDto);
+  }
+
+  @Put('profile')
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(@Body() updateProfileDto: UpdateProfileDto) {
+    return this.usersService.updateProfile(updateProfileDto);
+  }
+
+  @Put('password')
+  @HttpCode(HttpStatus.OK)
+  async updatePasswordWithEmail(
+    @Body() updatePasswordDto: UpdatePasswordWithEmailDto,
+  ) {
+    return this.usersService.updatePasswordWithEmail(updatePasswordDto);
   }
 
   @Get('health')

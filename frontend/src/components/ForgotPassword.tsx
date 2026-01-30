@@ -19,9 +19,8 @@ const ForgotPassword = () => {
       const response = await authService.forgotPassword(email);
       setMessage(response.message || 'Si l\'email existe, un lien de réinitialisation a été envoyé');
       setEmail('');
-    } catch (err) {
+    } catch {
       setError('Une erreur s\'est produite. Veuillez réessayer.');
-      console.error('Forgot password error:', err);
     } finally {
       setLoading(false);
     }

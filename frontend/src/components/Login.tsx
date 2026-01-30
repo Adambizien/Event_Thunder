@@ -56,10 +56,6 @@ const Login = ({ onLogin }: LoginProps) => {
     }
   };
 
-  const handleGoogleSuccess = (user: User) => {
-    onLogin(user);
-    navigate('/dashboard');
-  };
 
   const handleGoogleError = (error: string) => {
     setError(error);
@@ -99,7 +95,6 @@ const Login = ({ onLogin }: LoginProps) => {
         <div className="card p-8 mb-6">
           {/* Google Auth Button */}
           <GoogleAuthButton 
-            onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
             buttonText="Continuer avec Google"
           />

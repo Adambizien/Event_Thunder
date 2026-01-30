@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import {
   Injectable,
   UnauthorizedException,
@@ -129,7 +130,7 @@ export class AuthService {
           const parts = name.trim().split(/\s+/);
           const firstName = parts.shift() || '';
           const lastName = parts.join(' ') || '';
-          const password = Math.random().toString(36).slice(-16) + 'Aa1!';
+          const password = randomBytes(12).toString('hex') + 'Aa1!';
 
           const createUserResponse = await firstValueFrom(
             this.httpService.post<UserResponse>(
@@ -154,8 +155,8 @@ export class AuthService {
       }
 
       if (isNewUser) {
-        this.sendWelcomeEmail(user.email, user.firstName).catch((error) => {
-          console.error('Failed to send welcome email:', error);
+        this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
+          // Silent fail for welcome email
         });
       }
 
@@ -174,8 +175,7 @@ export class AuthService {
           planId: user.planId,
         },
       };
-    } catch (error: unknown) {
-      console.error('Google OAuth error:', error);
+    } catch {
       throw new UnauthorizedException('Google authentication failed');
     }
   }
@@ -197,8 +197,8 @@ export class AuthService {
 
       const token = this.generateToken(user.id);
 
-      this.sendWelcomeEmail(user.email, user.firstName).catch((error) => {
-        console.error('Failed to send welcome email:', error);
+      this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
+        // Silent fail for welcome email
       });
 
       return {
@@ -326,8 +326,7 @@ export class AuthService {
       return {
         message: "Si l'email existe, un lien de réinitialisation a été envoyé",
       };
-    } catch (error: unknown) {
-      console.error('Forgot password error:', error);
+    } catch {
       return {
         message: "Si l'email existe, un lien de réinitialisation a été envoyé",
       };

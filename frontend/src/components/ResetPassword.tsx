@@ -84,7 +84,6 @@ const ResetPassword = () => {
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       setPasswordError(errorMsg || 'Échec de la réinitialisation. Le lien a peut-être expiré.');
-      console.error('Reset password error:', err);
     } finally {
       setLoading(false);
     }

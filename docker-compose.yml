@@ -6,11 +6,11 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
     networks:
       - app-network
 
@@ -58,7 +58,7 @@ services:
     container_name: user_service
     environment:
       - PORT=${USER_SERVICE_PORT}
-      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${USER_DATABASE}
       - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS}
       - NODE_ENV=${NODE_ENV}
     ports:

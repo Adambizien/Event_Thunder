@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyUserDto } from './dto/verify-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdatePasswordWithEmailDto } from './dto/update-password-with-email.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 type UserEntity = User & { _id?: string };
 
@@ -115,6 +118,76 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    user.password = updatePasswordDto.newPassword;
+    await this.userRepository.save(user);
+
+    return { message: 'Mot de passe mis à jour avec succès' };
+  }
+
+  async updateProfile(
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<{ user: UserResponseDto }> {
+    const user = await this.userRepository.findOne({
+      where: { email: updateProfileDto.currentEmail },
+      relations: ['info'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    // Update email if different
+    if (updateProfileDto.email !== user.email) {
+      const existingUser = await this.userRepository.findOne({
+        where: { email: updateProfileDto.email },
+      });
+      if (existingUser) {
+        throw new ConflictException(
+          'Un utilisateur avec cet e-mail existe déjà',
+        );
+      }
+      user.email = updateProfileDto.email;
+    }
+
+    // Update or create user info
+    if (user.info) {
+      user.info.first_name = updateProfileDto.firstName;
+      user.info.last_name = updateProfileDto.lastName;
+      user.info.phone_number = updateProfileDto.phoneNumber || '';
+      await this.usersInfoRepository.save(user.info);
+    } else {
+      const info = this.usersInfoRepository.create({
+        user_id: user.id,
+        first_name: updateProfileDto.firstName,
+        last_name: updateProfileDto.lastName,
+        phone_number: updateProfileDto.phoneNumber || '',
+      });
+      user.info = await this.usersInfoRepository.save(info);
+    }
+
+    await this.userRepository.save(user);
+
+    return { user: this.toUserResponse(user) };
+  }
+
+  async updatePasswordWithEmail(
+    updatePasswordDto: UpdatePasswordWithEmailDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { email: updatePasswordDto.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const isMatch = await user.comparePassword(
+      updatePasswordDto.currentPassword,
+    );
+    if (!isMatch) {
+      throw new BadRequestException('Le mot de passe actuel est incorrect');
     }
 
     user.password = updatePasswordDto.newPassword;
