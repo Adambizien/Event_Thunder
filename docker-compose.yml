@@ -22,11 +22,15 @@ services:
       - PORT=${API_GATEWAY_PORT}
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
       - USER_SERVICE_URL=${USER_SERVICE_URL}
+      - BILLING_SERVICE_URL=${BILLING_SERVICE_URL}
+      - SUBSCRIPTION_SERVICE_URL=${SUBSCRIPTION_SERVICE_URL}
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     depends_on:
       - auth-service
       - user-service
+      - billing-service
+      - subscription-service
     networks:
       - app-network
 
@@ -58,7 +62,7 @@ services:
     container_name: user_service
     environment:
       - PORT=${USER_SERVICE_PORT}
-      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${USER_DATABASE}
+      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${USER_DATABASE}
       - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS}
       - NODE_ENV=${NODE_ENV}
     ports:
@@ -67,6 +71,63 @@ services:
       - postgres
     networks:
       - app-network
+
+  # Subscription Service:
+  subscription-service:
+    build: ./subscription-service
+    container_name: subscription_service
+    environment:
+      - PORT=${SUBSCRIPTION_SERVICE_PORT}
+      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${BILLING_DATABASE}
+      - BILLING_SERVICE_URL=http://billing-service:${BILLING_SERVICE_PORT}
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RABBITMQ_EXCHANGE=billing.events
+      - RABBITMQ_SUBSCRIPTION_QUEUE=subscription-service.billing.events
+      - NODE_ENV=${NODE_ENV}
+    ports:
+      - "${SUBSCRIPTION_SERVICE_PORT}:${SUBSCRIPTION_SERVICE_PORT}"
+    depends_on:
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+  
+  # billing-service:
+  billing-service:
+    build: ./billing-service
+    container_name: billing_service
+    environment:
+      - BILLING_SERVICE_PORT=${BILLING_SERVICE_PORT}
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RABBITMQ_EXCHANGE=billing.events
+      - NODE_ENV=${NODE_ENV}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+    ports:
+      - "${BILLING_SERVICE_PORT}:${BILLING_SERVICE_PORT}"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: event_thunder_rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+
 
   # Mailing Service
   mailing:

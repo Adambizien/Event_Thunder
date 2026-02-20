@@ -27,6 +27,12 @@ export class ProxyService {
     if (originalUrl.startsWith('/api/users')) {
       return process.env.USER_SERVICE_URL || 'http://user-service:3002';
     }
+    if (originalUrl.startsWith('/api/billing')) {
+      return process.env.BILLING_SERVICE_URL || 'http://billing-service:3006';
+    }
+    if (originalUrl.startsWith('/api/subscriptions')) {
+      return process.env.SUBSCRIPTION_SERVICE_URL || 'http://subscription-service:3005';
+    }
     return null;
   }
 
@@ -37,15 +43,20 @@ export class ProxyService {
     }
 
     const url = `${target}${req.originalUrl}`;
+    
+    const reqWithRaw = req as GatewayRequest & { rawBody?: Buffer };
+    const bodyData = reqWithRaw.rawBody || req.body;
+    
     const config: AxiosRequestConfig<unknown> = {
       method: req.method,
       url,
       headers: { ...req.headers, host: undefined },
       params: req.query,
-      data: req.body,
+      data: bodyData,
       validateStatus: () => true,
-      responseType: 'arraybuffer',
-      timeout: 10000,
+      timeout: 30000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
     };
 
     this.logger.log(`[PASSERELLE] ${req.method} ${req.originalUrl} -> ${url}`);

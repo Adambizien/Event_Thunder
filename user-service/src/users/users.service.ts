@@ -34,7 +34,6 @@ export class UsersService {
       email: user.email,
       phoneNumber: user.info?.phone_number ?? undefined,
       role: user.role,
-      planId: user.plan_id,
     };
   }
 

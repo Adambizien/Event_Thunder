@@ -28,8 +28,8 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.User })
   role: UserRole;
 
-  @Column({ type: 'varchar', default: 'free-plan-id' })
-  plan_id: string;
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  stripe_customer_id: string | null;
 
   @OneToOne(() => UsersInfo, (info) => info.user)
   info?: UsersInfo;
