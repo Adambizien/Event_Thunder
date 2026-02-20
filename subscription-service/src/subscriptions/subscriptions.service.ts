@@ -95,7 +95,9 @@ export class SubscriptionsService implements OnModuleInit {
     const nextMaxEvents = dto.maxEvents ?? plan.max_events;
 
     const priceOrIntervalChanged =
-      dto.price !== undefined || dto.interval !== undefined || dto.name !== undefined;
+      dto.price !== undefined ||
+      dto.interval !== undefined ||
+      dto.name !== undefined;
 
     if (priceOrIntervalChanged) {
       plan.stripe_price_id = await this.syncPlanPriceWithBilling({
@@ -119,12 +121,14 @@ export class SubscriptionsService implements OnModuleInit {
   }
 
   async createCheckoutSession(dto: CreateCheckoutSessionDto) {
-    const plan = await this.planRepository.findOne({ where: { id: dto.planId } });
+    const plan = await this.planRepository.findOne({
+      where: { id: dto.planId },
+    });
     if (!plan) {
       throw new NotFoundException('Plan introuvable');
     }
 
-    const { data } = await firstValueFrom(
+    const response = await firstValueFrom(
       this.httpService.post(
         `${this.billingServiceUrl}/api/billing/subscriptions/checkout-session`,
         {
@@ -138,6 +142,8 @@ export class SubscriptionsService implements OnModuleInit {
         },
       ),
     );
+    const data = (response as unknown as Record<string, unknown>)
+      .data as Record<string, unknown>;
 
     return data;
   }
@@ -201,7 +207,7 @@ export class SubscriptionsService implements OnModuleInit {
     subscription.user_id = payload.userId;
     subscription.plan_id = plan.id;
     subscription.status =
-      payload.status === SubscriptionStatus.Canceled
+      payload.status === (SubscriptionStatus.Canceled as string)
         ? SubscriptionStatus.Canceled
         : SubscriptionStatus.Active;
     subscription.current_period_start = this.toDate(payload.currentPeriodStart);
@@ -246,7 +252,7 @@ export class SubscriptionsService implements OnModuleInit {
     }
 
     subscription.status =
-      payload.status === SubscriptionStatus.Canceled
+      payload.status === (SubscriptionStatus.Canceled as string)
         ? SubscriptionStatus.Canceled
         : SubscriptionStatus.Active;
     subscription.current_period_start = this.toDate(payload.currentPeriodStart);
@@ -325,10 +331,10 @@ export class SubscriptionsService implements OnModuleInit {
       amount: payload.amount ?? 0,
       currency: this.toPaymentCurrency(payload.currency),
       status:
-        payload.status === PaymentStatus.Failed
+        payload.status === (PaymentStatus.Failed as string)
           ? PaymentStatus.Failed
           : PaymentStatus.Paid,
-      description: payload.description ?? null,
+      description: payload.description as string | null,
       paid_at: this.toDate(payload.paidAt),
     });
 
@@ -346,7 +352,7 @@ export class SubscriptionsService implements OnModuleInit {
 
   private toPaymentCurrency(value?: string): PaymentCurrency {
     const normalized = (value ?? 'EUR').toUpperCase();
-    return normalized === PaymentCurrency.USD
+    return normalized === (PaymentCurrency.USD as string)
       ? PaymentCurrency.USD
       : PaymentCurrency.EUR;
   }
@@ -413,14 +419,19 @@ export class SubscriptionsService implements OnModuleInit {
     price: number;
     interval: PlanInterval;
   }): Promise<string> {
-    const { data } = await firstValueFrom(
-      this.httpService.post(`${this.billingServiceUrl}/api/billing/plans/sync-price`, {
-        planId: input.planId,
-        name: input.name,
-        price: input.price,
-        interval: input.interval,
-      }),
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${this.billingServiceUrl}/api/billing/plans/sync-price`,
+        {
+          planId: input.planId,
+          name: input.name,
+          price: input.price,
+          interval: input.interval,
+        },
+      ),
     );
+    const data = (response as unknown as Record<string, unknown>)
+      .data as Record<string, unknown>;
 
     return data.stripePriceId as string;
   }

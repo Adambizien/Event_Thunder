@@ -35,9 +35,7 @@ export class BillingService {
     dto: CreateSubscriptionCheckoutDto,
   ): Promise<{ sessionId: string; url: string | null }> {
     if (!this.stripe) {
-      throw new InternalServerErrorException(
-        'STRIPE_SECRET_KEY est manquante',
-      );
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
     }
 
     const session = await this.stripe.checkout.sessions.create({
@@ -70,9 +68,7 @@ export class BillingService {
     dto: SyncPlanPriceDto,
   ): Promise<{ stripePriceId: string; stripeProductId: string }> {
     if (!this.stripe) {
-      throw new InternalServerErrorException(
-        'STRIPE_SECRET_KEY est manquante',
-      );
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
     }
 
     const price = await this.stripe.prices.create({
@@ -119,41 +115,37 @@ export class BillingService {
     }
   }
 
-  async handleWebhookEvent(event: Stripe.Event) {
+  handleWebhookEvent(event: Stripe.Event) {
     this.logger.log(`Webhook Stripe reçu: ${event.type}`);
 
     switch (event.type) {
       case 'checkout.session.completed':
-        await this.onCheckoutSessionCompleted(
-          event.data.object as Stripe.Checkout.Session,
-        );
+        this.onCheckoutSessionCompleted(event.data.object);
         break;
       case 'customer.subscription.created':
-        await this.onSubscriptionCreated(event.data.object as Stripe.Subscription);
+        this.onSubscriptionCreated(event.data.object);
         break;
       case 'customer.subscription.updated':
-        await this.onSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        this.onSubscriptionUpdated(event.data.object);
         break;
       case 'invoice.payment_succeeded':
-        await this.onInvoicePaid(event.data.object as Stripe.Invoice);
+        this.onInvoicePaid(event.data.object);
         break;
       case 'invoice.payment_failed':
-        await this.onInvoiceFailed(event.data.object as Stripe.Invoice);
+        this.onInvoiceFailed(event.data.object);
         break;
       case 'customer.subscription.deleted':
-        await this.onSubscriptionCanceled(
-          event.data.object as Stripe.Subscription,
-        );
+        this.onSubscriptionCanceled(event.data.object);
         break;
       default:
         this.logger.debug(`Event Stripe ignoré: ${event.type}`);
     }
   }
 
-  private async onSubscriptionCreated(subscription: Stripe.Subscription) {
+  private onSubscriptionCreated(subscription: Stripe.Subscription) {
     const period = this.extractPeriodFromSubscription(subscription);
 
-    await this.rabbitmqPublisher.publish('billing.subscription.created', {
+    this.rabbitmqPublisher.publish('billing.subscription.created', {
       userId: subscription.metadata?.userId,
       planId: subscription.metadata?.planId,
       stripePriceId: this.extractPriceIdFromSubscription(subscription),
@@ -174,10 +166,10 @@ export class BillingService {
     );
   }
 
-  private async onSubscriptionUpdated(subscription: Stripe.Subscription) {
+  private onSubscriptionUpdated(subscription: Stripe.Subscription) {
     const period = this.extractPeriodFromSubscription(subscription);
 
-    await this.rabbitmqPublisher.publish('billing.subscription.updated', {
+    this.rabbitmqPublisher.publish('billing.subscription.updated', {
       userId: subscription.metadata?.userId,
       planId: subscription.metadata?.planId,
       stripePriceId: this.extractPriceIdFromSubscription(subscription),
@@ -198,7 +190,7 @@ export class BillingService {
     );
   }
 
-  private async onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  private onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     if (session.mode !== 'subscription' || !session.subscription) return;
 
     const stripeSubscriptionId =
@@ -211,13 +203,13 @@ export class BillingService {
     );
   }
 
-  private async onInvoicePaid(invoice: Stripe.Invoice) {
+  private onInvoicePaid(invoice: Stripe.Invoice) {
     const stripeSubscriptionId = this.extractSubscriptionIdFromInvoice(invoice);
 
     if (!stripeSubscriptionId) return;
 
     const period = invoice.lines.data[0]?.period;
-    await this.rabbitmqPublisher.publish('billing.payment.succeeded', {
+    this.rabbitmqPublisher.publish('billing.payment.succeeded', {
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
       amount: (invoice.amount_paid ?? 0) / 100,
@@ -234,7 +226,7 @@ export class BillingService {
     );
 
     if (period?.start && period?.end) {
-      await this.rabbitmqPublisher.publish('billing.subscription.renewed', {
+      this.rabbitmqPublisher.publish('billing.subscription.renewed', {
         stripeSubscriptionId,
         status: 'active',
         currentPeriodStart: new Date(period.start * 1000).toISOString(),
@@ -247,12 +239,12 @@ export class BillingService {
     }
   }
 
-  private async onInvoiceFailed(invoice: Stripe.Invoice) {
+  private onInvoiceFailed(invoice: Stripe.Invoice) {
     const stripeSubscriptionId = this.extractSubscriptionIdFromInvoice(invoice);
 
     if (!stripeSubscriptionId) return;
 
-    await this.rabbitmqPublisher.publish('billing.payment.failed', {
+    this.rabbitmqPublisher.publish('billing.payment.failed', {
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
       amount: (invoice.amount_due ?? 0) / 100,
@@ -267,8 +259,8 @@ export class BillingService {
     );
   }
 
-  private async onSubscriptionCanceled(subscription: Stripe.Subscription) {
-    await this.rabbitmqPublisher.publish('billing.subscription.canceled', {
+  private onSubscriptionCanceled(subscription: Stripe.Subscription) {
+    this.rabbitmqPublisher.publish('billing.subscription.canceled', {
       stripeSubscriptionId: subscription.id,
       status: 'canceled',
       canceledAt: subscription.canceled_at
@@ -284,12 +276,14 @@ export class BillingService {
     );
   }
 
-  private extractSubscriptionIdFromInvoice(invoice: Stripe.Invoice):
-    | string
-    | undefined {
-    const legacySubscription = (invoice as Stripe.Invoice & {
-      subscription?: string | { id: string };
-    }).subscription;
+  private extractSubscriptionIdFromInvoice(
+    invoice: Stripe.Invoice,
+  ): string | undefined {
+    const legacySubscription = (
+      invoice as Stripe.Invoice & {
+        subscription?: string | { id: string };
+      }
+    ).subscription;
 
     if (typeof legacySubscription === 'string') return legacySubscription;
     if (legacySubscription?.id) return legacySubscription.id;

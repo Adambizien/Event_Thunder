@@ -3,13 +3,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import * as express from 'express';
+import type { Request } from 'express';
+
+interface RequestWithRawBody extends Request {
+  rawBody?: Buffer;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.use(
     express.json({
-      verify: (req: any, res, buf) => {
+      verify: (req: RequestWithRawBody, res, buf) => {
         req.rawBody = buf;
       },
     }),

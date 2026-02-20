@@ -24,8 +24,7 @@ export class RabbitmqPublisherService
     this.exchange =
       this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
     this.rabbitUrl =
-      this.configService.get<string>('RABBITMQ_URL') ??
-      'amqp://rabbitmq:5672';
+      this.configService.get<string>('RABBITMQ_URL') ?? 'amqp://rabbitmq:5672';
     this.retryDelayMs = Number(
       this.configService.get<string>('RABBITMQ_RETRY_DELAY_MS') ?? 5000,
     );
@@ -81,13 +80,13 @@ export class RabbitmqPublisherService
       return;
     }
 
-    this.reconnectTimer = setTimeout(async () => {
+    this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
-      await this.connectWithRetry();
+      void this.connectWithRetry();
     }, this.retryDelayMs);
   }
 
-  async publish(routingKey: string, payload: Record<string, unknown>) {
+  publish(routingKey: string, payload: Record<string, unknown>) {
     if (!this.channel) {
       this.logger.warn(
         `Event non publié (channel indisponible): ${routingKey}`,

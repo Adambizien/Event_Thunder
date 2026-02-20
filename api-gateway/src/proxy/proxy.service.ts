@@ -31,7 +31,10 @@ export class ProxyService {
       return process.env.BILLING_SERVICE_URL || 'http://billing-service:3006';
     }
     if (originalUrl.startsWith('/api/subscriptions')) {
-      return process.env.SUBSCRIPTION_SERVICE_URL || 'http://subscription-service:3005';
+      return (
+        process.env.SUBSCRIPTION_SERVICE_URL ||
+        'http://subscription-service:3005'
+      );
     }
     return null;
   }
@@ -43,10 +46,10 @@ export class ProxyService {
     }
 
     const url = `${target}${req.originalUrl}`;
-    
+
     const reqWithRaw = req as GatewayRequest & { rawBody?: Buffer };
     const bodyData = reqWithRaw.rawBody || req.body;
-    
+
     const config: AxiosRequestConfig<unknown> = {
       method: req.method,
       url,

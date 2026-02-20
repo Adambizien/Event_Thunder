@@ -34,8 +34,7 @@ export class RabbitmqConsumerService
     private readonly subscriptionsService: SubscriptionsService,
   ) {
     this.rabbitUrl =
-      this.configService.get<string>('RABBITMQ_URL') ??
-      'amqp://rabbitmq:5672';
+      this.configService.get<string>('RABBITMQ_URL') ?? 'amqp://rabbitmq:5672';
     this.exchange =
       this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
     this.queueName =
@@ -69,9 +68,9 @@ export class RabbitmqConsumerService
         await this.channel.bindQueue(this.queueName, this.exchange, routingKey);
       }
 
-      await this.channel.consume(this.queueName, (message) =>
-        this.handleMessage(message),
-      );
+      await this.channel.consume(this.queueName, (message) => {
+        void this.handleMessage(message);
+      });
 
       this.connection.on('close', () => {
         this.logger.warn('Connexion RabbitMQ fermée. Reconnexion...');
@@ -104,9 +103,9 @@ export class RabbitmqConsumerService
       return;
     }
 
-    this.reconnectTimer = setTimeout(async () => {
+    this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
-      await this.connectWithRetry();
+      void this.connectWithRetry();
     }, this.retryDelayMs);
   }
 

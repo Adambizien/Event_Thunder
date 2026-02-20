@@ -7,4 +7,3 @@ export class CreatePlanDto {
   stripePriceId?: string;
   maxEvents: number;
 }
-
