@@ -32,6 +32,7 @@ const AdminPlans = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     price: '',
@@ -147,7 +148,7 @@ const AdminPlans = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce plan ?')) return;
-
+    setDeletingPlanId(id);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8000/api/subscriptions/plans/${id}`, {
@@ -156,13 +157,13 @@ const AdminPlans = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (!response.ok) throw new Error('Erreur lors de la suppression');
-      
       setError(null);
       fetchPlans();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setDeletingPlanId(null);
     }
   };
 
@@ -362,46 +363,55 @@ const AdminPlans = () => {
             <p className="text-gray-400 text-lg">Aucun plan trouvé</p>
           </div>
         ) : (
-          plans.map((plan) => (
-            <div
-              key={plan.id}
-              className="bg-gray-900 border border-gray-700 rounded-lg p-6 hover:border-thunder-gold transition-colors"
-            >
-              <h3 className="text-xl font-bold text-white mb-4">{plan.name}</h3>
-              
-              <div className="space-y-2 mb-4 text-gray-300">
-                <p>
-                  <span className="text-gray-400">Prix:</span> {plan.price}
-                  {plan.currency ?? 'EUR'}/{plan.interval === 'monthly' ? 'mois' : 'an'}
-                </p>
-                <p><span className="text-gray-400">Événements:</span> {plan.max_events === -1 ? 'Illimité' : plan.max_events}</p>
-                <p><span className="text-gray-400">Ordre:</span> {plan.display_order ?? 0}</p>
-                {plan.description && (
-                  <p>
-                    <span className="text-gray-400">Description:</span> {plan.description}
-                  </p>
+          plans.map((plan) => {
+            const isDeleting = deletingPlanId === plan.id;
+            return (
+              <div
+                key={plan.id}
+                className={`relative bg-gray-900 border border-gray-700 rounded-lg p-6 transition-colors ${isDeleting ? 'opacity-60 grayscale pointer-events-none' : 'hover:border-thunder-gold'}`}
+              >
+                {isDeleting && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 z-10 rounded-lg">
+                    <span className="text-white text-xl font-bold mb-2">En cours de suppression...</span>
+                    <span className="animate-spin text-3xl">⚡</span>
+                  </div>
                 )}
-                <p className="text-xs text-gray-500">Stripe: {plan.stripe_price_id}</p>
+                <h3 className="text-xl font-bold text-white mb-4">{plan.name}</h3>
+                <div className="space-y-2 mb-4 text-gray-300">
+                  <p>
+                    <span className="text-gray-400">Prix:</span> {plan.price}
+                    {plan.currency ?? 'EUR'}/{plan.interval === 'monthly' ? 'mois' : 'an'}
+                  </p>
+                  <p><span className="text-gray-400">Événements:</span> {plan.max_events === -1 ? 'Illimité' : plan.max_events}</p>
+                  <p><span className="text-gray-400">Ordre:</span> {plan.display_order ?? 0}</p>
+                  {plan.description && (
+                    <p>
+                      <span className="text-gray-400">Description:</span> {plan.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">Stripe: {plan.stripe_price_id}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(plan)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
+                    disabled={isDeleting}
+                  >
+                    <span>✏️</span>
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => handleDelete(plan.id)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition-colors"
+                    disabled={isDeleting}
+                  >
+                    <span>🗑️</span>
+                    Supprimer
+                  </button>
+                </div>
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(plan)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
-                >
-                  <span>✏️</span>
-                  Modifier
-                </button>
-                <button
-                  onClick={() => handleDelete(plan.id)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition-colors"
-                >
-                  <span>🗑️</span>
-                  Supprimer
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

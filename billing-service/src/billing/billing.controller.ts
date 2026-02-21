@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
+import { ArchivePlanPriceDto } from './dto/archive-plan-price.dto';
 import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
 
 @Controller('api/billing')
@@ -26,6 +27,11 @@ export class BillingController {
   @Post('plans/sync-price')
   async syncPlanPrice(@Body() dto: SyncPlanPriceDto) {
     return this.billingService.syncPlanPrice(dto);
+  }
+
+  @Post('plans/archive-price')
+  async archivePlanPrice(@Body() dto: ArchivePlanPriceDto) {
+    return this.billingService.archivePlanPrice(dto.stripePriceId);
   }
 
   @Post('stripe/webhook')

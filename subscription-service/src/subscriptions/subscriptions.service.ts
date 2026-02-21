@@ -135,6 +135,26 @@ export class SubscriptionsService {
       throw new NotFoundException('Plan introuvable');
     }
 
+    if (plan.stripe_price_id) {
+      try {
+        await firstValueFrom(
+          this.httpService.post(
+            `${this.billingServiceUrl}/api/billing/plans/archive-price`,
+            {
+              stripePriceId: plan.stripe_price_id,
+            },
+          ),
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Impossible d'archiver le Stripe price ${plan.stripe_price_id} avant suppression du plan ${plan.id}`,
+        );
+        this.logger.debug(
+          error instanceof Error ? error.message : 'Erreur inconnue',
+        );
+      }
+    }
+
     await this.planRepository.remove(plan);
     return { message: 'Plan supprimé avec succès' };
   }

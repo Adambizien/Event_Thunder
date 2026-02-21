@@ -97,6 +97,56 @@ export class BillingService {
     };
   }
 
+  async archivePlanPrice(
+    stripePriceId: string,
+  ): Promise<{ archived: boolean; stripePriceId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const price = await this.stripe.prices.retrieve(stripePriceId);
+    const stripeProductId =
+      typeof price.product === 'string' ? price.product : price.product?.id;
+
+    if (stripeProductId) {
+      const product = await this.stripe.products.retrieve(stripeProductId);
+      const defaultPriceId =
+        typeof product.default_price === 'string'
+          ? product.default_price
+          : product.default_price?.id;
+
+      if (defaultPriceId === stripePriceId) {
+        await this.stripe.products.update(stripeProductId, {
+          default_price: '',
+        });
+      }
+    }
+
+    await this.stripe.prices.update(stripePriceId, { active: false });
+
+    if (stripeProductId) {
+      const remainingActivePrices = await this.stripe.prices.list({
+        product: stripeProductId,
+        active: true,
+        limit: 1,
+      });
+
+      if (remainingActivePrices.data.length === 0) {
+        await this.stripe.products.update(stripeProductId, {
+          active: false,
+        });
+        this.logger.log(`Stripe product désactivé: ${stripeProductId}`);
+      }
+    }
+
+    this.logger.log(`Stripe price archivé: ${stripePriceId}`);
+
+    return {
+      archived: true,
+      stripePriceId,
+    };
+  }
+
   constructWebhookEvent(rawBody: Buffer, signature: string): Stripe.Event {
     if (!this.stripe || !this.stripeWebhookSecret) {
       throw new InternalServerErrorException(
