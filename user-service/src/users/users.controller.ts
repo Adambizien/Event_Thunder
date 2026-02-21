@@ -1,3 +1,5 @@
+import { UpdateRoleDto } from './dto/update-role.dto';
+
 import {
   Controller,
   Post,
@@ -77,5 +79,11 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
+  }
+
+  @Patch('role')
+  @HttpCode(HttpStatus.OK)
+  async updateRole(@Body() updateRoleDto: UpdateRoleDto) {
+    return this.usersService.updateRole(updateRoleDto);
   }
 }

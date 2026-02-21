@@ -1,3 +1,4 @@
+import { UpdateRoleDto } from './dto/update-role.dto';
 import {
   Injectable,
   ConflictException,
@@ -223,5 +224,15 @@ export class UsersService {
     await this.userRepository.remove(user);
 
     return { message: 'Utilisateur supp rimé avec succès' };
+  }
+
+  async updateRole(updateRoleDto: UpdateRoleDto): Promise<{ user: UserResponseDto }> {
+    const user = await this.userRepository.findOne({ where: { id: updateRoleDto.userId }, relations: ['info'] });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    user.role = updateRoleDto.role;
+    await this.userRepository.save(user);
+    return { user: this.toUserResponse(user) };
   }
 }

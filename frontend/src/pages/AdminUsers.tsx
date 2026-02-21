@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import type { User } from '../types/AuthTypes';
+import Modal from '../components/Modal';
+type User = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phoneNumber?: string;
+  role: 'User' | 'Admin';
+  planId?: string;
+};
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -7,6 +16,48 @@ const AdminUsers = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
+  const openRoleModal = (user: User) => {
+    setSelectedUser(user);
+    setNewRole(user.role);
+    setRoleError(null);
+    setShowRoleModal(true);
+  };
+
+  const closeRoleModal = () => {
+    setShowRoleModal(false);
+    setSelectedUser(null);
+    setRoleError(null);
+  };
+
+  const handleRoleChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    setRoleLoading(true);
+    setRoleError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/users/role', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: selectedUser.id, role: newRole }),
+      });
+      if (!response.ok) throw new Error('Erreur lors de la modification du rôle');
+      closeRoleModal();
+      fetchUsers();
+    } catch (err) {
+      setRoleError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setRoleLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -57,13 +108,16 @@ const AdminUsers = () => {
   };
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
-
+    const haystack = [user.firstName, user.lastName, user.email]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const searchWords = searchTerm
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean);
+    const matchesSearch = searchWords.every(word => haystack.includes(word));
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-
     return matchesSearch && matchesRole;
   });
 
@@ -117,10 +171,30 @@ const AdminUsers = () => {
               className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             >
               <option value="all">Tous les rôles</option>
-              <option value="user">Utilisateur</option>
-              <option value="admin">Admin</option>
+              <option value="User">Utilisateur</option>
+              <option value="Admin">Admin</option>
             </select>
           </div>
+        </div>
+      </div>
+      
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+          <p className="text-gray-400 text-sm mb-1">Total utilisateurs</p>
+          <p className="text-2xl font-bold text-thunder-gold">{users.length}</p>
+        </div>
+        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+          <p className="text-gray-400 text-sm mb-1">🔑 Administrateurs</p>
+          <p className="text-2xl font-bold text-purple-400">
+            {users.filter((u) => u.role === 'Admin').length}
+          </p>
+        </div>
+        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+          <p className="text-gray-400 text-sm mb-1">Utilisateurs actifs</p>
+          <p className="text-2xl font-bold text-blue-400">
+            {users.filter((u) => u.role === 'User' || !u.role).length}
+          </p>
         </div>
       </div>
 
@@ -192,16 +266,58 @@ const AdminUsers = () => {
                       <div className="flex items-center gap-2">
                         {user.role === 'Admin' && (
                           <span className="bg-purple-900/20 text-purple-400 px-3 py-1 rounded-full text-sm font-medium">
-                            🔑 Admin
+                            Admin
                           </span>
                         )}
-                        {!user.role || user.role === 'User' && (
+                        {user.role === 'User' && (
                           <span className="bg-blue-900/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium">
                             Utilisateur
                           </span>
                         )}
                       </div>
                     </td>
+                          {/* Modal modification rôle */}
+                          <Modal
+                            isOpen={showRoleModal}
+                            onClose={closeRoleModal}
+                            title={selectedUser ? `Modifier le rôle de ${selectedUser.firstName || selectedUser.email}` : 'Modifier le rôle'}
+                            size="sm"
+                          >
+                            <form onSubmit={handleRoleChange} className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Rôle</label>
+                                <select
+                                  value={newRole}
+                                  onChange={e => setNewRole(e.target.value as 'User' | 'Admin')}
+                                  className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                                  disabled={roleLoading}
+                                >
+                                  <option value="User">Utilisateur</option>
+                                  <option value="Admin">Admin</option>
+                                </select>
+                              </div>
+                              {roleError && (
+                                <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400 mb-2">{roleError}</div>
+                              )}
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={closeRoleModal}
+                                  className="px-4 py-2 rounded bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                  disabled={roleLoading}
+                                >
+                                  Annuler
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="px-4 py-2 rounded bg-thunder-gold text-black font-semibold hover:bg-thunder-orange disabled:opacity-60"
+                                  disabled={roleLoading}
+                                >
+                                  {roleLoading ? 'Modification...' : 'Valider'}
+                                </button>
+                              </div>
+                            </form>
+                          </Modal>
                     <td className="px-6 py-4 text-gray-300">
                       {user.planId ? (
                         <span className="bg-gray-800 px-3 py-1 rounded text-sm">
@@ -212,13 +328,22 @@ const AdminUsers = () => {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="p-2 hover:bg-red-900/20 rounded transition-colors text-red-400 hover:text-red-300 text-lg"
-                        title="Supprimer l'utilisateur"
-                      >
-                        🗑️
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openRoleModal(user)}
+                          className="px-2 py-1 bg-gray-800 hover:bg-thunder-gold/20 text-gray-400 hover:text-thunder-gold rounded text-xs border border-gray-700"
+                          title="Modifier le rôle"
+                        >
+                          Modifier le rôle
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="p-2 hover:bg-red-900/20 rounded transition-colors text-red-400 hover:text-red-300 text-lg"
+                          title="Supprimer l'utilisateur"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -228,25 +353,7 @@ const AdminUsers = () => {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-          <p className="text-gray-400 text-sm mb-1">Total utilisateurs</p>
-          <p className="text-2xl font-bold text-thunder-gold">{users.length}</p>
-        </div>
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-          <p className="text-gray-400 text-sm mb-1">🔑 Administrateurs</p>
-          <p className="text-2xl font-bold text-purple-400">
-            {users.filter((u) => u.role === 'admin').length}
-          </p>
-        </div>
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-          <p className="text-gray-400 text-sm mb-1">Utilisateurs actifs</p>
-          <p className="text-2xl font-bold text-blue-400">
-            {users.filter((u) => u.role === 'user' || !u.role).length}
-          </p>
-        </div>
-      </div>
+      
     </div>
   );
 };
