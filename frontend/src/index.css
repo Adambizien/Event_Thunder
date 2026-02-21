@@ -9,8 +9,13 @@
   --thunder-light: #f0f0f0;
 }
 
-html, body, #root {
+html, body {
+  min-height: 100vh;
   height: 100%;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 body {

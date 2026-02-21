@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Plan, PlanInterval, PlanName } from './entities/plan.entity';
+import { Plan, PlanCurrency, PlanInterval } from './entities/plan.entity';
 import {
   Subscription,
   SubscriptionStatus,
@@ -32,7 +32,6 @@ interface BillingEventPayload {
   amount?: number;
   currency?: string;
   status?: string;
-  description?: string;
   paidAt?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
@@ -41,7 +40,7 @@ interface BillingEventPayload {
 }
 
 @Injectable()
-export class SubscriptionsService implements OnModuleInit {
+export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
   private readonly billingServiceUrl: string;
 
@@ -60,9 +59,7 @@ export class SubscriptionsService implements OnModuleInit {
       'http://billing-service:3000';
   }
 
-  async onModuleInit() {
-    await this.seedDefaultPlans();
-  }
+
 
   async createPlan(dto: CreatePlanDto): Promise<Plan> {
     const stripePriceId =
@@ -71,14 +68,18 @@ export class SubscriptionsService implements OnModuleInit {
         name: dto.name,
         price: dto.price,
         interval: dto.interval,
+        currency: dto.currency ?? PlanCurrency.EUR,
       }));
 
     const entity = this.planRepository.create({
       name: dto.name,
       price: dto.price,
       interval: dto.interval,
+      currency: dto.currency ?? PlanCurrency.EUR,
       stripe_price_id: stripePriceId,
       max_events: dto.maxEvents,
+      display_order: dto.displayOrder ?? 0,
+      description: dto.description ?? null,
     });
     return this.planRepository.save(entity);
   }
@@ -92,12 +93,16 @@ export class SubscriptionsService implements OnModuleInit {
     const nextName = dto.name ?? plan.name;
     const nextPrice = dto.price ?? Number(plan.price);
     const nextInterval = dto.interval ?? plan.interval;
+    const nextCurrency = dto.currency ?? plan.currency;
     const nextMaxEvents = dto.maxEvents ?? plan.max_events;
+    const nextDisplayOrder = dto.displayOrder ?? plan.display_order;
+    const nextDescription = dto.description ?? plan.description;
 
+    const currentPrice = Number(plan.price);
     const priceOrIntervalChanged =
-      dto.price !== undefined ||
-      dto.interval !== undefined ||
-      dto.name !== undefined;
+      nextPrice !== currentPrice ||
+      nextInterval !== plan.interval ||
+      nextCurrency !== plan.currency;
 
     if (priceOrIntervalChanged) {
       plan.stripe_price_id = await this.syncPlanPriceWithBilling({
@@ -105,19 +110,33 @@ export class SubscriptionsService implements OnModuleInit {
         name: nextName,
         price: nextPrice,
         interval: nextInterval,
+        currency: nextCurrency,
       });
     }
 
     plan.name = nextName;
     plan.price = nextPrice;
     plan.interval = nextInterval;
+    plan.currency = nextCurrency;
     plan.max_events = nextMaxEvents;
+    plan.display_order = nextDisplayOrder;
+    plan.description = nextDescription;
 
     return this.planRepository.save(plan);
   }
 
   async getPlans(): Promise<Plan[]> {
     return this.planRepository.find({ order: { created_at: 'ASC' } });
+  }
+
+  async deletePlan(id: string): Promise<{ message: string }> {
+    const plan = await this.planRepository.findOne({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException('Plan introuvable');
+    }
+
+    await this.planRepository.remove(plan);
+    return { message: 'Plan supprimé avec succès' };
   }
 
   async createCheckoutSession(dto: CreateCheckoutSessionDto) {
@@ -334,7 +353,6 @@ export class SubscriptionsService implements OnModuleInit {
         payload.status === (PaymentStatus.Failed as string)
           ? PaymentStatus.Failed
           : PaymentStatus.Paid,
-      description: payload.description as string | null,
       paid_at: this.toDate(payload.paidAt),
     });
 
@@ -355,37 +373,6 @@ export class SubscriptionsService implements OnModuleInit {
     return normalized === (PaymentCurrency.USD as string)
       ? PaymentCurrency.USD
       : PaymentCurrency.EUR;
-  }
-
-  private async seedDefaultPlans() {
-    const existing = await this.planRepository.count();
-    if (existing > 0) return;
-
-    const defaults = this.planRepository.create([
-      {
-        name: PlanName.Free,
-        price: 0,
-        interval: PlanInterval.Monthly,
-        stripe_price_id: 'price_free_placeholder',
-        max_events: 0,
-      },
-      {
-        name: PlanName.Pro,
-        price: 29,
-        interval: PlanInterval.Monthly,
-        stripe_price_id: 'price_pro_placeholder',
-        max_events: 2,
-      },
-      {
-        name: PlanName.Premium,
-        price: 199,
-        interval: PlanInterval.Monthly,
-        stripe_price_id: 'price_premium_placeholder',
-        max_events: -1,
-      },
-    ]);
-
-    await this.planRepository.save(defaults);
   }
 
   private async resolvePlan(
@@ -418,6 +405,7 @@ export class SubscriptionsService implements OnModuleInit {
     name: string;
     price: number;
     interval: PlanInterval;
+    currency: PlanCurrency;
   }): Promise<string> {
     const response = await firstValueFrom(
       this.httpService.post(
@@ -427,6 +415,7 @@ export class SubscriptionsService implements OnModuleInit {
           name: input.name,
           price: input.price,
           interval: input.interval,
+          currency: input.currency.toLowerCase(),
         },
       ),
     );

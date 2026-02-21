@@ -7,9 +7,14 @@ import Profile from './components/Profile';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedAdminRoute from './components/ProtectedAdminRoute';
+import AdminLayout from './components/AdminLayout';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Home from './pages/Home';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminPlans from './pages/AdminPlans';
+import AdminUsers from './pages/AdminUsers';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 
@@ -135,6 +140,18 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedAdminRoute user={user}>
+              <AdminLayout />
+            </ProtectedAdminRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="plans" element={<AdminPlans />} />
+          <Route path="users" element={<AdminUsers />} />
+        </Route>
       </Routes>
       <Footer />
     </>

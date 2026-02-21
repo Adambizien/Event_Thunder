@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
@@ -21,6 +21,11 @@ export class SubscriptionsController {
   @Get('plans')
   getPlans() {
     return this.subscriptionsService.getPlans();
+  }
+
+  @Delete('plans/:id')
+  deletePlan(@Param('id') id: string) {
+    return this.subscriptionsService.deletePlan(id);
   }
 
   @Post('checkout-session')

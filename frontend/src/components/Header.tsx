@@ -81,6 +81,18 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               >
                 Tableau de bord
               </Link>
+              {user.role === 'Admin' && (
+                <Link
+                  to="/admin"
+                  className={`font-semibold px-4 py-2 rounded-lg transition-all ${
+                    isActive('/admin') || isActive('/admin/plans') || isActive('/admin/users')
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-purple-700 text-white hover:bg-purple-600'
+                  }`}
+                >
+                  Interface Admin
+                </Link>
+              )}
               <Link
                 to="/profile"
                 className={`font-semibold transition-colors ${

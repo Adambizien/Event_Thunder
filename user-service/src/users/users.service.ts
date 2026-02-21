@@ -198,4 +198,30 @@ export class UsersService {
   healthCheck(): Promise<{ message: string }> {
     return Promise.resolve({ message: 'Le service utilisateur fonctionne' });
   }
+
+  async getAllUsers(): Promise<{ users: UserResponseDto[] }> {
+    const users = await this.userRepository.find({
+      relations: ['info'],
+    });
+    return { users: users.map((user) => this.toUserResponse(user)) };
+  }
+
+  async deleteUser(id: string): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['info'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    if (user.info) {
+      await this.usersInfoRepository.remove(user.info);
+    }
+
+    await this.userRepository.remove(user);
+
+    return { message: 'Utilisateur supp rimé avec succès' };
+  }
 }

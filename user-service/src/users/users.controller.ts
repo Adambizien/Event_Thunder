@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Put,
+  Delete,
   Body,
   Param,
   HttpCode,
@@ -64,5 +65,17 @@ export class UsersController {
   @Get('health')
   healthCheck() {
     return this.usersService.healthCheck();
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async getAllUsers() {
+    return this.usersService.getAllUsers();
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteUser(@Param('id') id: string) {
+    return this.usersService.deleteUser(id);
   }
 }

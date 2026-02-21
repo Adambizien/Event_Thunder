@@ -1,9 +1,12 @@
-import { PlanInterval, PlanName } from '../entities/plan.entity';
+import { PlanCurrency, PlanInterval } from '../entities/plan.entity';
 
 export class CreatePlanDto {
-  name: PlanName;
+  name: string;
   price: number;
   interval: PlanInterval;
+  currency?: PlanCurrency;
   stripePriceId?: string;
   maxEvents: number;
+  displayOrder?: number;
+  description?: string | null;
 }

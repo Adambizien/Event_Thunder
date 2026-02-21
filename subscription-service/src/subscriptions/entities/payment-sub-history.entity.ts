@@ -44,9 +44,6 @@ export class PaymentSubHistory {
   @Column({ type: 'enum', enum: PaymentStatus })
   status: PaymentStatus;
 
-  @Column({ type: 'text', nullable: true })
-  description: string | null;
-
   @Column({ type: 'timestamp', nullable: true })
   paid_at: Date | null;
 
