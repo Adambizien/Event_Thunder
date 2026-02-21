@@ -226,8 +226,13 @@ export class UsersService {
     return { message: 'Utilisateur supp rimé avec succès' };
   }
 
-  async updateRole(updateRoleDto: UpdateRoleDto): Promise<{ user: UserResponseDto }> {
-    const user = await this.userRepository.findOne({ where: { id: updateRoleDto.userId }, relations: ['info'] });
+  async updateRole(
+    updateRoleDto: UpdateRoleDto,
+  ): Promise<{ user: UserResponseDto }> {
+    const user = await this.userRepository.findOne({
+      where: { id: updateRoleDto.userId },
+      relations: ['info'],
+    });
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
     }

@@ -1,30 +1,24 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authService } from '../services/AuthServices';
-import GoogleAuthButton from './GoogleAuthButton';
-import Logo from './Logo';
-import { PasswordInput } from './PasswordInput';
-import { validatePassword, type PasswordValidation } from '../utils/passwordValidator';
-import type { User } from '../types/AuthTypes';
+import { authService } from '../../services/AuthServices';
+import GoogleAuthButton from '../../components/GoogleAuthButton';
+import { PasswordInput } from '../../components/PasswordInput';
+import Logo from '../../components/Logo';
+import type { User } from '../../types/AuthTypes';
 
-interface RegisterProps {
-  onSwitchToLogin: () => void;
-  onRegister: (user: User) => void;
+interface LoginProps {
+  onSwitchToRegister: () => void;
+  onLogin: (user: User) => void;
 }
 
-const Register = ({ onRegister }: RegisterProps) => {
+const Login = ({ onLogin }: LoginProps) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
     email: '',
-    password: '',
-    confirmPassword: '',
-    phoneNumber: ''
+    password: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [passwordValidation, setPasswordValidation] = useState<PasswordValidation | null>(null);
 
   type ApiError = { response?: { data?: { message?: string } } };
   const getErrorMessage = (err: unknown) => {
@@ -34,14 +28,13 @@ const Register = ({ onRegister }: RegisterProps) => {
       if (typeof message === 'string') return message;
     }
     if (err instanceof Error && err.message) return err.message;
-    return 'Registration failed. Please try again.';
+    return 'Login failed. Please check your credentials and try again.';
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [e.target.name]: e.target.value
     });
   };
 
@@ -50,24 +43,11 @@ const Register = ({ onRegister }: RegisterProps) => {
     setLoading(true);
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
-      setLoading(false);
-      return;
-    }
-
-    const validation = validatePassword(formData.password);
-    if (!validation.isValid) {
-      setError(`Mot de passe invalide: ${validation.errors.join(', ')}`);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await authService.register(formData);
+      const response = await authService.login(formData);
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-      onRegister(response.user);
+      onLogin(response.user);
       navigate('/dashboard');
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -89,8 +69,8 @@ const Register = ({ onRegister }: RegisterProps) => {
           <div className="mb-6 flex justify-center">
             <Logo size="md" />
           </div>
-          <p className="text-gray-300 text-lg">Créer un compte</p>
-          <p className="text-gray-400 text-sm">Inscrivez-vous pour commencer</p>
+          <p className="text-gray-300 text-lg">Bienvenue</p>
+          <p className="text-gray-400 text-sm">Connectez-vous à votre compte</p>
         </div>
 
         {/* Error Message */}
@@ -113,14 +93,10 @@ const Register = ({ onRegister }: RegisterProps) => {
 
         {/* Card */}
         <div className="card p-8 mb-6">
-          {/* Required Fields Note */}
-          <p className="text-gray-500 text-xs mb-4">
-            Les champs marqués <span className="text-red-600 font-bold">*</span> sont obligatoires.
-          </p>
           {/* Google Auth Button */}
           <GoogleAuthButton 
             onError={handleGoogleError}
-            buttonText="S'inscrire avec Google"
+            buttonText="Continuer avec Google"
           />
 
           {/* Divider */}
@@ -135,58 +111,9 @@ const Register = ({ onRegister }: RegisterProps) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Prénom <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  placeholder="Votre prénom"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nom <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  placeholder="Votre nom"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                  className="input-field"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Numéro de téléphone <span className="text-gray-500">(optionnel)</span>
-              </label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                placeholder="Votre numéro de téléphone"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                disabled={loading}
-                className="input-field"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Adresse e-mail <span className="text-red-600">*</span>
+                Adresse e-mail
               </label>
               <input
                 type="email"
@@ -201,72 +128,62 @@ const Register = ({ onRegister }: RegisterProps) => {
             </div>
 
             <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Mot de passe
+                </label>
+              </div>
               <PasswordInput
                 id="password"
                 name="password"
                 value={formData.password}
-                onChange={setPasswordValidation}
+                onChange={() => {}} // No validation needed for login
                 onValueChange={(password) => {
                   setFormData({
                     ...formData,
                     password
                   });
                 }}
-                placeholder="Créez un mot de passe"
-                label="Mot de passe"
-                disabled={loading}
-                showValidation={true}
-                required={true}
-              />
-            </div>
-
-            <div>
-              <PasswordInput
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={() => {}} // No validation needed for confirm password
-                onValueChange={(confirmPassword) => {
-                  setFormData({
-                    ...formData,
-                    confirmPassword
-                  });
-                }}
-                placeholder="Confirmez votre mot de passe"
-                label="Confirmer le mot de passe"
+                placeholder="Entrez votre mot de passe"
+                label=""
                 disabled={loading}
                 showValidation={false}
                 required={true}
               />
+              <Link 
+                to="/forgot-password"
+                className="text-sm text-thunder-gold hover:text-thunder-orange transition-colors mt-2 inline-block"
+              >
+                Mot de passe oublié?
+              </Link>
             </div>
 
             <button 
               type="submit" 
-              disabled={loading || !passwordValidation?.isValid}
+              disabled={loading}
               className="btn-primary mt-6 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Création du compte...
+                  Connexion en cours...
                 </>
               ) : (
-                'Créer un compte'
+                'Se connecter à votre compte'
               )}
             </button>
           </form>
         </div>
 
-        {/* Sign In Link */}
+        {/* Sign Up Link */}
         <div className="text-center py-4 border-t border-gray-200">
           <p className="text-gray-600 text-sm">
-            Vous avez déjà un compte?{' '}
+            Vous n'avez pas de compte?{' '}
             <Link 
-              to="/login"
-              className={`ml-1 ${loading ? 'opacity-50 cursor-not-allowed' : 'btn-secondary'}`}
-              onClick={(e) => loading && e.preventDefault()}
+              to="/register"
+              className="btn-secondary ml-1"
             >
-              Se connecter
+              S'inscrire
             </Link>
           </p>
         </div>
@@ -282,4 +199,4 @@ const Register = ({ onRegister }: RegisterProps) => {
   );
 };
 
-export default Register;
+export default Login;

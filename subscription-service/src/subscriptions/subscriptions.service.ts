@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Plan, PlanCurrency, PlanInterval } from './entities/plan.entity';
@@ -58,8 +53,6 @@ export class SubscriptionsService {
       this.configService.get<string>('BILLING_SERVICE_URL') ??
       'http://billing-service:3000';
   }
-
-
 
   async createPlan(dto: CreatePlanDto): Promise<Plan> {
     const stripePriceId =

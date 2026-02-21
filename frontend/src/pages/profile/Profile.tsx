@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
-import { authService, userService } from '../services/AuthServices';
-import type { User } from '../types/AuthTypes';
-import { PasswordInput } from './PasswordInput';
-import { PasswordValidationDisplay } from './PasswordValidationDisplay';
-import { validatePassword, type PasswordValidation } from '../utils/passwordValidator';
+import { authService, userService } from '../../services/AuthServices';
+import type { User } from '../../types/AuthTypes';
+import { PasswordInput } from '../../components/PasswordInput';
+import { PasswordValidationDisplay } from '../../components/PasswordValidationDisplay';
+import { validatePassword, type PasswordValidation } from '../../utils/passwordValidator';
 
 interface ProfileProps {
   user: User;

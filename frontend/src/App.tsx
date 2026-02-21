@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import Dashboard from './components/Dashboard';
-import Profile from './components/Profile';
+import Profile from './pages/profile/Profile';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import AdminLayout from './components/AdminLayout';
-import ForgotPassword from './components/ForgotPassword';
-import ResetPassword from './components/ResetPassword';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Home from './pages/Home';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminPlans from './pages/AdminPlans';
-import AdminUsers from './pages/AdminUsers';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminPlans from './pages/admin/Plans';
+import AdminUsers from './pages/admin/Users';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 
@@ -36,7 +36,7 @@ function AppContent() {
           setUser(userData);
           window.history.replaceState({}, '', '/');
         } catch {
-          // Silently fail on OAuth parsing error
+          // Erreur
         }
       } else {
         const savedToken = localStorage.getItem('token');

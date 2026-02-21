@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Modal from '../components/Modal';
+import Modal from '../../components/Modal';
 type User = {
   id: string;
   firstName?: string;

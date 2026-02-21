@@ -112,7 +112,8 @@ services:
         condition: service_healthy
     networks:
       - app-network
-
+  
+  # RabbitMQ
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: event_thunder_rabbitmq

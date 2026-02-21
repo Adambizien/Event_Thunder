@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { authService } from '../services/AuthServices';
-import { PasswordInput } from './PasswordInput';
-import { validatePassword, type PasswordValidation } from '../utils/passwordValidator';
-import Logo from './Logo';
+import { authService } from '../../services/AuthServices';
+import { PasswordInput } from '../../components/PasswordInput';
+import { validatePassword, type PasswordValidation } from '../../utils/passwordValidator';
+import Logo from '../../components/Logo';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
