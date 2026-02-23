@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../../services/AuthServices';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
 import { PasswordInput } from '../../components/PasswordInput';
@@ -13,6 +13,7 @@ interface LoginProps {
 
 const Login = ({ onLogin }: LoginProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -48,7 +49,13 @@ const Login = ({ onLogin }: LoginProps) => {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       onLogin(response.user);
-      navigate('/dashboard');
+      const searchParams = new URLSearchParams(location.search);
+      const redirect = searchParams.get('redirect');
+      if (redirect === 'subscription') {
+        navigate('/subscription');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {

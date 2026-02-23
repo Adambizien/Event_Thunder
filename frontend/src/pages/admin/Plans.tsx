@@ -42,6 +42,7 @@ const AdminPlans = () => {
     displayOrder: '0',
     description: '',
   });
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     fetchPlans();
@@ -51,7 +52,7 @@ const AdminPlans = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/subscriptions/plans', {
+      const response = await fetch(`${apiUrl}/api/subscriptions/plans`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -97,8 +98,8 @@ const AdminPlans = () => {
 
       const method = editingId ? 'PATCH' : 'POST';
       const url = editingId 
-        ? `http://localhost:8000/api/subscriptions/plans/${editingId}`
-        : 'http://localhost:8000/api/subscriptions/plans';
+        ? `${apiUrl}/api/subscriptions/plans/${editingId}`
+        : `${apiUrl}/api/subscriptions/plans`;
 
       const response = await fetch(url, {
         method,
@@ -151,7 +152,7 @@ const AdminPlans = () => {
     setDeletingPlanId(id);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/subscriptions/plans/${id}`, {
+      const response = await fetch(`${apiUrl}/api/subscriptions/plans/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

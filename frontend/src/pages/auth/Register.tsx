@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../../services/AuthServices';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
 import Logo from '../../components/Logo';
@@ -14,6 +14,7 @@ interface RegisterProps {
 
 const Register = ({ onRegister }: RegisterProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -68,7 +69,13 @@ const Register = ({ onRegister }: RegisterProps) => {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       onRegister(response.user);
-      navigate('/dashboard');
+      const searchParams = new URLSearchParams(location.search);
+      const redirect = searchParams.get('redirect');
+      if (redirect === 'subscription') {
+        navigate('/subscription');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -225,7 +232,7 @@ const Register = ({ onRegister }: RegisterProps) => {
                 id="confirmPassword"
                 name="confirmPassword"
                 value={formData.confirmPassword}
-                onChange={() => {}} // No validation needed for confirm password
+                onChange={() => {}}
                 onValueChange={(confirmPassword) => {
                   setFormData({
                     ...formData,

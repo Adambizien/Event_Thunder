@@ -1,3 +1,4 @@
+import Subscription from './pages/Subscription';
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/Login';
@@ -103,6 +104,20 @@ function AppContent() {
     );
   }
 
+  if (!loading && user) {
+    const path = window.location.pathname;
+    if (path === '/login' || path === '/register') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect');
+      if (redirect === 'subscription') {
+        window.location.replace('/subscription');
+        return null;
+      }
+      window.location.replace('/dashboard');
+      return null;
+    }
+  }
+
   return (
     <>
       <Header user={user} onLogout={handleLogout} />
@@ -110,11 +125,11 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route 
           path="/login" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Login onSwitchToRegister={() => {}} onLogin={handleLogin} />}
+          element={<Login onSwitchToRegister={() => {}} onLogin={handleLogin} />}
         />
         <Route 
           path="/register" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Register onSwitchToLogin={() => {}} onRegister={handleRegister} />}
+          element={<Register onSwitchToLogin={() => {}} onRegister={handleRegister} />}
         />
         <Route 
           path="/forgot-password" 
@@ -131,6 +146,10 @@ function AppContent() {
               <Dashboard user={user!} />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/subscription"
+          element={<Subscription />}
         />
         <Route 
           path="/profile" 

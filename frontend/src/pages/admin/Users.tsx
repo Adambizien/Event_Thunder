@@ -27,6 +27,7 @@ const AdminUsers = () => {
     setRoleError(null);
     setShowRoleModal(true);
   };
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const closeRoleModal = () => {
     setShowRoleModal(false);
@@ -41,7 +42,7 @@ const AdminUsers = () => {
     setRoleError(null);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/users/role', {
+      const response = await fetch(`${apiUrl}/api/users/role`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ const AdminUsers = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/users', {
+      const response = await fetch(`${apiUrl}/api/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -91,7 +92,7 @@ const AdminUsers = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/users/${userId}`, {
+      const response = await fetch(`${apiUrl}/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
