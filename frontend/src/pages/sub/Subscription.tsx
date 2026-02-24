@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Modal from '../components/Modal';
-import { authService } from '../services/AuthServices';
+import Modal from '../../components/Modal';
+import { authService } from '../../services/AuthServices';
 
 interface Plan {
   id: string;

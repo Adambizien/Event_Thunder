@@ -64,7 +64,6 @@ const ResetPassword = () => {
       return;
     }
 
-    // Validate password
     const validation = validatePassword(formData.password);
     if (!validation.isValid) {
       setPasswordError(`Mot de passe invalide: ${validation.errors.join(', ')}`);
@@ -151,7 +150,6 @@ const ResetPassword = () => {
     );
   }
 
-  // Afficher le message de succès si la réinitialisation est complète
   if (message) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4">
@@ -230,7 +228,7 @@ const ResetPassword = () => {
               id="confirmPassword"
               name="confirmPassword"
               value={formData.confirmPassword}
-              onChange={() => {}} // No validation needed for confirm password
+              onChange={() => {}}
               onValueChange={(confirmPassword) => {
                 setFormData({
                   ...formData,
