@@ -1,4 +1,3 @@
-import Subscription from './pages/sub/Subscription';
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/Login';
@@ -18,6 +17,8 @@ import AdminPlans from './pages/admin/Plans';
 import AdminUsers from './pages/admin/Users';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
+import Subscription from './pages/sub/Subscription';
+
 
 function AppContent() {
   const [user, setUser] = useState<User | null>(null);

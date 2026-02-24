@@ -138,7 +138,6 @@ export class UsersService {
       throw new NotFoundException('Utilisateur non trouvé');
     }
 
-    // Update email if different
     if (updateProfileDto.email !== user.email) {
       const existingUser = await this.userRepository.findOne({
         where: { email: updateProfileDto.email },
@@ -151,7 +150,6 @@ export class UsersService {
       user.email = updateProfileDto.email;
     }
 
-    // Update or create user info
     if (user.info) {
       user.info.first_name = updateProfileDto.firstName;
       user.info.last_name = updateProfileDto.lastName;

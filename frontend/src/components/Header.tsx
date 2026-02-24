@@ -81,6 +81,12 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               >
                 Tableau de bord
               </Link>
+              <Link
+                to="/subscription"
+                className="font-semibold px-4 py-2 rounded-lg bg-thunder-gold text-black hover:bg-thunder-orange transition-all"
+              >
+                S’abonner
+              </Link>
               {user.role === 'Admin' && (
                 <Link
                   to="/admin"

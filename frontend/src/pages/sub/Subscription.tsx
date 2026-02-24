@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import { authService } from '../../services/AuthServices';
+import { subscriptionService } from '../../services/SubscriptionService';
+import type { SubscriptionType } from '../../types/SubscriptionTypes';
 
 interface Plan {
   id: string;
@@ -14,6 +16,7 @@ interface Plan {
 
 const Subscription = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [userSubscriptions, setUserSubscriptions] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
@@ -23,7 +26,7 @@ const Subscription = () => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   
   useEffect(() => {
-    const fetchPlans = async () => {
+    const fetchPlansAndSubs = async () => {
       try {
         setLoading(true);
         const response = await fetch(`${apiUrl}/api/subscriptions/plans`);
@@ -31,15 +34,26 @@ const Subscription = () => {
         const data = await response.json();
         setPlans(Array.isArray(data) ? data : []);
         setError(null);
+        const token = localStorage.getItem('token');
+        setIsLogged(!!token);
+        if (token) {
+          const user = authService.getStoredUser();
+          if (user?.id) {
+            try {
+              const subs = await subscriptionService.getUserSubscriptions(user.id);
+              setUserSubscriptions(Array.isArray(subs) ? subs : []);
+            } catch {
+              setUserSubscriptions([]);
+            }
+          }
+        }
       } catch (err) {
         setError('Impossible de charger les plans');
       } finally {
         setLoading(false);
       }
     };
-    fetchPlans();
-    const token = localStorage.getItem('token');
-    setIsLogged(!!token);
+    fetchPlansAndSubs();
   }, []);
 
   const handleSubscribe = async (planId: string) => {
@@ -80,22 +94,34 @@ const Subscription = () => {
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-center mb-8">Choisissez votre abonnement</h1>
       <div className="grid md:grid-cols-2 gap-8">
-        {plans.map((plan) => (
-          <div key={plan.id} className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center">
-            <h2 className="text-xl font-bold mb-2 text-white">{plan.name}</h2>
-            <div className="text-3xl font-bold text-thunder-gold mb-2">
-              {plan.price} {plan.currency} / {plan.interval === 'monthly' ? 'mois' : 'an'}
+        {plans.map((plan) => {
+
+          const userSub = userSubscriptions.find(
+            (sub) => sub.plan_id === plan.id && sub.status === 'active'
+          );
+          return (
+            <div key={plan.id} className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center">
+              <h2 className="text-xl font-bold mb-2 text-white">{plan.name}</h2>
+              <div className="text-3xl font-bold text-thunder-gold mb-2">
+                {plan.price} {plan.currency} / {plan.interval === 'monthly' ? 'mois' : 'an'}
+              </div>
+              {plan.description && <p className="text-gray-400 mb-4 text-center">{plan.description}</p>}
+              {userSub ? (
+                <div className="mt-auto px-6 py-2 bg-green-700 text-white font-semibold rounded opacity-80 cursor-not-allowed">
+                  Déjà inscrit à ce plan (actif)
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleSubscribe(plan.id)}
+                  disabled={!!subscribing}
+                  className="mt-auto px-6 py-2 bg-thunder-gold text-black font-semibold rounded hover:bg-thunder-orange transition-colors disabled:opacity-60"
+                >
+                  {subscribing === plan.id ? 'Redirection...' : 'S’abonner'}
+                </button>
+              )}
             </div>
-            {plan.description && <p className="text-gray-400 mb-4 text-center">{plan.description}</p>}
-            <button
-              onClick={() => handleSubscribe(plan.id)}
-              disabled={!!subscribing}
-              className="mt-auto px-6 py-2 bg-thunder-gold text-black font-semibold rounded hover:bg-thunder-orange transition-colors disabled:opacity-60"
-            >
-              {subscribing === plan.id ? 'Redirection...' : 'S’abonner'}
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal choix inscription/connexion */}
