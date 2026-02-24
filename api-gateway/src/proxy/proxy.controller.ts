@@ -111,23 +111,28 @@ export class ProxyController {
     }
 
     if (path === '/api/users/password' && method === 'PUT') {
-      if (!req.body || typeof req.body !== 'object') {
-        req.body = {};
-      }
-      const payloadEmail = req.body?.email;
+      const body =
+        req.body && typeof req.body === 'object'
+          ? (req.body as Record<string, unknown>)
+          : {};
+      req.body = body;
+
+      const payloadEmail = body['email'];
       if (typeof payloadEmail === 'string' && payloadEmail !== user.email) {
         throw new ForbiddenException('Modification de mot de passe refusée');
       }
       if (user.email) {
-        req.body.email = user.email;
+        body['email'] = user.email;
       }
     }
 
     if (path === '/api/users/profile' && method === 'PUT' && user.email) {
-      if (!req.body || typeof req.body !== 'object') {
-        req.body = {};
-      }
-      req.body.currentEmail = user.email;
+      const body =
+        req.body && typeof req.body === 'object'
+          ? (req.body as Record<string, unknown>)
+          : {};
+      req.body = body;
+      body['currentEmail'] = user.email;
     }
 
     if (!isAdmin && /^\/api\/users\/email\/[^/]+$/.test(path)) {

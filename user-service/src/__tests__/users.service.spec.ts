@@ -72,7 +72,6 @@ describe('UsersService', () => {
         email: createUserDto.email,
         password: 'hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       const mockInfo = {
@@ -113,7 +112,6 @@ describe('UsersService', () => {
           lastName: createUserDto.lastName,
           phoneNumber: createUserDto.phoneNumber,
           role: UserRole.User,
-          planId: 'free-plan-id',
         },
       });
     });
@@ -131,7 +129,6 @@ describe('UsersService', () => {
         email: createUserDto.email,
         password: 'hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       const mockInfo = {
@@ -200,7 +197,6 @@ describe('UsersService', () => {
         email: createUserDto.email,
         password: 'hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       const mockInfo = {
@@ -238,7 +234,6 @@ describe('UsersService', () => {
         email: verifyUserDto.email,
         password: hashedPassword,
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: {
           first_name: 'John',
           last_name: 'Doe',
@@ -266,7 +261,6 @@ describe('UsersService', () => {
           lastName: 'Doe',
           phoneNumber: '+33612345678',
           role: UserRole.User,
-          planId: 'free-plan-id',
         },
       });
     });
@@ -298,7 +292,6 @@ describe('UsersService', () => {
         email: verifyUserDto.email,
         password: 'hashed-different-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: {
           first_name: 'John',
           last_name: 'Doe',
@@ -330,7 +323,6 @@ describe('UsersService', () => {
         email: verifyUserDto.email,
         password: 'hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: null,
         comparePassword: jest.fn().mockResolvedValue(true),
       };
@@ -353,7 +345,6 @@ describe('UsersService', () => {
         id: userId,
         email: 'user@example.com',
         role: UserRole.User,
-        plan_id: 'premium-plan-id',
         info: {
           first_name: 'Alice',
           last_name: 'Johnson',
@@ -377,7 +368,6 @@ describe('UsersService', () => {
           lastName: 'Johnson',
           phoneNumber: '+33687654321',
           role: UserRole.User,
-          planId: 'premium-plan-id',
         },
       });
     });
@@ -403,7 +393,6 @@ describe('UsersService', () => {
         id: userId,
         email: 'user@example.com',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: {
           first_name: 'Bob',
           last_name: 'Wilson',
@@ -426,7 +415,6 @@ describe('UsersService', () => {
         id: 'user-uuid-123',
         email,
         role: UserRole.Admin,
-        plan_id: 'enterprise-plan-id',
         info: {
           first_name: 'Charlie',
           last_name: 'Brown',
@@ -450,7 +438,6 @@ describe('UsersService', () => {
           lastName: 'Brown',
           phoneNumber: undefined,
           role: UserRole.Admin,
-          planId: 'enterprise-plan-id',
         },
       });
     });
@@ -475,7 +462,6 @@ describe('UsersService', () => {
         id: 'user-uuid-123',
         email,
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: {
           first_name: 'Diana',
           last_name: 'Prince',
@@ -502,7 +488,6 @@ describe('UsersService', () => {
         email: updatePasswordDto.email,
         password: 'old-hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
@@ -577,7 +562,6 @@ describe('UsersService', () => {
         id: 'user-uuid-123',
         email: 'old@example.com',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: {
           id: 'info-uuid-123',
           user_id: 'user-uuid-123',
@@ -630,7 +614,6 @@ describe('UsersService', () => {
         id: 'user-uuid-123',
         email: 'user@example.com',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: {
           id: 'info-uuid-123',
           user_id: 'user-uuid-123',
@@ -731,7 +714,6 @@ describe('UsersService', () => {
         id: 'user-uuid-123',
         email: 'user@example.com',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: null,
       };
 
@@ -933,7 +915,6 @@ describe('UsersService', () => {
         email: createUserDto.email,
         password: 'hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       const mockInfo = {
@@ -958,9 +939,7 @@ describe('UsersService', () => {
       expect(result.user).toHaveProperty('firstName');
       expect(result.user).toHaveProperty('lastName');
       expect(result.user).toHaveProperty('phoneNumber');
-      expect(result.user).toHaveProperty('role');
-      expect(result.user).toHaveProperty('planId');
-    });
+      expect(result.user).toHaveProperty('role');    });
   });
 
   describe('Edge cases and error scenarios', () => {
@@ -988,7 +967,6 @@ describe('UsersService', () => {
         id: userId,
         email: 'user@example.com',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
         info: null,
       };
 
@@ -1015,7 +993,6 @@ describe('UsersService', () => {
         email: createUserDto.email,
         password: 'hashed-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       const mockInfo = {
@@ -1053,7 +1030,6 @@ describe('UsersService', () => {
         email: createUserDto.email,
         password: 'hashed-initial-password',
         role: UserRole.User,
-        plan_id: 'free-plan-id',
       };
 
       const mockInfo = {
@@ -1099,7 +1075,6 @@ describe('UsersService', () => {
           email: userData.email,
           password: `hashed-${userData.password}`,
           role: UserRole.User,
-          plan_id: 'free-plan-id',
         };
 
         const mockInfo = {

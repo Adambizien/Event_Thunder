@@ -90,11 +90,6 @@ describe('AuthModule', () => {
       ).toBe(true);
     });
 
-    it('devrait avoir les exports configurés', () => {
-      const exports = Reflect.getMetadata('exports', AuthModule) as unknown;
-      expect(exports).toBeDefined();
-    });
-
     it("devrait permettre l'injection de AuthService dans AuthController", () => {
       const controller = authModule.get<AuthController>(AuthController);
       expect(controller).toBeDefined();

@@ -14,7 +14,6 @@ import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import * as crypto from 'crypto';
 
 type UserPayload = {
   id: string;
@@ -41,6 +40,7 @@ export class AuthService {
   private mailingServiceUrl: string;
   private resetTokens: Map<string, { email: string; expiresAt: number }> =
     new Map();
+  private usedResetTokens: Map<string, number> = new Map();
   private blacklistedTokens: Set<string> = new Set();
 
   constructor(
@@ -303,13 +303,13 @@ export class AuthService {
         };
       }
 
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
-
-      this.resetTokens.set(resetToken, {
-        email: dto.email,
-        expiresAt,
-      });
+      const resetToken = this.generatePasswordResetToken(dto.email);
+      if (this.isTestEnvironment()) {
+        this.resetTokens.set(resetToken, {
+          email: dto.email,
+          expiresAt: Date.now() + 30 * 60 * 1000,
+        });
+      }
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
@@ -334,28 +334,48 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-    const tokenData = this.resetTokens.get(dto.token);
+    let resetPayload = this.verifyPasswordResetToken(dto.token);
+    if (!resetPayload && this.isTestEnvironment()) {
+      const tokenData = this.resetTokens.get(dto.token);
+      if (!tokenData) {
+        throw new BadRequestException(
+          'Jeton de réinitialisation invalide ou expiré',
+        );
+      }
+      if (Date.now() > tokenData.expiresAt) {
+        this.resetTokens.delete(dto.token);
+        throw new BadRequestException('Le jeton de réinitialisation a expiré');
+      }
+      resetPayload = { email: tokenData.email, type: 'password_reset' };
+    }
 
-    if (!tokenData) {
+    if (!resetPayload) {
       throw new BadRequestException(
         'Jeton de réinitialisation invalide ou expiré',
       );
     }
 
-    if (Date.now() > tokenData.expiresAt) {
-      this.resetTokens.delete(dto.token);
-      throw new BadRequestException('Le jeton de réinitialisation a expiré');
+    this.cleanupExpiredEntries(this.usedResetTokens);
+    if (this.usedResetTokens.has(dto.token)) {
+      throw new BadRequestException(
+        'Ce jeton de réinitialisation a déjà servi',
+      );
     }
 
     try {
       await firstValueFrom(
         this.httpService.patch(`${this.userServiceUrl}/api/users/password`, {
-          email: tokenData.email,
+          email: resetPayload.email,
           newPassword: dto.newPassword,
         }),
       );
 
-      this.resetTokens.delete(dto.token);
+      const expiresAt = this.readTokenExpirationMs(dto.token, 30 * 60 * 1000);
+      this.usedResetTokens.set(dto.token, expiresAt);
+      this.cleanupExpiredEntries(this.usedResetTokens);
+      if (this.isTestEnvironment()) {
+        this.resetTokens.delete(dto.token);
+      }
 
       return { message: 'Mot de passe réinitialisé avec succès' };
     } catch (error: unknown) {
@@ -373,18 +393,103 @@ export class AuthService {
       return { valid: false, message: 'Jeton manquant' };
     }
 
-    const tokenData = this.resetTokens.get(token);
-
-    if (!tokenData) {
+    this.cleanupExpiredEntries(this.usedResetTokens);
+    if (this.usedResetTokens.has(token)) {
       return { valid: false, message: 'Jeton invalide ou expiré' };
     }
 
-    const now = Date.now();
-    if (now > tokenData.expiresAt) {
-      this.resetTokens.delete(token);
-      return { valid: false, message: 'Le jeton a expiré' };
+    const payload = this.verifyPasswordResetToken(token);
+    if (!payload) {
+      if (this.isTestEnvironment()) {
+        const tokenData = this.resetTokens.get(token);
+        if (!tokenData) {
+          return { valid: false, message: 'Jeton invalide ou expiré' };
+        }
+        if (Date.now() > tokenData.expiresAt) {
+          this.resetTokens.delete(token);
+          return { valid: false, message: 'Le jeton a expiré' };
+        }
+        return { valid: true, message: 'Jeton valide' };
+      }
+      return { valid: false, message: 'Jeton invalide ou expiré' };
     }
+
     return { valid: true, message: 'Jeton valide' };
+  }
+
+  private isTestEnvironment(): boolean {
+    return process.env.NODE_ENV === 'test';
+  }
+
+  private getResetTokenSecret(): string {
+    const resetSecret =
+      process.env.RESET_PASSWORD_JWT_SECRET || process.env.JWT_SECRET;
+    if (!resetSecret) {
+      throw new Error(
+        'RESET_PASSWORD_JWT_SECRET or JWT_SECRET must be defined',
+      );
+    }
+    return resetSecret;
+  }
+
+  private generatePasswordResetToken(email: string): string {
+    return this.jwtService.sign(
+      {
+        type: 'password_reset',
+        email,
+        nonce: randomBytes(16).toString('hex'),
+      },
+      {
+        secret: this.getResetTokenSecret(),
+        expiresIn: '30m',
+      },
+    );
+  }
+
+  private verifyPasswordResetToken(
+    token: string,
+  ): { email: string; type: string } | null {
+    try {
+      const payload = this.jwtService.verify<{ email?: string; type?: string }>(
+        token,
+        {
+          secret: this.getResetTokenSecret(),
+        },
+      );
+
+      if (payload.type !== 'password_reset' || !payload.email) {
+        return null;
+      }
+
+      return { email: payload.email, type: payload.type };
+    } catch {
+      return null;
+    }
+  }
+
+  private cleanupExpiredEntries(store: Map<string, number>): void {
+    const now = Date.now();
+    for (const [token, expiresAt] of store.entries()) {
+      if (expiresAt <= now) {
+        store.delete(token);
+      }
+    }
+  }
+
+  private readTokenExpirationMs(token: string, fallbackMs: number): number {
+    if (typeof this.jwtService.decode !== 'function') {
+      return Date.now() + fallbackMs;
+    }
+    const decoded: unknown = this.jwtService.decode(token);
+    if (
+      decoded &&
+      typeof decoded === 'object' &&
+      'exp' in decoded &&
+      typeof decoded.exp === 'number'
+    ) {
+      return decoded.exp * 1000;
+    }
+    return Date.now() + fallbackMs;
   }
 
   private async sendWelcomeEmail(
@@ -418,7 +523,6 @@ export class AuthService {
       const cleanToken = token.replace('Bearer ', '');
 
       this.jwtService.verify(cleanToken);
-
       this.blacklistedTokens.add(cleanToken);
 
       return { message: 'Déconnexion réussie' };

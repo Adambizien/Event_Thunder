@@ -77,8 +77,21 @@ export class AuthController {
     token?: string,
     user?: UserPayload,
   ) {
-    const frontendUrl =
-      process.env.FRONTEND_URL || 'http://testa.bizienadam.fr';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const safeFirstName = this.escapeHtml(user?.firstName ?? '');
+    const safeLastName = this.escapeHtml(user?.lastName ?? '');
+    const safeErrorMessage = this.escapeHtml(errorMessage || 'Unknown error');
+    const successPayload = JSON.stringify({
+      type: 'OAUTH_SUCCESS',
+      token,
+      user,
+    });
+    const errorPayload = JSON.stringify({
+      type: 'OAUTH_ERROR',
+      error: errorMessage || 'Unknown error',
+    });
+    const targetOrigin = JSON.stringify(frontendUrl);
+    const safeRedirectUrl = `${frontendUrl}?auth=google&status=error&message=${encodeURIComponent(errorMessage || 'Unknown error')}`;
 
     if (status === 'success' && token && user) {
       const html = `
@@ -114,13 +127,8 @@ export class AuthController {
                 }
             </style>
             <script>
-                // CORRECTION: Envoyer à testa.bizienadam.fr
                 if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage({
-                        type: 'OAUTH_SUCCESS',
-                        token: '${token}',
-                        user: ${JSON.stringify(user)}
-                    }, '${frontendUrl}');
+                    window.opener.postMessage(${successPayload}, ${targetOrigin});
                     
                     setTimeout(() => {
                         window.close();
@@ -129,13 +137,13 @@ export class AuthController {
             </script>
         </head>
         <body>
-            <div class="container">
-                <div class="success-icon">✅</div>
-                <h1>Authentication Successful!</h1>
-                <p class="message">Welcome, ${user.firstName ?? ''} ${user.lastName ?? ''}!</p>
-                <p>Closing window automatically...</p>
-            </div>
-        </body>
+                <div class="container">
+                    <div class="success-icon">✅</div>
+                    <h1>Authentication Successful!</h1>
+                    <p class="message">Welcome, ${safeFirstName} ${safeLastName}!</p>
+                    <p>Closing window automatically...</p>
+                </div>
+            </body>
         </html>
       `;
 
@@ -172,19 +180,14 @@ export class AuthController {
                 }
             </style>
             <script>
-                // CORRECTION: Envoyer à testa.bizienadam.fr
                 if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage({
-                        type: 'OAUTH_ERROR',
-                        error: '${errorMessage}'
-                    }, '${frontendUrl}');
+                    window.opener.postMessage(${errorPayload}, ${targetOrigin});
                     
                     setTimeout(() => {
                         window.close();
                     }, 2000);
                 } else {
-                    // CORRECTION: Rediriger vers testa.bizienadam.fr
-                    window.location.href = '${frontendUrl}?auth=google&status=error&message=${encodeURIComponent(errorMessage || 'Unknown error')}';
+                    window.location.href = '${safeRedirectUrl}';
                 }
             </script>
         </head>
@@ -192,7 +195,7 @@ export class AuthController {
             <div class="container">
                 <div class="error-icon">❌</div>
                 <h1>Authentication Failed</h1>
-                <p>${errorMessage || 'Please try again'}</p>
+                <p>${safeErrorMessage}</p>
                 <p>Closing window...</p>
             </div>
         </body>
@@ -203,6 +206,15 @@ export class AuthController {
       res.send(html);
       return;
     }
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
   }
 
   // Route POST pour le callback Google

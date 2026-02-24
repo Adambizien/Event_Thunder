@@ -57,9 +57,10 @@ export class ProxyService {
       params: req.query,
       data: bodyData,
       validateStatus: () => true,
-      timeout: 30000,
+      timeout: 10000,
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
+      responseType: 'arraybuffer',
     };
 
     this.logger.log(`[PASSERELLE] ${req.method} ${req.originalUrl} -> ${url}`);

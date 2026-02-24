@@ -58,7 +58,6 @@ describe('UsersController', () => {
           lastName: createUserDto.lastName,
           phoneNumber: createUserDto.phoneNumber,
           role: UserRole.User,
-          planId: 'free-plan-id',
         },
       };
 
@@ -118,7 +117,6 @@ describe('UsersController', () => {
           firstName: 'John',
           lastName: 'Doe',
           role: UserRole.User,
-          planId: 'free-plan-id',
         },
       };
 
@@ -171,7 +169,6 @@ describe('UsersController', () => {
           firstName: 'Alice',
           lastName: 'Johnson',
           role: UserRole.User,
-          planId: 'premium-plan-id',
         },
       };
 
@@ -217,7 +214,6 @@ describe('UsersController', () => {
           firstName: 'Bob',
           lastName: 'Smith',
           role: UserRole.Admin,
-          planId: 'enterprise-plan-id',
         },
       };
 
@@ -320,7 +316,6 @@ describe('UsersController', () => {
           lastName: updateProfileDto.lastName,
           phoneNumber: updateProfileDto.phoneNumber,
           role: UserRole.User,
-          planId: 'free-plan-id',
         },
       };
 

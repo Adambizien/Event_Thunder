@@ -6,6 +6,5 @@ import { AuthGuard } from '../auth/auth.guard';
 @Module({
   controllers: [ProxyController],
   providers: [ProxyService, AuthGuard],
-  exports: [ProxyService],
 })
 export class ProxyModule {}

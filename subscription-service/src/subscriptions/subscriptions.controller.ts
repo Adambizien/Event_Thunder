@@ -47,7 +47,11 @@ export class SubscriptionsController {
     }
 
     if ('price' in dto && dto.price !== undefined) {
-      if (typeof dto.price !== 'number' || Number.isNaN(dto.price) || dto.price <= 0) {
+      if (
+        typeof dto.price !== 'number' ||
+        Number.isNaN(dto.price) ||
+        dto.price <= 0
+      ) {
         throw new BadRequestException('Champ invalide: price');
       }
     }
@@ -62,7 +66,10 @@ export class SubscriptionsController {
     }
 
     if ('currency' in dto && dto.currency !== undefined) {
-      if (dto.currency !== PlanCurrency.EUR && dto.currency !== PlanCurrency.USD) {
+      if (
+        dto.currency !== PlanCurrency.EUR &&
+        dto.currency !== PlanCurrency.USD
+      ) {
         throw new BadRequestException('Champ invalide: currency');
       }
     }
@@ -86,7 +93,11 @@ export class SubscriptionsController {
       }
     }
 
-    if ('description' in dto && dto.description !== undefined && dto.description !== null) {
+    if (
+      'description' in dto &&
+      dto.description !== undefined &&
+      dto.description !== null
+    ) {
       if (typeof dto.description !== 'string') {
         throw new BadRequestException('Champ invalide: description');
       }

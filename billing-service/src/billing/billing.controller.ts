@@ -61,7 +61,8 @@ export class BillingController {
 
     if (
       dto.customerEmail !== undefined &&
-      (typeof dto.customerEmail !== 'string' || !dto.customerEmail.includes('@'))
+      (typeof dto.customerEmail !== 'string' ||
+        !dto.customerEmail.includes('@'))
     ) {
       throw new BadRequestException('Champ invalide: customerEmail');
     }
@@ -79,7 +80,11 @@ export class BillingController {
   @UseGuards(AuthGuard, AdminGuard)
   async syncPlanPrice(@Body() dto: SyncPlanPriceDto) {
     this.ensureNonEmptyString(dto.name, 'name');
-    if (typeof dto.price !== 'number' || Number.isNaN(dto.price) || dto.price <= 0) {
+    if (
+      typeof dto.price !== 'number' ||
+      Number.isNaN(dto.price) ||
+      dto.price <= 0
+    ) {
       throw new BadRequestException('Champ invalide: price');
     }
     if (dto.interval !== 'monthly' && dto.interval !== 'yearly') {

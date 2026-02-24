@@ -95,7 +95,7 @@ const Subscription = () => {
         {plans.map((plan) => {
 
           const userSub = userSubscriptions.find(
-            (sub) => sub.plan_id === plan.id && sub.status === 'active'
+            (sub) => sub.planId === plan.id && sub.status === 'active'
           );
           return (
             <div key={plan.id} className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center">

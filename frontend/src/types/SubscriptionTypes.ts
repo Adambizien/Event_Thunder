@@ -1,7 +1,7 @@
 export interface SubscriptionType {
   id: string;
-  user_id: string;
-  plan_id: string;
+  userId: string;
+  planId: string;
   plan: {
     id: string;
     name: string;
@@ -11,8 +11,8 @@ export interface SubscriptionType {
     description?: string;
   };
   status: 'active' | 'canceled';
-  current_period_start: string | null;
-  current_period_end: string | null;
-  canceled_at: string | null;
-  ended_at: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  canceledAt: string | null;
+  endedAt: string | null;
 }

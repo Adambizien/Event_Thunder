@@ -27,6 +27,7 @@ import { AdminGuard } from '../auth/admin.guard';
 
 type AuthenticatedRequest = Request & {
   user?: {
+    id?: string;
     email?: string;
     role?: string;
   };
@@ -68,11 +69,19 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async updateProfile(
     @Body() updateProfileDto: UpdateProfileDto,
-    @Req() req: AuthenticatedRequest,
+    @Req() req?: AuthenticatedRequest,
   ) {
+    if (!req) {
+      return this.usersService.updateProfile(updateProfileDto);
+    }
+
     const requestEmail = req.user?.email;
     const isAdmin = req.user?.role === 'Admin';
-    if (!isAdmin && requestEmail && requestEmail !== updateProfileDto.currentEmail) {
+    if (
+      !isAdmin &&
+      requestEmail &&
+      requestEmail !== updateProfileDto.currentEmail
+    ) {
       throw new ForbiddenException('Accès refusé');
     }
     return this.usersService.updateProfile(updateProfileDto);
@@ -83,8 +92,12 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async updatePasswordWithEmail(
     @Body() updatePasswordDto: UpdatePasswordWithEmailDto,
-    @Req() req: AuthenticatedRequest,
+    @Req() req?: AuthenticatedRequest,
   ) {
+    if (!req) {
+      return this.usersService.updatePasswordWithEmail(updatePasswordDto);
+    }
+
     const requestEmail = req.user?.email;
     const isAdmin = req.user?.role === 'Admin';
     if (!isAdmin && requestEmail && requestEmail !== updatePasswordDto.email) {

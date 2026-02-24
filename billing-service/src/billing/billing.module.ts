@@ -8,6 +8,5 @@ import { AdminGuard } from '../auth/admin.guard';
 @Module({
   controllers: [BillingController],
   providers: [BillingService, RabbitmqPublisherService, AuthGuard, AdminGuard],
-  exports: [BillingService],
 })
 export class BillingModule {}

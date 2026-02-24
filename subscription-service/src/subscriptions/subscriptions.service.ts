@@ -34,6 +34,35 @@ interface BillingEventPayload {
   endedAt?: string | null;
 }
 
+type PlanResponse = {
+  id: string;
+  name: string;
+  price: number;
+  interval: PlanInterval;
+  currency: PlanCurrency;
+  stripePriceId: string;
+  maxEvents: number;
+  displayOrder: number;
+  description: string | null;
+  createdAt: Date;
+};
+
+type SubscriptionResponse = {
+  id: string;
+  userId: string;
+  planId: string;
+  stripeSubscriptionId: string;
+  status: SubscriptionStatus;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  canceledAt: Date | null;
+  endedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  plan: Plan;
+  payments: PaymentSubHistory[];
+};
+
 @Injectable()
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
@@ -54,7 +83,25 @@ export class SubscriptionsService {
       'http://billing-service:3000';
   }
 
-  async createPlan(dto: CreatePlanDto, authHeader?: string): Promise<Plan> {
+  private toPlanResponse(plan: Plan): PlanResponse {
+    return {
+      id: plan.id,
+      name: plan.name,
+      price: Number(plan.price),
+      interval: plan.interval,
+      currency: plan.currency,
+      stripePriceId: plan.stripe_price_id,
+      maxEvents: plan.max_events,
+      displayOrder: plan.display_order,
+      description: plan.description,
+      createdAt: plan.created_at,
+    };
+  }
+
+  async createPlan(
+    dto: CreatePlanDto,
+    authHeader?: string,
+  ): Promise<PlanResponse> {
     const stripePriceId =
       dto.stripePriceId ??
       (await this.syncPlanPriceWithBilling(
@@ -77,14 +124,15 @@ export class SubscriptionsService {
       display_order: dto.displayOrder ?? 0,
       description: dto.description ?? null,
     });
-    return this.planRepository.save(entity);
+    const plan = await this.planRepository.save(entity);
+    return this.toPlanResponse(plan);
   }
 
   async updatePlan(
     id: string,
     dto: UpdatePlanDto,
     authHeader?: string,
-  ): Promise<Plan> {
+  ): Promise<PlanResponse> {
     const plan = await this.planRepository.findOne({ where: { id } });
     if (!plan) {
       throw new NotFoundException('Plan introuvable');
@@ -140,11 +188,14 @@ export class SubscriptionsService {
       );
     }
 
-    return savedPlan;
+    return this.toPlanResponse(savedPlan);
   }
 
-  async getPlans(): Promise<Plan[]> {
-    return this.planRepository.find({ order: { created_at: 'ASC' } });
+  async getPlans(): Promise<PlanResponse[]> {
+    const plans = await this.planRepository.find({
+      order: { created_at: 'ASC' },
+    });
+    return plans.map((plan) => this.toPlanResponse(plan));
   }
 
   async deletePlan(
@@ -202,12 +253,28 @@ export class SubscriptionsService {
     return data;
   }
 
-  async getUserSubscriptions(userId: string): Promise<Subscription[]> {
-    return this.subscriptionRepository.find({
+  async getUserSubscriptions(userId: string): Promise<SubscriptionResponse[]> {
+    const subscriptions = await this.subscriptionRepository.find({
       where: { user_id: userId },
       relations: ['plan', 'payments'],
       order: { created_at: 'DESC' },
     });
+
+    return subscriptions.map((subscription) => ({
+      id: subscription.id,
+      userId: subscription.user_id,
+      planId: subscription.plan_id,
+      stripeSubscriptionId: subscription.stripe_subscription_id,
+      status: subscription.status,
+      currentPeriodStart: subscription.current_period_start,
+      currentPeriodEnd: subscription.current_period_end,
+      canceledAt: subscription.canceled_at,
+      endedAt: subscription.ended_at,
+      createdAt: subscription.created_at,
+      updatedAt: subscription.updated_at,
+      plan: subscription.plan,
+      payments: subscription.payments,
+    }));
   }
 
   async handleBillingEvent(routingKey: string, payload: BillingEventPayload) {
@@ -435,13 +502,16 @@ export class SubscriptionsService {
     );
   }
 
-  private async syncPlanPriceWithBilling(input: {
-    planId?: string;
-    name: string;
-    price: number;
-    interval: PlanInterval;
-    currency: PlanCurrency;
-  }, authHeader?: string): Promise<string> {
+  private async syncPlanPriceWithBilling(
+    input: {
+      planId?: string;
+      name: string;
+      price: number;
+      interval: PlanInterval;
+      currency: PlanCurrency;
+    },
+    authHeader?: string,
+  ): Promise<string> {
     const response = await firstValueFrom(
       this.httpService.post(
         `${this.billingServiceUrl}/api/billing/plans/sync-price`,

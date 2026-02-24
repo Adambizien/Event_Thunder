@@ -4,11 +4,11 @@ export interface Plan {
   price: number;
   interval: string;
   currency: string;
-  stripe_price_id: string;
-  max_events: number;
-  display_order: number;
+  stripePriceId: string;
+  maxEvents: number;
+  displayOrder: number;
   description: string | null;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface FormData {

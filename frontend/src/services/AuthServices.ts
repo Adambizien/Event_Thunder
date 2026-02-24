@@ -36,17 +36,9 @@ export const authService = {
     }
   },
 
-  isAuthenticated: () => {
-    return !!localStorage.getItem('token');
-  },
-
   getStoredUser: () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
-  },
-
-  getStoredToken: () => {
-    return localStorage.getItem('token');
   },
 
   forgotPassword: async (email: string) => {
@@ -65,5 +57,3 @@ export const authService = {
   },
 
 };
-
-export default api;

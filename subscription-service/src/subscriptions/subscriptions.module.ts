@@ -16,6 +16,11 @@ import { AdminGuard } from '../auth/admin.guard';
     HttpModule,
   ],
   controllers: [SubscriptionsController],
-  providers: [SubscriptionsService, RabbitmqConsumerService, AuthGuard, AdminGuard],
+  providers: [
+    SubscriptionsService,
+    RabbitmqConsumerService,
+    AuthGuard,
+    AdminGuard,
+  ],
 })
 export class SubscriptionsModule {}

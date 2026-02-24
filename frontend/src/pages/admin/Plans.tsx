@@ -80,8 +80,8 @@ const AdminPlans = () => {
       price: plan.price.toString(),
       interval: plan.interval as 'monthly' | 'yearly',
       currency: (plan.currency || 'EUR') as 'EUR' | 'USD',
-      maxEvents: plan.max_events.toString(),
-      displayOrder: plan.display_order?.toString() ?? '0',
+      maxEvents: plan.maxEvents.toString(),
+      displayOrder: plan.displayOrder?.toString() ?? '0',
       description: plan.description ?? '',
     });
     setEditingId(plan.id);
@@ -318,14 +318,14 @@ const AdminPlans = () => {
                     <span className="text-gray-400">Prix:</span> {plan.price}
                     {plan.currency ?? 'EUR'}/{plan.interval === 'monthly' ? 'mois' : 'an'}
                   </p>
-                  <p><span className="text-gray-400">Événements:</span> {plan.max_events === -1 ? 'Illimité' : plan.max_events}</p>
-                  <p><span className="text-gray-400">Ordre:</span> {plan.display_order ?? 0}</p>
+                  <p><span className="text-gray-400">Événements:</span> {plan.maxEvents === -1 ? 'Illimité' : plan.maxEvents}</p>
+                  <p><span className="text-gray-400">Ordre:</span> {plan.displayOrder ?? 0}</p>
                   {plan.description && (
                     <p>
                       <span className="text-gray-400">Description:</span> {plan.description}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500">Stripe: {plan.stripe_price_id}</p>
+                  <p className="text-xs text-gray-500">Stripe: {plan.stripePriceId}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
