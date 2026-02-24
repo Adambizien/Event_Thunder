@@ -22,15 +22,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      // Récupérer les statistiques depuis les services
-      // Pour l'instant, on utilise des données locales
-      
-      // TODO: Appeler les APIs pour récupérer les stats réelles
-      // const response = await fetch('/api/admin/stats', {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      
-      // Pour la démo
+    
       setStats({
         totalUsers: 0,
         totalPlans: 0,

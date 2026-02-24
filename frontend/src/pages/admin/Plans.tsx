@@ -1,28 +1,7 @@
 import { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  interval: string;
-  currency: string;
-  stripe_price_id: string;
-  max_events: number;
-  display_order: number;
-  description: string | null;
-  created_at: string;
-}
-
-interface FormData {
-  name: string;
-  price: string;
-  interval: 'monthly' | 'yearly';
-  currency: 'EUR' | 'USD';
-  maxEvents: string;
-  displayOrder: string;
-  description: string;
-}
+import type { Plan, FormData } from '../../types/PlanTypes';
+import { planService } from '../../services/PlanService';
 
 const AdminPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -38,30 +17,20 @@ const AdminPlans = () => {
     price: '',
     interval: 'monthly',
     currency: 'EUR',
-    maxEvents: '',
+    maxEvents: '0',
     displayOrder: '0',
     description: '',
   });
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     fetchPlans();
-  }, []); 
-  
+  }, []);
+
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/subscriptions/plans`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Erreur lors du chargement des plans');
-      
-      const data = await response.json();
-      setPlans(Array.isArray(data) ? data : []);
+      const data = await planService.fetchPlans();
+      setPlans(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -73,51 +42,24 @@ const AdminPlans = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (isSubmitting) {
-      return;
-    }
-    
+    if (isSubmitting) return;
     if (!formData.name || !formData.price || !formData.maxEvents) {
       setFormError('Veuillez remplir tous les champs');
       return;
     }
-
     try {
       setIsSubmitting(true);
-      const token = localStorage.getItem('token');
-      const payload = {
-        name: formData.name,
-        price: parseFloat(formData.price),
-        interval: formData.interval,
-        currency: formData.currency,
-        maxEvents: parseInt(formData.maxEvents),
-        displayOrder: parseInt(formData.displayOrder),
-        description: formData.description.trim() || null,
-      };
-
-      const method = editingId ? 'PATCH' : 'POST';
-      const url = editingId 
-        ? `${apiUrl}/api/subscriptions/plans/${editingId}`
-        : `${apiUrl}/api/subscriptions/plans`;
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error('Erreur lors de la sauvegarde');
-
+      if (editingId) {
+        await planService.updatePlan(editingId, formData);
+      } else {
+        await planService.createPlan(formData);
+      }
       setFormData({
         name: '',
         price: '',
         interval: 'monthly',
         currency: 'EUR',
-        maxEvents: '',
+        maxEvents: '0',
         displayOrder: '0',
         description: '',
       });
@@ -151,14 +93,7 @@ const AdminPlans = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce plan ?')) return;
     setDeletingPlanId(id);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/subscriptions/plans/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Erreur lors de la suppression');
+      await planService.deletePlan(id);
       setError(null);
       fetchPlans();
     } catch (err) {
@@ -174,7 +109,7 @@ const AdminPlans = () => {
       price: '',
       interval: 'monthly',
       currency: 'EUR',
-      maxEvents: '',
+      maxEvents: '0',
       displayOrder: '0',
       description: '',
     });

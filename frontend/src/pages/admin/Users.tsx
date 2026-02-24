@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
-type User = {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  email: string;
-  phoneNumber?: string;
-  role: 'User' | 'Admin';
-  planId?: string;
-};
+import type { User } from '../../types/AuthTypes';
+import { userService } from '../../services/UserService';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -23,11 +16,11 @@ const AdminUsers = () => {
   const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
-    setNewRole(user.role);
+    setNewRole(user.role === 'Admin' ? 'Admin' : 'User');
     setRoleError(null);
     setShowRoleModal(true);
   };
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 
   const closeRoleModal = () => {
     setShowRoleModal(false);
@@ -41,16 +34,7 @@ const AdminUsers = () => {
     setRoleLoading(true);
     setRoleError(null);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/users/role`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId: selectedUser.id, role: newRole }),
-      });
-      if (!response.ok) throw new Error('Erreur lors de la modification du rôle');
+      await userService.updateUserRole(selectedUser.id, newRole);
       closeRoleModal();
       fetchUsers();
     } catch (err) {
@@ -67,17 +51,8 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Erreur lors du chargement des utilisateurs');
-      
-      const data = await response.json();
-      setUsers(Array.isArray(data.users) ? data.users : []);
+      const data = await userService.fetchUsers();
+      setUsers(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -89,18 +64,8 @@ const AdminUsers = () => {
 
   const handleDelete = async (userId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
-
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Erreur lors de la suppression');
-      
+      await userService.deleteUser(userId);
       setError(null);
       fetchUsers();
     } catch (err) {

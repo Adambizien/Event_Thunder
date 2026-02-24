@@ -23,15 +23,12 @@ const Subscription = () => {
   const [isLogged, setIsLogged] = useState(false);
   const [showAuthChoice, setShowAuthChoice] = useState<null | string>(null);
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   
   useEffect(() => {
     const fetchPlansAndSubs = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${apiUrl}/api/subscriptions/plans`);
-        if (!response.ok) throw new Error('Erreur lors du chargement des plans');
-        const data = await response.json();
+        const data = await subscriptionService.getPlans();
         setPlans(Array.isArray(data) ? data : []);
         setError(null);
         const token = localStorage.getItem('token');
@@ -63,22 +60,18 @@ const Subscription = () => {
     }
     setSubscribing(planId);
     try {
-      const token = localStorage.getItem('token');
       const successUrl = `${window.location.origin}/subscription?success=1`;
       const cancelUrl = `${window.location.origin}/subscription?canceled=1`;
       const user = authService.getStoredUser();
       const userId = user?.id;
       const customerEmail = user?.email;
-      const response = await fetch(`${apiUrl}/api/subscriptions/checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId, planId, successUrl, cancelUrl, customerEmail }),
+      const data = await subscriptionService.createCheckoutSession({
+        userId,
+        planId,
+        successUrl,
+        cancelUrl,
+        customerEmail,
       });
-      if (!response.ok) throw new Error('Erreur lors de la création de la session');
-      const data = await response.json();
       window.location.href = data.url;
     } catch (err) {
       setError('Erreur lors de la souscription');
