@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProxyController } from '../proxy/proxy.controller';
 import { ProxyService, ProxyResult } from '../proxy/proxy.service';
+import { AuthGuard } from '../auth/auth.guard';
 import { Request, Response } from 'express';
 /* eslint-disable */
 describe('ProxyController', () => {
@@ -8,6 +9,9 @@ describe('ProxyController', () => {
 
   const mockProxyService = {
     forward: jest.fn(),
+  };
+  const mockAuthGuard = {
+    authenticateRequest: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -17,6 +21,10 @@ describe('ProxyController', () => {
         {
           provide: ProxyService,
           useValue: mockProxyService,
+        },
+        {
+          provide: AuthGuard,
+          useValue: mockAuthGuard,
         },
       ],
     }).compile();

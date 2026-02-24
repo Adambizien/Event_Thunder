@@ -22,6 +22,7 @@ export class RabbitmqConsumerService
     'billing.payment.succeeded',
     'billing.payment.failed',
     'billing.subscription.created',
+    'billing.subscription.updated',
     'billing.subscription.renewed',
     'billing.subscription.canceled',
   ];

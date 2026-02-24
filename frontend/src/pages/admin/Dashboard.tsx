@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { userService } from '../../services/UserService';
+import { planService } from '../../services/PlanService';
 
 interface Stats {
   totalUsers: number;
@@ -22,15 +24,20 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
-    
+      setError(null);
+
+      const [users, plans] = await Promise.all([
+        userService.fetchUsers(),
+        planService.fetchPlans(),
+      ]);
+
       setStats({
-        totalUsers: 0,
-        totalPlans: 0,
-        activeSubscriptions: 0,
+        totalUsers: users.length,
+        totalPlans: plans.length,
+        activeSubscriptions: users.filter((user) => Boolean(user.planId)).length,
       });
-    } catch (err) {
+    } catch {
       setError('Erreur lors du chargement des statistiques');
-      console.error(err);
     } finally {
       setLoading(false);
     }

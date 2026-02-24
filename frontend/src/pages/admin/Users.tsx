@@ -242,48 +242,6 @@ const AdminUsers = () => {
                         )}
                       </div>
                     </td>
-                          {/* Modal modification rôle */}
-                          <Modal
-                            isOpen={showRoleModal}
-                            onClose={closeRoleModal}
-                            title={selectedUser ? `Modifier le rôle de ${selectedUser.firstName || selectedUser.email}` : 'Modifier le rôle'}
-                            size="sm"
-                          >
-                            <form onSubmit={handleRoleChange} className="space-y-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Rôle</label>
-                                <select
-                                  value={newRole}
-                                  onChange={e => setNewRole(e.target.value as 'User' | 'Admin')}
-                                  className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                                  disabled={roleLoading}
-                                >
-                                  <option value="User">Utilisateur</option>
-                                  <option value="Admin">Admin</option>
-                                </select>
-                              </div>
-                              {roleError && (
-                                <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400 mb-2">{roleError}</div>
-                              )}
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={closeRoleModal}
-                                  className="px-4 py-2 rounded bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                  disabled={roleLoading}
-                                >
-                                  Annuler
-                                </button>
-                                <button
-                                  type="submit"
-                                  className="px-4 py-2 rounded bg-thunder-gold text-black font-semibold hover:bg-thunder-orange disabled:opacity-60"
-                                  disabled={roleLoading}
-                                >
-                                  {roleLoading ? 'Modification...' : 'Valider'}
-                                </button>
-                              </div>
-                            </form>
-                          </Modal>
                     <td className="px-6 py-4 text-gray-300">
                       {user.planId ? (
                         <span className="bg-gray-800 px-3 py-1 rounded text-sm">
@@ -319,7 +277,53 @@ const AdminUsers = () => {
         )}
       </div>
 
-      
+      <Modal
+        isOpen={showRoleModal}
+        onClose={closeRoleModal}
+        title={
+          selectedUser
+            ? `Modifier le rôle de ${selectedUser.firstName || selectedUser.email}`
+            : 'Modifier le rôle'
+        }
+        size="sm"
+      >
+        <form onSubmit={handleRoleChange} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Rôle</label>
+            <select
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value as 'User' | 'Admin')}
+              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              disabled={roleLoading}
+            >
+              <option value="User">Utilisateur</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+          {roleError && (
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400 mb-2">
+              {roleError}
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={closeRoleModal}
+              className="px-4 py-2 rounded bg-gray-700 text-gray-300 hover:bg-gray-600"
+              disabled={roleLoading}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 rounded bg-thunder-gold text-black font-semibold hover:bg-thunder-orange disabled:opacity-60"
+              disabled={roleLoading}
+            >
+              {roleLoading ? 'Modification...' : 'Valider'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

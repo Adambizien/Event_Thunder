@@ -8,7 +8,6 @@ import { validatePassword, type PasswordValidation } from '../../utils/passwordV
 import type { User } from '../../types/AuthTypes';
 
 interface RegisterProps {
-  onSwitchToLogin: () => void;
   onRegister: (user: User) => void;
 }
 

@@ -29,8 +29,8 @@ export const authService = {
     try {
       await api.post('/api/auth/logout');
     } catch {
+      // Ignore logout API errors and always clear local session
     } finally {
-
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
@@ -64,40 +64,6 @@ export const authService = {
     return response.data;
   },
 
-};
-
-export const userService = {
-  updateProfile: async (data: { firstName: string; lastName: string; email: string; phoneNumber?: string }) => {
-    const storedUserStr = localStorage.getItem('user');
-    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
-    const currentEmail = storedUser?.email;
-    
-    const response = await api.put('/api/users/profile', {
-      currentEmail,
-      ...data,
-    });
-    return response.data;
-  },
-
-  updatePassword: async (data: { currentPassword: string; newPassword: string }) => {
-    const storedUserStr = localStorage.getItem('user');
-    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
-    if (!storedUser?.email) {
-      throw new Error('Utilisateur non authentifié: email manquant');
-    }
-    const payload = {
-      email: storedUser.email,
-      currentPassword: data.currentPassword,
-      newPassword: data.newPassword,
-    };
-    const response = await api.put('/api/users/password', payload);
-    return response.data;
-  },
-
-  getProfile: async () => {
-    const response = await api.get('/api/users/profile');
-    return response.data;
-  },
 };
 
 export default api;

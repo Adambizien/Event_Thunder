@@ -44,7 +44,7 @@ const Subscription = () => {
             }
           }
         }
-      } catch (err) {
+      } catch {
         setError('Impossible de charger les plans');
       } finally {
         setLoading(false);
@@ -65,6 +65,11 @@ const Subscription = () => {
       const user = authService.getStoredUser();
       const userId = user?.id;
       const customerEmail = user?.email;
+      if (!userId || !customerEmail) {
+        setError('Session utilisateur invalide. Reconnectez-vous.');
+        setSubscribing(null);
+        return;
+      }
       const data = await subscriptionService.createCheckoutSession({
         userId,
         planId,
@@ -73,7 +78,7 @@ const Subscription = () => {
         customerEmail,
       });
       window.location.href = data.url;
-    } catch (err) {
+    } catch {
       setError('Erreur lors de la souscription');
     } finally {
       setSubscribing(null);

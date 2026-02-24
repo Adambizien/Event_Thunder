@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './components/Dashboard';
@@ -23,6 +30,8 @@ import Subscription from './pages/sub/Subscription';
 function AppContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -96,6 +105,21 @@ function AppContent() {
     setUser(userData);
   };
 
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const path = location.pathname;
+    if (path !== '/login' && path !== '/register') return;
+
+    const searchParams = new URLSearchParams(location.search);
+    const redirect = searchParams.get('redirect');
+    if (redirect === 'subscription') {
+      navigate('/subscription', { replace: true });
+      return;
+    }
+    navigate('/dashboard', { replace: true });
+  }, [loading, user, location.pathname, location.search, navigate]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy flex flex-col items-center justify-center gap-4">
@@ -105,20 +129,6 @@ function AppContent() {
     );
   }
 
-  if (!loading && user) {
-    const path = window.location.pathname;
-    if (path === '/login' || path === '/register') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirect = searchParams.get('redirect');
-      if (redirect === 'subscription') {
-        window.location.replace('/subscription');
-        return null;
-      }
-      window.location.replace('/dashboard');
-      return null;
-    }
-  }
-
   return (
     <>
       <Header user={user} onLogout={handleLogout} />
@@ -126,11 +136,11 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route 
           path="/login" 
-          element={<Login onSwitchToRegister={() => {}} onLogin={handleLogin} />}
+          element={<Login onLogin={handleLogin} />}
         />
         <Route 
           path="/register" 
-          element={<Register onSwitchToLogin={() => {}} onRegister={handleRegister} />}
+          element={<Register onRegister={handleRegister} />}
         />
         <Route 
           path="/forgot-password" 

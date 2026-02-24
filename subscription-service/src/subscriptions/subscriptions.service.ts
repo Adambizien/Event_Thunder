@@ -54,15 +54,18 @@ export class SubscriptionsService {
       'http://billing-service:3000';
   }
 
-  async createPlan(dto: CreatePlanDto): Promise<Plan> {
+  async createPlan(dto: CreatePlanDto, authHeader?: string): Promise<Plan> {
     const stripePriceId =
       dto.stripePriceId ??
-      (await this.syncPlanPriceWithBilling({
-        name: dto.name,
-        price: dto.price,
-        interval: dto.interval,
-        currency: dto.currency ?? PlanCurrency.EUR,
-      }));
+      (await this.syncPlanPriceWithBilling(
+        {
+          name: dto.name,
+          price: dto.price,
+          interval: dto.interval,
+          currency: dto.currency ?? PlanCurrency.EUR,
+        },
+        authHeader,
+      ));
 
     const entity = this.planRepository.create({
       name: dto.name,
@@ -77,7 +80,11 @@ export class SubscriptionsService {
     return this.planRepository.save(entity);
   }
 
-  async updatePlan(id: string, dto: UpdatePlanDto): Promise<Plan> {
+  async updatePlan(
+    id: string,
+    dto: UpdatePlanDto,
+    authHeader?: string,
+  ): Promise<Plan> {
     const plan = await this.planRepository.findOne({ where: { id } });
     if (!plan) {
       throw new NotFoundException('Plan introuvable');
@@ -97,14 +104,18 @@ export class SubscriptionsService {
       nextInterval !== plan.interval ||
       nextCurrency !== plan.currency;
 
+    const previousStripePriceId = plan.stripe_price_id;
     if (priceOrIntervalChanged) {
-      plan.stripe_price_id = await this.syncPlanPriceWithBilling({
-        planId: plan.id,
-        name: nextName,
-        price: nextPrice,
-        interval: nextInterval,
-        currency: nextCurrency,
-      });
+      plan.stripe_price_id = await this.syncPlanPriceWithBilling(
+        {
+          planId: plan.id,
+          name: nextName,
+          price: nextPrice,
+          interval: nextInterval,
+          currency: nextCurrency,
+        },
+        authHeader,
+      );
     }
 
     plan.name = nextName;
@@ -115,44 +126,52 @@ export class SubscriptionsService {
     plan.display_order = nextDisplayOrder;
     plan.description = nextDescription;
 
-    return this.planRepository.save(plan);
+    const savedPlan = await this.planRepository.save(plan);
+
+    if (
+      priceOrIntervalChanged &&
+      previousStripePriceId &&
+      previousStripePriceId !== savedPlan.stripe_price_id
+    ) {
+      await this.archivePlanPriceWithBilling(
+        previousStripePriceId,
+        savedPlan.id,
+        authHeader,
+      );
+    }
+
+    return savedPlan;
   }
 
   async getPlans(): Promise<Plan[]> {
     return this.planRepository.find({ order: { created_at: 'ASC' } });
   }
 
-  async deletePlan(id: string): Promise<{ message: string }> {
+  async deletePlan(
+    id: string,
+    authHeader?: string,
+  ): Promise<{ message: string }> {
     const plan = await this.planRepository.findOne({ where: { id } });
     if (!plan) {
       throw new NotFoundException('Plan introuvable');
     }
 
     if (plan.stripe_price_id) {
-      try {
-        await firstValueFrom(
-          this.httpService.post(
-            `${this.billingServiceUrl}/api/billing/plans/archive-price`,
-            {
-              stripePriceId: plan.stripe_price_id,
-            },
-          ),
-        );
-      } catch (error) {
-        this.logger.warn(
-          `Impossible d'archiver le Stripe price ${plan.stripe_price_id} avant suppression du plan ${plan.id}`,
-        );
-        this.logger.debug(
-          error instanceof Error ? error.message : 'Erreur inconnue',
-        );
-      }
+      await this.archivePlanPriceWithBilling(
+        plan.stripe_price_id,
+        plan.id,
+        authHeader,
+      );
     }
 
     await this.planRepository.remove(plan);
     return { message: 'Plan supprimé avec succès' };
   }
 
-  async createCheckoutSession(dto: CreateCheckoutSessionDto) {
+  async createCheckoutSession(
+    dto: CreateCheckoutSessionDto,
+    authHeader?: string,
+  ) {
     const plan = await this.planRepository.findOne({
       where: { id: dto.planId },
     });
@@ -171,6 +190,9 @@ export class SubscriptionsService {
           cancelUrl: dto.cancelUrl,
           customerEmail: dto.customerEmail,
           stripeCustomerId: dto.stripeCustomerId,
+        },
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
         },
       ),
     );
@@ -419,7 +441,7 @@ export class SubscriptionsService {
     price: number;
     interval: PlanInterval;
     currency: PlanCurrency;
-  }): Promise<string> {
+  }, authHeader?: string): Promise<string> {
     const response = await firstValueFrom(
       this.httpService.post(
         `${this.billingServiceUrl}/api/billing/plans/sync-price`,
@@ -430,11 +452,41 @@ export class SubscriptionsService {
           interval: input.interval,
           currency: input.currency.toLowerCase(),
         },
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+        },
       ),
     );
     const data = (response as unknown as Record<string, unknown>)
       .data as Record<string, unknown>;
 
     return data.stripePriceId as string;
+  }
+
+  private async archivePlanPriceWithBilling(
+    stripePriceId: string,
+    planId: string,
+    authHeader?: string,
+  ) {
+    try {
+      await firstValueFrom(
+        this.httpService.post(
+          `${this.billingServiceUrl}/api/billing/plans/archive-price`,
+          {
+            stripePriceId,
+          },
+          {
+            headers: authHeader ? { Authorization: authHeader } : undefined,
+          },
+        ),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Impossible d'archiver le Stripe price ${stripePriceId} pour le plan ${planId}`,
+      );
+      this.logger.debug(
+        error instanceof Error ? error.message : 'Erreur inconnue',
+      );
+    }
   }
 }

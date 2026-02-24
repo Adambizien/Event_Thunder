@@ -8,12 +8,12 @@ interface HeaderProps {
   onLogout?: () => void;
 }
 
-const Header = ({ user, onLogout }: HeaderProps) => {
+  const Header = ({ user, onLogout }: HeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     if (onLogout) onLogout();
     navigate('/');
   };

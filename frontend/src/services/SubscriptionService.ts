@@ -16,7 +16,8 @@ export const subscriptionService = {
     planId: string;
     successUrl: string;
     cancelUrl: string;
-    customerEmail: string;
+    customerEmail?: string;
+    stripeCustomerId?: string;
   }) => {
     const response = await api.post('/api/subscriptions/checkout-session', payload);
     return response.data;

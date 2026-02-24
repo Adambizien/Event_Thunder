@@ -7,7 +7,6 @@ import Logo from '../../components/Logo';
 import type { User } from '../../types/AuthTypes';
 
 interface LoginProps {
-  onSwitchToRegister: () => void;
   onLogin: (user: User) => void;
 }
 

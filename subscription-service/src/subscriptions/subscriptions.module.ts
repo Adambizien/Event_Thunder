@@ -7,6 +7,8 @@ import { PaymentSubHistory } from './entities/payment-sub-history.entity';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionsService } from './subscriptions.service';
 import { RabbitmqConsumerService } from './rabbitmq-consumer.service';
+import { AuthGuard } from '../auth/auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
 
 @Module({
   imports: [
@@ -14,6 +16,6 @@ import { RabbitmqConsumerService } from './rabbitmq-consumer.service';
     HttpModule,
   ],
   controllers: [SubscriptionsController],
-  providers: [SubscriptionsService, RabbitmqConsumerService],
+  providers: [SubscriptionsService, RabbitmqConsumerService, AuthGuard, AdminGuard],
 })
 export class SubscriptionsModule {}

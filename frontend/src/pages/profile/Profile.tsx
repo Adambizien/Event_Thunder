@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
-import { authService, userService } from '../../services/AuthServices';
+import { authService } from '../../services/AuthServices';
+import { userService } from '../../services/UserService';
 import type { User } from '../../types/AuthTypes';
 import { PasswordInput } from '../../components/PasswordInput';
 import { PasswordValidationDisplay } from '../../components/PasswordValidationDisplay';
