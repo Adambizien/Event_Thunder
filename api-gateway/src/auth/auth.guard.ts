@@ -31,7 +31,6 @@ export class AuthGuard implements CanActivate {
 
     try {
       const authUrl = this.getAuthUrl();
-      this.logger.log(`Vérification du token à ${authUrl}`);
 
       const response = await axios.get<{ user: UserPayload }>(authUrl, {
         headers: {

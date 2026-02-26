@@ -81,7 +81,6 @@ export class BillingService {
     }
 
     await this.stripe.subscriptions.cancel(stripeSubscriptionId);
-    this.logger.log(`Subscription Stripe annulée: ${stripeSubscriptionId}`);
 
     return {
       canceled: true,
@@ -160,11 +159,8 @@ export class BillingService {
         await this.stripe.products.update(stripeProductId, {
           active: false,
         });
-        this.logger.log(`Stripe product désactivé: ${stripeProductId}`);
       }
     }
-
-    this.logger.log(`Stripe price archivé: ${stripePriceId}`);
 
     return {
       archived: true,
@@ -191,7 +187,6 @@ export class BillingService {
   }
 
   handleWebhookEvent(event: Stripe.Event) {
-    this.logger.log(`Webhook Stripe reçu: ${event.type}`);
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -236,9 +231,6 @@ export class BillingService {
         : null,
     });
 
-    this.logger.log(
-      `Event publié: billing.subscription.created (subscription=${subscription.id})`,
-    );
   }
 
   private onSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -260,9 +252,6 @@ export class BillingService {
         : null,
     });
 
-    this.logger.log(
-      `Event publié: billing.subscription.updated (subscription=${subscription.id})`,
-    );
   }
 
   private onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
@@ -272,10 +261,6 @@ export class BillingService {
       typeof session.subscription === 'string'
         ? session.subscription
         : session.subscription.id;
-
-    this.logger.log(
-      `Checkout session complétée: session=${session.id}, subscription=${stripeSubscriptionId}`,
-    );
   }
 
   private onInvoicePaid(invoice: Stripe.Invoice) {
@@ -296,10 +281,6 @@ export class BillingService {
         : new Date().toISOString(),
     });
 
-    this.logger.log(
-      `Event publié: billing.payment.succeeded (invoice=${invoice.id}, subscription=${stripeSubscriptionId})`,
-    );
-
     if (period?.start && period?.end) {
       this.rabbitmqPublisher.publish('billing.subscription.renewed', {
         stripeSubscriptionId,
@@ -307,10 +288,6 @@ export class BillingService {
         currentPeriodStart: new Date(period.start * 1000).toISOString(),
         currentPeriodEnd: new Date(period.end * 1000).toISOString(),
       });
-
-      this.logger.log(
-        `Event publié: billing.subscription.renewed (subscription=${stripeSubscriptionId})`,
-      );
     }
   }
 
@@ -328,10 +305,6 @@ export class BillingService {
       description: invoice.description,
       paidAt: new Date().toISOString(),
     });
-
-    this.logger.log(
-      `Event publié: billing.payment.failed (invoice=${invoice.id}, subscription=${stripeSubscriptionId})`,
-    );
   }
 
   private onSubscriptionCanceled(subscription: Stripe.Subscription) {
@@ -345,10 +318,6 @@ export class BillingService {
         ? new Date(subscription.ended_at * 1000).toISOString()
         : null,
     });
-
-    this.logger.log(
-      `Event publié: billing.subscription.canceled (subscription=${subscription.id})`,
-    );
   }
 
   private extractSubscriptionIdFromInvoice(

@@ -1,29 +1,34 @@
 services:
   # Postgres Database
   postgres:
-    image: postgres:15
-    container_name: event_thunder_postgres
+    image: postgres:18.2-alpine3.23
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Europe/Paris
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     ports:
       - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
-    networks:
-      - app-network
 
   # API Gateway
   api-gateway:
     build: ./api-gateway
-    container_name: api_gateway
+    restart: unless-stopped
     environment:
-      - PORT=${API_GATEWAY_PORT}
-      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
-      - USER_SERVICE_URL=${USER_SERVICE_URL}
-      - BILLING_SERVICE_URL=${BILLING_SERVICE_URL}
-      - SUBSCRIPTION_SERVICE_URL=${SUBSCRIPTION_SERVICE_URL}
+      PORT: ${API_GATEWAY_PORT}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
+      SUBSCRIPTION_SERVICE_URL: ${SUBSCRIPTION_SERVICE_URL}
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     depends_on:
@@ -31,124 +36,104 @@ services:
       - user-service
       - billing-service
       - subscription-service
-    networks:
-      - app-network
 
   # Auth Service
   auth-service:
     build: ./auth-service
-    container_name: auth_service
+    restart: unless-stopped
     environment:
-      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      - USER_SERVICE_URL=${USER_SERVICE_URL}
-      - MAILING_SERVICE_URL=${MAILING_SERVICE_URL}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
-      - FRONTEND_URL=${FRONTEND_URL}
-      - RESET_PASSWORD_JWT_SECRET=${RESET_PASSWORD_JWT_SECRET}
+      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      MAILING_SERVICE_URL: ${MAILING_SERVICE_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      FRONTEND_URL: ${FRONTEND_URL}
+      RESET_PASSWORD_JWT_SECRET: ${RESET_PASSWORD_JWT_SECRET}
     depends_on:
       - user-service
       - mailing
-    networks:
-      - app-network
 
   # User Service
   user-service:
     build: ./user-service
-    container_name: user_service
+    restart: unless-stopped
     environment:
-      - PORT=${USER_SERVICE_PORT}
-      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${USER_DATABASE}
-      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS}
-      - NODE_ENV=${NODE_ENV}
-      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      DB_CONNECTION: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${USER_DATABASE}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS}
+      NODE_ENV: ${NODE_ENV}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
     depends_on:
-      - postgres
-    networks:
-      - app-network
+      postgres:
+        condition: service_healthy
 
   # Subscription Service:
   subscription-service:
     build: ./subscription-service
-    container_name: subscription_service
+    restart: unless-stopped
     environment:
-      - PORT=${SUBSCRIPTION_SERVICE_PORT}
-      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${BILLING_DATABASE}
-      - BILLING_SERVICE_URL=http://billing-service:${BILLING_SERVICE_PORT}
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - RABBITMQ_EXCHANGE=billing.events
-      - RABBITMQ_SUBSCRIPTION_QUEUE=subscription-service.billing.events
-      - NODE_ENV=${NODE_ENV}
+      PORT: ${SUBSCRIPTION_SERVICE_PORT}
+      DB_CONNECTION: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${BILLING_DATABASE}
+      BILLING_SERVICE_URL: http://billing-service:${BILLING_SERVICE_PORT}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.billing.events
+      NODE_ENV: ${NODE_ENV}
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    networks:
-      - app-network
   
   # billing-service:
   billing-service:
     build: ./billing-service
-    container_name: billing_service
+    restart: unless-stopped
     environment:
-      - BILLING_SERVICE_PORT=${BILLING_SERVICE_PORT}
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - RABBITMQ_EXCHANGE=billing.events
-      - NODE_ENV=${NODE_ENV}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      BILLING_SERVICE_PORT: ${BILLING_SERVICE_PORT}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      NODE_ENV: ${NODE_ENV}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
     ports:
       - "${BILLING_SERVICE_PORT}:${BILLING_SERVICE_PORT}"
     depends_on:
       rabbitmq:
         condition: service_healthy
-    networks:
-      - app-network
   
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: event_thunder_rabbitmq
+    image: rabbitmq:4.2.4-alpine
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 10s
-    networks:
-      - app-network
 
 
   # Mailing Service
   mailing:
     build: ./mailing-service
-    container_name: mailing_service
+    restart: unless-stopped
     environment:
-      - PORT=${MAILING_SERVICE_PORT}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - MAIL_FROM=${MAIL_FROM}
-      - PRODUCT_NAME=${PRODUCT_NAME}
-    networks:
-      - app-network
+      PORT: ${MAILING_SERVICE_PORT}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      MAIL_FROM: ${MAIL_FROM}
+      PRODUCT_NAME: ${PRODUCT_NAME}
 
   # Frontend
   frontend:
     build: ./frontend
-    container_name: frontend
+    restart: unless-stopped
     environment:
-      - VITE_API_URL=${API_GATEWAY_URL}
+      VITE_API_URL: ${API_GATEWAY_URL}
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
-    depends_on:
-      - api-gateway
 
 volumes:
   postgres_data:
-
-networks:
-  app-network:
-    driver: bridge

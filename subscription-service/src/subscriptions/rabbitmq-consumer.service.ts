@@ -87,7 +87,6 @@ export class RabbitmqConsumerService
         );
       });
 
-      this.logger.log(`RabbitMQ consumer prêt sur ${this.queueName}`);
     } catch (error) {
       this.logger.error(
         'Connexion RabbitMQ impossible. Les événements billing ne seront pas consommés.',

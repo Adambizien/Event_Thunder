@@ -381,9 +381,6 @@ export class SubscriptionsService {
     subscription.ended_at = this.toDate(payload.endedAt);
 
     await this.subscriptionRepository.save(subscription);
-    this.logger.log(
-      `Subscription créée/mise à jour depuis event billing.subscription.created: ${subscription.stripe_subscription_id}`,
-    );
   }
 
   private async handleSubscriptionUpdated(payload: BillingEventPayload) {
@@ -426,9 +423,6 @@ export class SubscriptionsService {
     subscription.ended_at = this.toDate(payload.endedAt);
 
     await this.subscriptionRepository.save(subscription);
-    this.logger.log(
-      `Subscription mise à jour depuis event billing.subscription.updated: ${subscription.stripe_subscription_id}`,
-    );
   }
 
   private async handleSubscriptionRenewed(payload: BillingEventPayload) {
@@ -446,9 +440,6 @@ export class SubscriptionsService {
     subscription.ended_at = null;
 
     await this.subscriptionRepository.save(subscription);
-    this.logger.log(
-      `Subscription renouvelée: ${subscription.stripe_subscription_id}`,
-    );
   }
 
   private async handleSubscriptionCanceled(payload: BillingEventPayload) {
@@ -464,9 +455,6 @@ export class SubscriptionsService {
     subscription.ended_at = this.toDate(payload.endedAt);
 
     await this.subscriptionRepository.save(subscription);
-    this.logger.log(
-      `Subscription annulée: ${subscription.stripe_subscription_id}`,
-    );
   }
 
   private async handlePaymentEvent(payload: BillingEventPayload) {
@@ -503,9 +491,6 @@ export class SubscriptionsService {
     });
 
     await this.paymentHistoryRepository.save(payment);
-    this.logger.log(
-      `Paiement enregistré: invoice=${payment.stripe_invoice_id}, subscription=${payload.stripeSubscriptionId}, status=${payment.status}`,
-    );
   }
 
   private toDate(value?: string | null): Date | null {

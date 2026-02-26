@@ -60,10 +60,6 @@ export class RabbitmqPublisherService
           error instanceof Error ? error.stack : undefined,
         );
       });
-
-      this.logger.log(
-        `RabbitMQ publisher connecté sur ${this.rabbitUrl} (${this.exchange})`,
-      );
     } catch (error) {
       this.logger.error(
         'Connexion RabbitMQ impossible. Les events billing ne seront pas publiés.',
