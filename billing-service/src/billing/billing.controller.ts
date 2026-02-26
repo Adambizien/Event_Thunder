@@ -16,6 +16,7 @@ import { ArchivePlanPriceDto } from './dto/archive-plan-price.dto';
 import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 
 type AuthenticatedRequest = {
   rawBody?: Buffer;
@@ -74,6 +75,24 @@ export class BillingController {
     }
 
     return this.billingService.createSubscriptionCheckoutSession(dto);
+  }
+
+  @Post('subscriptions/cancel')
+  @UseGuards(AuthGuard)
+  async cancelSubscription(
+    @Body() dto: CancelSubscriptionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    this.ensureNonEmptyString(dto.userId, 'userId');
+    this.ensureNonEmptyString(dto.stripeSubscriptionId, 'stripeSubscriptionId');
+
+    const requestUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'Admin';
+    if (!isAdmin && requestUserId && requestUserId !== dto.userId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    return this.billingService.cancelSubscription(dto.stripeSubscriptionId);
   }
 
   @Post('plans/sync-price')

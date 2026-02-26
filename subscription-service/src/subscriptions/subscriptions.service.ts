@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Plan, PlanCurrency, PlanInterval } from './entities/plan.entity';
@@ -230,6 +235,12 @@ export class SubscriptionsService {
       throw new NotFoundException('Plan introuvable');
     }
 
+    await this.cancelExistingActiveSubscriptions(
+      dto.userId,
+      dto.planId,
+      authHeader,
+    );
+
     const response = await firstValueFrom(
       this.httpService.post(
         `${this.billingServiceUrl}/api/billing/subscriptions/checkout-session`,
@@ -251,6 +262,39 @@ export class SubscriptionsService {
       .data as Record<string, unknown>;
 
     return data;
+  }
+
+  private async cancelExistingActiveSubscriptions(
+    userId: string,
+    nextPlanId: string,
+    authHeader?: string,
+  ) {
+    const activeSubscriptions = await this.subscriptionRepository.find({
+      where: { user_id: userId, status: SubscriptionStatus.Active },
+    });
+
+    const activeOnTargetPlan = activeSubscriptions.find(
+      (subscription) => subscription.plan_id === nextPlanId,
+    );
+    if (activeOnTargetPlan) {
+      throw new BadRequestException('Utilisateur déjà abonné à ce plan');
+    }
+
+    if (activeSubscriptions.length === 0) {
+      return;
+    }
+
+    for (const subscription of activeSubscriptions) {
+      await this.cancelSubscriptionWithBilling(
+        userId,
+        subscription.stripe_subscription_id,
+        authHeader,
+      );
+      subscription.status = SubscriptionStatus.Canceled;
+      subscription.canceled_at = new Date();
+      subscription.ended_at = new Date();
+      await this.subscriptionRepository.save(subscription);
+    }
   }
 
   async getUserSubscriptions(userId: string): Promise<SubscriptionResponse[]> {
@@ -558,5 +602,24 @@ export class SubscriptionsService {
         error instanceof Error ? error.message : 'Erreur inconnue',
       );
     }
+  }
+
+  private async cancelSubscriptionWithBilling(
+    userId: string,
+    stripeSubscriptionId: string,
+    authHeader?: string,
+  ) {
+    await firstValueFrom(
+      this.httpService.post(
+        `${this.billingServiceUrl}/api/billing/subscriptions/cancel`,
+        {
+          userId,
+          stripeSubscriptionId,
+        },
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+        },
+      ),
+    );
   }
 }

@@ -64,6 +64,31 @@ export class BillingService {
     };
   }
 
+  async cancelSubscription(
+    stripeSubscriptionId: string,
+  ): Promise<{ canceled: boolean; stripeSubscriptionId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const existing =
+      await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+    if (existing.status === 'canceled') {
+      return {
+        canceled: true,
+        stripeSubscriptionId,
+      };
+    }
+
+    await this.stripe.subscriptions.cancel(stripeSubscriptionId);
+    this.logger.log(`Subscription Stripe annulée: ${stripeSubscriptionId}`);
+
+    return {
+      canceled: true,
+      stripeSubscriptionId,
+    };
+  }
+
   async syncPlanPrice(
     dto: SyncPlanPriceDto,
   ): Promise<{ stripePriceId: string; stripeProductId: string }> {
