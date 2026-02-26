@@ -9,6 +9,7 @@ import Stripe from 'stripe';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
 import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
 import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
+import { readSecret } from '../utils/secret.util';
 
 @Injectable()
 export class BillingService {
@@ -21,10 +22,12 @@ export class BillingService {
     private readonly configService: ConfigService,
     private readonly rabbitmqPublisher: RabbitmqPublisherService,
   ) {
-    this.stripeApiKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    this.stripeWebhookSecret = this.configService.get<string>(
-      'STRIPE_WEBHOOK_SECRET',
-    );
+    this.stripeApiKey =
+      readSecret('STRIPE_SECRET_KEY') ??
+      this.configService.get<string>('STRIPE_SECRET_KEY');
+    this.stripeWebhookSecret =
+      readSecret('STRIPE_WEBHOOK_SECRET') ??
+      this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
 
     if (this.stripeApiKey) {
       this.stripe = new Stripe(this.stripeApiKey);

@@ -1,2 +1,4 @@
 .env
 .prod
+secrets/*
+!secrets/.gitkeep

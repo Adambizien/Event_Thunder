@@ -5,6 +5,7 @@ import { PasswordResetDto } from './dto/password-reset.dto';
 import { SendWelcomeDto } from './dto/send-welcome.dto';
 import { EmailTemplateFactory } from './templates/email-template.factory';
 import { SendEmailOptions } from './interfaces/email.interface';
+import { readSecret } from '../utils/secret.util';
 
 @Injectable()
 export class MailService {
@@ -14,7 +15,9 @@ export class MailService {
   private readonly templateFactory: EmailTemplateFactory;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    const apiKey =
+      readSecret('RESEND_API_KEY') ??
+      this.configService.get<string>('RESEND_API_KEY');
     this.from =
       this.configService.get<string>('MAIL_FROM') ??
       'no-reply@mail.event-thunder.com';

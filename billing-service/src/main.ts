@@ -13,7 +13,7 @@ async function bootstrap() {
   );
 
   const port = Number(
-    process.env.BILLING_SERVICE_PORT ?? process.env.PORT ?? 3000,
+    process.env.PORT ?? 3000,
   );
   await app.listen(port);
 }

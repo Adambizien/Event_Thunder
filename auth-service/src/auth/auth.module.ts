@@ -5,6 +5,7 @@ import { HttpModule } from '@nestjs/axios';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { readSecret } from '../utils/secret.util';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
     JwtModule.registerAsync({
       useFactory: () => {
-        const jwtSecret = process.env.JWT_SECRET;
+        const jwtSecret = readSecret('JWT_SECRET');
         if (!jwtSecret) {
           throw new Error('JWT_SECRET is not defined');
         }

@@ -41,7 +41,7 @@ describe('AuthService - Tests réels de logique métier', () => {
     process.env.GOOGLE_CLIENT_ID = 'test-client-id';
     process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
     process.env.USER_SERVICE_URL = 'http://user-service:3002';
-    process.env.MAILING_SERVICE_URL = 'http://mailing:3003';
+    process.env.MAILING_SERVICE_URL = 'http://mailing:3004';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

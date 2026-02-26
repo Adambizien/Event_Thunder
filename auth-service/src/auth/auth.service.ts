@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { readSecret } from '../utils/secret.util';
 
 type UserPayload = {
   id: string;
@@ -38,8 +39,6 @@ export class AuthService {
   private googleClient: OAuth2Client;
   private userServiceUrl: string;
   private mailingServiceUrl: string;
-  private resetTokens: Map<string, { email: string; expiresAt: number }> =
-    new Map();
   private usedResetTokens: Map<string, number> = new Map();
   private blacklistedTokens: Set<string> = new Set();
 
@@ -50,10 +49,10 @@ export class AuthService {
     this.userServiceUrl =
       process.env.USER_SERVICE_URL || 'http://user-service:3002';
     this.mailingServiceUrl =
-      process.env.MAILING_SERVICE_URL || 'http://mailing:3003';
+      process.env.MAILING_SERVICE_URL || 'http://mailing:3004';
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const googleClientSecret = readSecret('GOOGLE_CLIENT_SECRET');
 
     if (!googleClientId || !googleClientSecret) {
       throw new Error('Google OAuth credentials are not defined');
@@ -304,12 +303,6 @@ export class AuthService {
       }
 
       const resetToken = this.generatePasswordResetToken(dto.email);
-      if (this.isTestEnvironment()) {
-        this.resetTokens.set(resetToken, {
-          email: dto.email,
-          expiresAt: Date.now() + 30 * 60 * 1000,
-        });
-      }
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
@@ -334,20 +327,7 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-    let resetPayload = this.verifyPasswordResetToken(dto.token);
-    if (!resetPayload && this.isTestEnvironment()) {
-      const tokenData = this.resetTokens.get(dto.token);
-      if (!tokenData) {
-        throw new BadRequestException(
-          'Jeton de réinitialisation invalide ou expiré',
-        );
-      }
-      if (Date.now() > tokenData.expiresAt) {
-        this.resetTokens.delete(dto.token);
-        throw new BadRequestException('Le jeton de réinitialisation a expiré');
-      }
-      resetPayload = { email: tokenData.email, type: 'password_reset' };
-    }
+    const resetPayload = this.verifyPasswordResetToken(dto.token);
 
     if (!resetPayload) {
       throw new BadRequestException(
@@ -373,9 +353,6 @@ export class AuthService {
       const expiresAt = this.readTokenExpirationMs(dto.token, 30 * 60 * 1000);
       this.usedResetTokens.set(dto.token, expiresAt);
       this.cleanupExpiredEntries(this.usedResetTokens);
-      if (this.isTestEnvironment()) {
-        this.resetTokens.delete(dto.token);
-      }
 
       return { message: 'Mot de passe réinitialisé avec succès' };
     } catch (error: unknown) {
@@ -400,30 +377,15 @@ export class AuthService {
 
     const payload = this.verifyPasswordResetToken(token);
     if (!payload) {
-      if (this.isTestEnvironment()) {
-        const tokenData = this.resetTokens.get(token);
-        if (!tokenData) {
-          return { valid: false, message: 'Jeton invalide ou expiré' };
-        }
-        if (Date.now() > tokenData.expiresAt) {
-          this.resetTokens.delete(token);
-          return { valid: false, message: 'Le jeton a expiré' };
-        }
-        return { valid: true, message: 'Jeton valide' };
-      }
       return { valid: false, message: 'Jeton invalide ou expiré' };
     }
 
     return { valid: true, message: 'Jeton valide' };
   }
 
-  private isTestEnvironment(): boolean {
-    return process.env.NODE_ENV === 'test';
-  }
-
   private getResetTokenSecret(): string {
     const resetSecret =
-      process.env.RESET_PASSWORD_JWT_SECRET || process.env.JWT_SECRET;
+      readSecret('RESET_PASSWORD_JWT_SECRET') ?? readSecret('JWT_SECRET');
     if (!resetSecret) {
       throw new Error(
         'RESET_PASSWORD_JWT_SECRET or JWT_SECRET must be defined',
@@ -510,7 +472,7 @@ export class AuthService {
   }
 
   private generateToken(userId: string): string {
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = readSecret('JWT_SECRET');
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
