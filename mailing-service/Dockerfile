@@ -1,15 +1,21 @@
-FROM node:25.7-alpine3.22
+FROM node:24.14-bookworm AS deps
 
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm ci
+RUN npm ci --only=production
 
 COPY . .
-
 RUN npm run build
 
-EXPOSE 3003
+FROM gcr.io/distroless/nodejs24-debian13
 
-CMD ["node", "dist/main.js"]
+WORKDIR /app
+
+COPY --from=deps /app/dist ./dist
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+
+EXPOSE 3004
+
+CMD ["dist/main.js"]
