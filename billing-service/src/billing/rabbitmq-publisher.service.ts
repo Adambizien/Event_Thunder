@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Channel, ChannelModel, connect } from 'amqplib';
+import { ChannelModel, ConfirmChannel, connect } from 'amqplib';
 
 @Injectable()
 export class RabbitmqPublisherService
@@ -13,7 +13,7 @@ export class RabbitmqPublisherService
 {
   private readonly logger = new Logger(RabbitmqPublisherService.name);
   private connection?: ChannelModel;
-  private channel?: Channel;
+  private channel?: ConfirmChannel;
   private readonly exchange: string;
   private readonly rabbitUrl: string;
   private readonly retryDelayMs: number;
@@ -42,7 +42,7 @@ export class RabbitmqPublisherService
     this.connecting = true;
     try {
       this.connection = await connect(this.rabbitUrl);
-      this.channel = await this.connection.createChannel();
+      this.channel = await this.connection.createConfirmChannel();
       await this.channel.assertExchange(this.exchange, 'topic', {
         durable: true,
       });
@@ -82,23 +82,67 @@ export class RabbitmqPublisherService
     }, this.retryDelayMs);
   }
 
-  publish(routingKey: string, payload: Record<string, unknown>) {
-    if (!this.channel) {
-      this.logger.warn(
-        `Event non publié (channel indisponible): ${routingKey}`,
-      );
-      return;
+  async publish(
+    routingKey: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const channel = this.channel;
+    if (!channel) {
+      throw new Error(`Event non publié (channel indisponible): ${routingKey}`);
     }
 
-    this.channel.publish(
-      this.exchange,
-      routingKey,
-      Buffer.from(JSON.stringify(payload)),
-      {
-        persistent: true,
-        contentType: 'application/json',
-      },
-    );
+    await new Promise<void>((resolve, reject) => {
+      channel.publish(
+        this.exchange,
+        routingKey,
+        Buffer.from(JSON.stringify(payload)),
+        {
+          persistent: true,
+          contentType: 'application/json',
+        },
+        (error) => {
+          if (error) {
+            reject(
+              error instanceof Error
+                ? error
+                : new Error(`Publication AMQP échouée: ${routingKey}`),
+            );
+            return;
+          }
+          resolve();
+        },
+      );
+    });
+  }
+
+  async publishWithRetry(
+    routingKey: string,
+    payload: Record<string, unknown>,
+    maxAttempts = 3,
+  ): Promise<void> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.publish(routingKey, payload);
+        return;
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(
+          `Échec publication ${routingKey} (tentative ${attempt}/${maxAttempts})`,
+        );
+
+        await this.connectWithRetry();
+
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(`Publication impossible: ${routingKey}`);
   }
 
   async onApplicationShutdown() {

@@ -128,7 +128,7 @@ export class BillingController {
 
   @Post('stripe/webhook')
   @HttpCode(HttpStatus.OK)
-  stripeWebhook(
+  async stripeWebhook(
     @Req() req: AuthenticatedRequest,
     @Headers('stripe-signature') signature?: string,
   ) {
@@ -144,7 +144,7 @@ export class BillingController {
       req.rawBody,
       signature,
     );
-    this.billingService.handleWebhookEvent(event);
+    await this.billingService.handleWebhookEvent(event);
 
     return { received: true };
   }

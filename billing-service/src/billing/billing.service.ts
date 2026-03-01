@@ -189,90 +189,92 @@ export class BillingService {
     }
   }
 
-  handleWebhookEvent(event: Stripe.Event) {
-
+  async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     switch (event.type) {
       case 'checkout.session.completed':
         this.onCheckoutSessionCompleted(event.data.object);
         break;
       case 'customer.subscription.created':
-        this.onSubscriptionCreated(event.data.object);
+        await this.onSubscriptionCreated(event.data.object);
         break;
       case 'customer.subscription.updated':
-        this.onSubscriptionUpdated(event.data.object);
+        await this.onSubscriptionUpdated(event.data.object);
         break;
       case 'invoice.payment_succeeded':
-        this.onInvoicePaid(event.data.object);
+        await this.onInvoicePaid(event.data.object);
         break;
       case 'invoice.payment_failed':
-        this.onInvoiceFailed(event.data.object);
+        await this.onInvoiceFailed(event.data.object);
         break;
       case 'customer.subscription.deleted':
-        this.onSubscriptionCanceled(event.data.object);
+        await this.onSubscriptionCanceled(event.data.object);
         break;
       default:
         this.logger.debug(`Event Stripe ignoré: ${event.type}`);
     }
   }
 
-  private onSubscriptionCreated(subscription: Stripe.Subscription) {
+  private async onSubscriptionCreated(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
     const period = this.extractPeriodFromSubscription(subscription);
 
-    this.rabbitmqPublisher.publish('billing.subscription.created', {
-      userId: subscription.metadata?.userId,
-      planId: subscription.metadata?.planId,
-      stripePriceId: this.extractPriceIdFromSubscription(subscription),
-      stripeSubscriptionId: subscription.id,
-      status: this.mapSubscriptionStatus(subscription.status),
-      currentPeriodStart: period.start,
-      currentPeriodEnd: period.end,
-      canceledAt: subscription.canceled_at
-        ? new Date(subscription.canceled_at * 1000).toISOString()
-        : null,
-      endedAt: subscription.ended_at
-        ? new Date(subscription.ended_at * 1000).toISOString()
-        : null,
-    });
-
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.subscription.created',
+      {
+        userId: subscription.metadata?.userId,
+        planId: subscription.metadata?.planId,
+        stripePriceId: this.extractPriceIdFromSubscription(subscription),
+        stripeSubscriptionId: subscription.id,
+        status: this.mapSubscriptionStatus(subscription.status),
+        currentPeriodStart: period.start,
+        currentPeriodEnd: period.end,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000).toISOString()
+          : null,
+        endedAt: subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : null,
+      },
+    );
   }
 
-  private onSubscriptionUpdated(subscription: Stripe.Subscription) {
+  private async onSubscriptionUpdated(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
     const period = this.extractPeriodFromSubscription(subscription);
 
-    this.rabbitmqPublisher.publish('billing.subscription.updated', {
-      userId: subscription.metadata?.userId,
-      planId: subscription.metadata?.planId,
-      stripePriceId: this.extractPriceIdFromSubscription(subscription),
-      stripeSubscriptionId: subscription.id,
-      status: this.mapSubscriptionStatus(subscription.status),
-      currentPeriodStart: period.start,
-      currentPeriodEnd: period.end,
-      canceledAt: subscription.canceled_at
-        ? new Date(subscription.canceled_at * 1000).toISOString()
-        : null,
-      endedAt: subscription.ended_at
-        ? new Date(subscription.ended_at * 1000).toISOString()
-        : null,
-    });
-
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.subscription.updated',
+      {
+        userId: subscription.metadata?.userId,
+        planId: subscription.metadata?.planId,
+        stripePriceId: this.extractPriceIdFromSubscription(subscription),
+        stripeSubscriptionId: subscription.id,
+        status: this.mapSubscriptionStatus(subscription.status),
+        currentPeriodStart: period.start,
+        currentPeriodEnd: period.end,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000).toISOString()
+          : null,
+        endedAt: subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : null,
+      },
+    );
   }
 
   private onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     if (session.mode !== 'subscription' || !session.subscription) return;
-
-    const stripeSubscriptionId =
-      typeof session.subscription === 'string'
-        ? session.subscription
-        : session.subscription.id;
   }
 
-  private onInvoicePaid(invoice: Stripe.Invoice) {
+  private async onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
     const stripeSubscriptionId = this.extractSubscriptionIdFromInvoice(invoice);
 
     if (!stripeSubscriptionId) return;
 
     const period = invoice.lines.data[0]?.period;
-    this.rabbitmqPublisher.publish('billing.payment.succeeded', {
+    await this.rabbitmqPublisher.publishWithRetry('billing.payment.succeeded', {
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
       amount: (invoice.amount_paid ?? 0) / 100,
@@ -285,21 +287,24 @@ export class BillingService {
     });
 
     if (period?.start && period?.end) {
-      this.rabbitmqPublisher.publish('billing.subscription.renewed', {
-        stripeSubscriptionId,
-        status: 'active',
-        currentPeriodStart: new Date(period.start * 1000).toISOString(),
-        currentPeriodEnd: new Date(period.end * 1000).toISOString(),
-      });
+      await this.rabbitmqPublisher.publishWithRetry(
+        'billing.subscription.renewed',
+        {
+          stripeSubscriptionId,
+          status: 'active',
+          currentPeriodStart: new Date(period.start * 1000).toISOString(),
+          currentPeriodEnd: new Date(period.end * 1000).toISOString(),
+        },
+      );
     }
   }
 
-  private onInvoiceFailed(invoice: Stripe.Invoice) {
+  private async onInvoiceFailed(invoice: Stripe.Invoice): Promise<void> {
     const stripeSubscriptionId = this.extractSubscriptionIdFromInvoice(invoice);
 
     if (!stripeSubscriptionId) return;
 
-    this.rabbitmqPublisher.publish('billing.payment.failed', {
+    await this.rabbitmqPublisher.publishWithRetry('billing.payment.failed', {
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
       amount: (invoice.amount_due ?? 0) / 100,
@@ -310,17 +315,22 @@ export class BillingService {
     });
   }
 
-  private onSubscriptionCanceled(subscription: Stripe.Subscription) {
-    this.rabbitmqPublisher.publish('billing.subscription.canceled', {
-      stripeSubscriptionId: subscription.id,
-      status: 'canceled',
-      canceledAt: subscription.canceled_at
-        ? new Date(subscription.canceled_at * 1000).toISOString()
-        : new Date().toISOString(),
-      endedAt: subscription.ended_at
-        ? new Date(subscription.ended_at * 1000).toISOString()
-        : null,
-    });
+  private async onSubscriptionCanceled(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.subscription.canceled',
+      {
+        stripeSubscriptionId: subscription.id,
+        status: 'canceled',
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000).toISOString()
+          : new Date().toISOString(),
+        endedAt: subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : null,
+      },
+    );
   }
 
   private extractSubscriptionIdFromInvoice(
