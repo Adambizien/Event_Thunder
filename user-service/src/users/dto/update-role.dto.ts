@@ -1,5 +1,5 @@
 import { IsEnum, IsUUID } from 'class-validator';
-import { UserRole } from '../entities/user.entity';
+import { UserRole } from '@prisma/client';
 
 export class UpdateRoleDto {
   @IsUUID()

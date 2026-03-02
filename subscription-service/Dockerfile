@@ -3,6 +3,7 @@ FROM node:24.14-bookworm AS deps
 WORKDIR /app
 
 COPY package*.json ./
+COPY prisma ./prisma
 RUN npm ci --only=production
 
 COPY . .

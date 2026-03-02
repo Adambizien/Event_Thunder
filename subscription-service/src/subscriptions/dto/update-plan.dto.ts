@@ -1,4 +1,4 @@
-import { PlanCurrency, PlanInterval } from '../entities/plan.entity';
+import { PlanCurrency, PlanInterval } from '@prisma/client';
 
 export class UpdatePlanDto {
   name?: string;

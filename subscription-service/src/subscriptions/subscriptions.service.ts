@@ -4,24 +4,21 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Plan, PlanCurrency, PlanInterval } from './entities/plan.entity';
-import {
-  Subscription,
-  SubscriptionStatus,
-} from './entities/subscription.entity';
 import {
   PaymentCurrency,
   PaymentStatus,
-  PaymentSubHistory,
-} from './entities/payment-sub-history.entity';
+  PlanCurrency,
+  PlanInterval,
+  Prisma,
+  SubscriptionStatus,
+} from '@prisma/client';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface BillingEventPayload {
   userId?: string;
@@ -64,9 +61,51 @@ type SubscriptionResponse = {
   endedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  plan: Plan;
-  payments: PaymentSubHistory[];
+  plan: PlanModel;
+  payments: PaymentModel[];
 };
+
+type PlanModel = {
+  id: string;
+  name: string;
+  price: number;
+  interval: PlanInterval;
+  currency: PlanCurrency;
+  stripe_price_id: string;
+  max_events: number;
+  display_order: number;
+  description: string | null;
+  created_at: Date;
+};
+
+type SubscriptionModel = {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  stripe_subscription_id: string;
+  status: SubscriptionStatus;
+  current_period_start: Date | null;
+  current_period_end: Date | null;
+  canceled_at: Date | null;
+  ended_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type PaymentModel = {
+  id: string;
+  subscription_id: string;
+  stripe_invoice_id: string;
+  amount: number;
+  currency: PaymentCurrency;
+  status: PaymentStatus;
+  paid_at: Date | null;
+  created_at: Date;
+};
+
+type SubscriptionWithRelations = Prisma.SubscriptionGetPayload<{
+  include: { plan: true; payments: true };
+}>;
 
 @Injectable()
 export class SubscriptionsService {
@@ -74,12 +113,7 @@ export class SubscriptionsService {
   private readonly billingServiceUrl: string;
 
   constructor(
-    @InjectRepository(Plan)
-    private readonly planRepository: Repository<Plan>,
-    @InjectRepository(Subscription)
-    private readonly subscriptionRepository: Repository<Subscription>,
-    @InjectRepository(PaymentSubHistory)
-    private readonly paymentHistoryRepository: Repository<PaymentSubHistory>,
+    private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
@@ -88,7 +122,83 @@ export class SubscriptionsService {
       'http://billing-service:3000';
   }
 
-  private toPlanResponse(plan: Plan): PlanResponse {
+  private toPlanModel(plan: {
+    id: string;
+    name: string;
+    price: unknown;
+    interval: string;
+    currency: string;
+    stripe_price_id: string;
+    max_events: number;
+    display_order: number;
+    description: string | null;
+    created_at: Date;
+  }): PlanModel {
+    return {
+      id: plan.id,
+      name: plan.name,
+      price: Number(plan.price),
+      interval: plan.interval as PlanInterval,
+      currency: plan.currency as PlanCurrency,
+      stripe_price_id: plan.stripe_price_id,
+      max_events: plan.max_events,
+      display_order: plan.display_order,
+      description: plan.description,
+      created_at: plan.created_at,
+    };
+  }
+
+  private toSubscriptionModel(subscription: {
+    id: string;
+    user_id: string;
+    plan_id: string;
+    stripe_subscription_id: string;
+    status: string;
+    current_period_start: Date | null;
+    current_period_end: Date | null;
+    canceled_at: Date | null;
+    ended_at: Date | null;
+    created_at: Date;
+    updated_at: Date;
+  }): SubscriptionModel {
+    return {
+      id: subscription.id,
+      user_id: subscription.user_id,
+      plan_id: subscription.plan_id,
+      stripe_subscription_id: subscription.stripe_subscription_id,
+      status: subscription.status as SubscriptionStatus,
+      current_period_start: subscription.current_period_start,
+      current_period_end: subscription.current_period_end,
+      canceled_at: subscription.canceled_at,
+      ended_at: subscription.ended_at,
+      created_at: subscription.created_at,
+      updated_at: subscription.updated_at,
+    };
+  }
+
+  private toPaymentModel(payment: {
+    id: string;
+    subscription_id: string;
+    stripe_invoice_id: string;
+    amount: unknown;
+    currency: string;
+    status: string;
+    paid_at: Date | null;
+    created_at: Date;
+  }): PaymentModel {
+    return {
+      id: payment.id,
+      subscription_id: payment.subscription_id,
+      stripe_invoice_id: payment.stripe_invoice_id,
+      amount: Number(payment.amount),
+      currency: payment.currency as PaymentCurrency,
+      status: payment.status as PaymentStatus,
+      paid_at: payment.paid_at,
+      created_at: payment.created_at,
+    };
+  }
+
+  private toPlanResponse(plan: PlanModel): PlanResponse {
     return {
       id: plan.id,
       name: plan.name,
@@ -119,18 +229,20 @@ export class SubscriptionsService {
         authHeader,
       ));
 
-    const entity = this.planRepository.create({
-      name: dto.name,
-      price: dto.price,
-      interval: dto.interval,
-      currency: dto.currency ?? PlanCurrency.EUR,
-      stripe_price_id: stripePriceId,
-      max_events: dto.maxEvents,
-      display_order: dto.displayOrder ?? 0,
-      description: dto.description ?? null,
+    const saved = await this.prisma.plan.create({
+      data: {
+        name: dto.name,
+        price: dto.price,
+        interval: dto.interval,
+        currency: dto.currency ?? PlanCurrency.EUR,
+        stripe_price_id: stripePriceId,
+        max_events: dto.maxEvents,
+        display_order: dto.displayOrder ?? 0,
+        description: dto.description ?? null,
+      },
     });
-    const plan = await this.planRepository.save(entity);
-    return this.toPlanResponse(plan);
+
+    return this.toPlanResponse(this.toPlanModel(saved));
   }
 
   async updatePlan(
@@ -138,10 +250,12 @@ export class SubscriptionsService {
     dto: UpdatePlanDto,
     authHeader?: string,
   ): Promise<PlanResponse> {
-    const plan = await this.planRepository.findOne({ where: { id } });
-    if (!plan) {
+    const current = await this.prisma.plan.findUnique({ where: { id } });
+    if (!current) {
       throw new NotFoundException('Plan introuvable');
     }
+
+    const plan = this.toPlanModel(current);
 
     const nextName = dto.name ?? plan.name;
     const nextPrice = dto.price ?? Number(plan.price);
@@ -157,9 +271,10 @@ export class SubscriptionsService {
       nextInterval !== plan.interval ||
       nextCurrency !== plan.currency;
 
+    let stripePriceId = plan.stripe_price_id;
     const previousStripePriceId = plan.stripe_price_id;
     if (priceOrIntervalChanged) {
-      plan.stripe_price_id = await this.syncPlanPriceWithBilling(
+      stripePriceId = await this.syncPlanPriceWithBilling(
         {
           planId: plan.id,
           name: nextName,
@@ -171,15 +286,21 @@ export class SubscriptionsService {
       );
     }
 
-    plan.name = nextName;
-    plan.price = nextPrice;
-    plan.interval = nextInterval;
-    plan.currency = nextCurrency;
-    plan.max_events = nextMaxEvents;
-    plan.display_order = nextDisplayOrder;
-    plan.description = nextDescription;
+    const saved = await this.prisma.plan.update({
+      where: { id },
+      data: {
+        name: nextName,
+        price: nextPrice,
+        interval: nextInterval,
+        currency: nextCurrency,
+        max_events: nextMaxEvents,
+        display_order: nextDisplayOrder,
+        description: nextDescription,
+        stripe_price_id: stripePriceId,
+      },
+    });
 
-    const savedPlan = await this.planRepository.save(plan);
+    const savedPlan = this.toPlanModel(saved);
 
     if (
       priceOrIntervalChanged &&
@@ -197,30 +318,31 @@ export class SubscriptionsService {
   }
 
   async getPlans(): Promise<PlanResponse[]> {
-    const plans = await this.planRepository.find({
-      order: { created_at: 'ASC' },
+    const plans = await this.prisma.plan.findMany({
+      orderBy: { created_at: 'asc' },
     });
-    return plans.map((plan) => this.toPlanResponse(plan));
+    return plans.map((plan) => this.toPlanResponse(this.toPlanModel(plan)));
   }
 
   async deletePlan(
     id: string,
     authHeader?: string,
   ): Promise<{ message: string }> {
-    const plan = await this.planRepository.findOne({ where: { id } });
+    const plan = await this.prisma.plan.findUnique({ where: { id } });
     if (!plan) {
       throw new NotFoundException('Plan introuvable');
     }
 
-    if (plan.stripe_price_id) {
+    const planModel = this.toPlanModel(plan);
+    if (planModel.stripe_price_id) {
       await this.archivePlanPriceWithBilling(
-        plan.stripe_price_id,
-        plan.id,
+        planModel.stripe_price_id,
+        planModel.id,
         authHeader,
       );
     }
 
-    await this.planRepository.remove(plan);
+    await this.prisma.plan.delete({ where: { id } });
     return { message: 'Plan supprimé avec succès' };
   }
 
@@ -228,12 +350,14 @@ export class SubscriptionsService {
     dto: CreateCheckoutSessionDto,
     authHeader?: string,
   ) {
-    const plan = await this.planRepository.findOne({
+    const plan = await this.prisma.plan.findUnique({
       where: { id: dto.planId },
     });
     if (!plan) {
       throw new NotFoundException('Plan introuvable');
     }
+
+    const planModel = this.toPlanModel(plan);
 
     await this.cancelExistingActiveSubscriptions(
       dto.userId,
@@ -246,8 +370,8 @@ export class SubscriptionsService {
         `${this.billingServiceUrl}/api/billing/subscriptions/checkout-session`,
         {
           userId: dto.userId,
-          planId: plan.id,
-          stripePriceId: plan.stripe_price_id,
+          planId: planModel.id,
+          stripePriceId: planModel.stripe_price_id,
           successUrl: dto.successUrl,
           cancelUrl: dto.cancelUrl,
           customerEmail: dto.customerEmail,
@@ -269,8 +393,8 @@ export class SubscriptionsService {
     nextPlanId: string,
     authHeader?: string,
   ) {
-    const activeSubscriptions = await this.subscriptionRepository.find({
-      where: { user_id: userId, status: SubscriptionStatus.Active },
+    const activeSubscriptions = await this.prisma.subscription.findMany({
+      where: { user_id: userId, status: SubscriptionStatus.active },
     });
 
     const activeOnTargetPlan = activeSubscriptions.find(
@@ -284,41 +408,54 @@ export class SubscriptionsService {
       return;
     }
 
-    for (const subscription of activeSubscriptions) {
+    for (const current of activeSubscriptions) {
+      const subscription = this.toSubscriptionModel(current);
       await this.cancelSubscriptionWithBilling(
         userId,
         subscription.stripe_subscription_id,
         authHeader,
       );
-      subscription.status = SubscriptionStatus.Canceled;
-      subscription.canceled_at = new Date();
-      subscription.ended_at = new Date();
-      await this.subscriptionRepository.save(subscription);
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: SubscriptionStatus.canceled,
+          canceled_at: new Date(),
+          ended_at: new Date(),
+        },
+      });
     }
   }
 
   async getUserSubscriptions(userId: string): Promise<SubscriptionResponse[]> {
-    const subscriptions = await this.subscriptionRepository.find({
+    const subscriptions = (await this.prisma.subscription.findMany({
       where: { user_id: userId },
-      relations: ['plan', 'payments'],
-      order: { created_at: 'DESC' },
-    });
+      include: {
+        plan: true,
+        payments: true,
+      },
+      orderBy: { created_at: 'desc' },
+    })) as SubscriptionWithRelations[];
 
-    return subscriptions.map((subscription) => ({
-      id: subscription.id,
-      userId: subscription.user_id,
-      planId: subscription.plan_id,
-      stripeSubscriptionId: subscription.stripe_subscription_id,
-      status: subscription.status,
-      currentPeriodStart: subscription.current_period_start,
-      currentPeriodEnd: subscription.current_period_end,
-      canceledAt: subscription.canceled_at,
-      endedAt: subscription.ended_at,
-      createdAt: subscription.created_at,
-      updatedAt: subscription.updated_at,
-      plan: subscription.plan,
-      payments: subscription.payments,
-    }));
+    return subscriptions.map((subscription) => {
+      const subscriptionModel = this.toSubscriptionModel(subscription);
+      return {
+        id: subscriptionModel.id,
+        userId: subscriptionModel.user_id,
+        planId: subscriptionModel.plan_id,
+        stripeSubscriptionId: subscriptionModel.stripe_subscription_id,
+        status: subscriptionModel.status,
+        currentPeriodStart: subscriptionModel.current_period_start,
+        currentPeriodEnd: subscriptionModel.current_period_end,
+        canceledAt: subscriptionModel.canceled_at,
+        endedAt: subscriptionModel.ended_at,
+        createdAt: subscriptionModel.created_at,
+        updatedAt: subscriptionModel.updated_at,
+        plan: this.toPlanModel(subscription.plan),
+        payments: subscription.payments.map((payment) =>
+          this.toPaymentModel(payment),
+        ),
+      };
+    });
   }
 
   async handleBillingEvent(routingKey: string, payload: BillingEventPayload) {
@@ -358,37 +495,54 @@ export class SubscriptionsService {
       return;
     }
 
-    const existing = await this.subscriptionRepository.findOne({
+    const existing = await this.prisma.subscription.findUnique({
       where: { stripe_subscription_id: payload.stripeSubscriptionId },
     });
 
-    const subscription = existing
-      ? existing
-      : this.subscriptionRepository.create({
+    if (!existing) {
+      await this.prisma.subscription.create({
+        data: {
           user_id: payload.userId,
+          plan_id: plan.id,
           stripe_subscription_id: payload.stripeSubscriptionId,
-        });
+          status:
+            payload.status === (SubscriptionStatus.canceled as string)
+              ? SubscriptionStatus.canceled
+              : SubscriptionStatus.active,
+          current_period_start: this.toDate(payload.currentPeriodStart),
+          current_period_end: this.toDate(payload.currentPeriodEnd),
+          canceled_at: this.toDate(payload.canceledAt),
+          ended_at: this.toDate(payload.endedAt),
+        },
+      });
+      return;
+    }
 
-    subscription.user_id = payload.userId;
-    subscription.plan_id = plan.id;
-    subscription.status =
-      payload.status === (SubscriptionStatus.Canceled as string)
-        ? SubscriptionStatus.Canceled
-        : SubscriptionStatus.Active;
-    subscription.current_period_start = this.toDate(payload.currentPeriodStart);
-    subscription.current_period_end = this.toDate(payload.currentPeriodEnd);
-    subscription.canceled_at = this.toDate(payload.canceledAt);
-    subscription.ended_at = this.toDate(payload.endedAt);
-
-    await this.subscriptionRepository.save(subscription);
+    await this.prisma.subscription.update({
+      where: { id: existing.id },
+      data: {
+        user_id: payload.userId,
+        plan_id: plan.id,
+        status:
+          payload.status === (SubscriptionStatus.canceled as string)
+            ? SubscriptionStatus.canceled
+            : SubscriptionStatus.active,
+        current_period_start: this.toDate(payload.currentPeriodStart),
+        current_period_end: this.toDate(payload.currentPeriodEnd),
+        canceled_at: this.toDate(payload.canceledAt),
+        ended_at: this.toDate(payload.endedAt),
+      },
+    });
   }
 
   private async handleSubscriptionUpdated(payload: BillingEventPayload) {
     if (!payload.stripeSubscriptionId) return;
 
-    let subscription = await this.subscriptionRepository.findOne({
+    let subscription = await this.prisma.subscription.findUnique({
       where: { stripe_subscription_id: payload.stripeSubscriptionId },
     });
+
+    const plan = await this.resolvePlan(payload.planId, payload.stripePriceId);
 
     if (!subscription) {
       if (!payload.userId) {
@@ -398,63 +552,84 @@ export class SubscriptionsService {
         return;
       }
 
-      subscription = this.subscriptionRepository.create({
-        user_id: payload.userId,
-        stripe_subscription_id: payload.stripeSubscriptionId,
+      if (!plan) {
+        this.logger.warn(
+          `Plan non résolu pour subscription.updated: ${payload.stripeSubscriptionId}`,
+        );
+        return;
+      }
+
+      subscription = await this.prisma.subscription.create({
+        data: {
+          user_id: payload.userId,
+          plan_id: plan.id,
+          stripe_subscription_id: payload.stripeSubscriptionId,
+          status:
+            payload.status === (SubscriptionStatus.canceled as string)
+              ? SubscriptionStatus.canceled
+              : SubscriptionStatus.active,
+          current_period_start: this.toDate(payload.currentPeriodStart),
+          current_period_end: this.toDate(payload.currentPeriodEnd),
+          canceled_at: this.toDate(payload.canceledAt),
+          ended_at: this.toDate(payload.endedAt),
+        },
       });
+      return;
     }
 
-    if (payload.userId) {
-      subscription.user_id = payload.userId;
-    }
-
-    const plan = await this.resolvePlan(payload.planId, payload.stripePriceId);
-    if (plan) {
-      subscription.plan_id = plan.id;
-    }
-
-    subscription.status =
-      payload.status === (SubscriptionStatus.Canceled as string)
-        ? SubscriptionStatus.Canceled
-        : SubscriptionStatus.Active;
-    subscription.current_period_start = this.toDate(payload.currentPeriodStart);
-    subscription.current_period_end = this.toDate(payload.currentPeriodEnd);
-    subscription.canceled_at = this.toDate(payload.canceledAt);
-    subscription.ended_at = this.toDate(payload.endedAt);
-
-    await this.subscriptionRepository.save(subscription);
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        user_id: payload.userId ?? subscription.user_id,
+        plan_id: plan?.id ?? subscription.plan_id,
+        status:
+          payload.status === (SubscriptionStatus.canceled as string)
+            ? SubscriptionStatus.canceled
+            : SubscriptionStatus.active,
+        current_period_start: this.toDate(payload.currentPeriodStart),
+        current_period_end: this.toDate(payload.currentPeriodEnd),
+        canceled_at: this.toDate(payload.canceledAt),
+        ended_at: this.toDate(payload.endedAt),
+      },
+    });
   }
 
   private async handleSubscriptionRenewed(payload: BillingEventPayload) {
     if (!payload.stripeSubscriptionId) return;
 
-    const subscription = await this.subscriptionRepository.findOne({
+    const subscription = await this.prisma.subscription.findUnique({
       where: { stripe_subscription_id: payload.stripeSubscriptionId },
     });
     if (!subscription) return;
 
-    subscription.status = SubscriptionStatus.Active;
-    subscription.current_period_start = this.toDate(payload.currentPeriodStart);
-    subscription.current_period_end = this.toDate(payload.currentPeriodEnd);
-    subscription.canceled_at = null;
-    subscription.ended_at = null;
-
-    await this.subscriptionRepository.save(subscription);
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.active,
+        current_period_start: this.toDate(payload.currentPeriodStart),
+        current_period_end: this.toDate(payload.currentPeriodEnd),
+        canceled_at: null,
+        ended_at: null,
+      },
+    });
   }
 
   private async handleSubscriptionCanceled(payload: BillingEventPayload) {
     if (!payload.stripeSubscriptionId) return;
 
-    const subscription = await this.subscriptionRepository.findOne({
+    const subscription = await this.prisma.subscription.findUnique({
       where: { stripe_subscription_id: payload.stripeSubscriptionId },
     });
     if (!subscription) return;
 
-    subscription.status = SubscriptionStatus.Canceled;
-    subscription.canceled_at = this.toDate(payload.canceledAt) ?? new Date();
-    subscription.ended_at = this.toDate(payload.endedAt);
-
-    await this.subscriptionRepository.save(subscription);
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.canceled,
+        canceled_at: this.toDate(payload.canceledAt) ?? new Date(),
+        ended_at: this.toDate(payload.endedAt),
+      },
+    });
   }
 
   private async handlePaymentEvent(payload: BillingEventPayload) {
@@ -463,12 +638,12 @@ export class SubscriptionsService {
       return;
     }
 
-    const existing = await this.paymentHistoryRepository.findOne({
+    const existing = await this.prisma.paymentSubHistory.findUnique({
       where: { stripe_invoice_id: payload.stripeInvoiceId },
     });
     if (existing) return;
 
-    const subscription = await this.subscriptionRepository.findOne({
+    const subscription = await this.prisma.subscription.findUnique({
       where: { stripe_subscription_id: payload.stripeSubscriptionId },
     });
     if (!subscription) {
@@ -478,19 +653,19 @@ export class SubscriptionsService {
       return;
     }
 
-    const payment = this.paymentHistoryRepository.create({
-      subscription_id: subscription.id,
-      stripe_invoice_id: payload.stripeInvoiceId,
-      amount: payload.amount ?? 0,
-      currency: this.toPaymentCurrency(payload.currency),
-      status:
-        payload.status === (PaymentStatus.Failed as string)
-          ? PaymentStatus.Failed
-          : PaymentStatus.Paid,
-      paid_at: this.toDate(payload.paidAt),
+    await this.prisma.paymentSubHistory.create({
+      data: {
+        subscription_id: subscription.id,
+        stripe_invoice_id: payload.stripeInvoiceId,
+        amount: payload.amount ?? 0,
+        currency: this.toPaymentCurrency(payload.currency),
+        status:
+          payload.status === (PaymentStatus.failed as string)
+            ? PaymentStatus.failed
+            : PaymentStatus.paid,
+        paid_at: this.toDate(payload.paidAt),
+      },
     });
-
-    await this.paymentHistoryRepository.save(payment);
   }
 
   private toDate(value?: string | null): Date | null {
@@ -509,17 +684,19 @@ export class SubscriptionsService {
   private async resolvePlan(
     planId?: string,
     stripePriceId?: string,
-  ): Promise<Plan | null> {
+  ): Promise<PlanModel | null> {
     if (planId && this.isUuid(planId)) {
-      const byId = await this.planRepository.findOne({ where: { id: planId } });
-      if (byId) return byId;
+      const byId = await this.prisma.plan.findUnique({
+        where: { id: planId },
+      });
+      if (byId) return this.toPlanModel(byId);
     }
 
     if (stripePriceId) {
-      const byStripe = await this.planRepository.findOne({
+      const byStripe = await this.prisma.plan.findUnique({
         where: { stripe_price_id: stripePriceId },
       });
-      if (byStripe) return byStripe;
+      if (byStripe) return this.toPlanModel(byStripe);
     }
 
     return null;

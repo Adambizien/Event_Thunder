@@ -86,7 +86,6 @@ export class RabbitmqConsumerService
           error instanceof Error ? error.stack : undefined,
         );
       });
-
     } catch (error) {
       this.logger.error(
         'Connexion RabbitMQ impossible. Les événements billing ne seront pas consommés.',

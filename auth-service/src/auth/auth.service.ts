@@ -49,7 +49,7 @@ export class AuthService {
     this.userServiceUrl =
       process.env.USER_SERVICE_URL || 'http://user-service:3002';
     this.mailingServiceUrl =
-      process.env.MAILING_SERVICE_URL || 'http://mailing:3004';
+      process.env.MAILING_SERVICE_URL || 'http://mailing-service:3004';
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     const googleClientSecret = readSecret('GOOGLE_CLIENT_SECRET');

@@ -17,7 +17,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
-import { PlanCurrency, PlanInterval } from './entities/plan.entity';
+import { PlanCurrency, PlanInterval } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -58,8 +58,8 @@ export class SubscriptionsController {
 
     if ('interval' in dto && dto.interval !== undefined) {
       if (
-        dto.interval !== PlanInterval.Monthly &&
-        dto.interval !== PlanInterval.Yearly
+        dto.interval !== PlanInterval.monthly &&
+        dto.interval !== PlanInterval.yearly
       ) {
         throw new BadRequestException('Champ invalide: interval');
       }

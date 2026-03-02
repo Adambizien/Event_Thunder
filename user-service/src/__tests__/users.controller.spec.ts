@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from '../users/users.controller';
-import { UsersService } from '../users/users.service';
+import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { VerifyUserDto } from '../users/dto/verify-user.dto';
 import { UpdatePasswordDto } from '../users/dto/update-password.dto';
 import { UpdatePasswordWithEmailDto } from '../users/dto/update-password-with-email.dto';
 import { UpdateProfileDto } from '../users/dto/update-profile.dto';
-import { UserRole } from '../users/entities/user.entity';
+import { UserRole } from '@prisma/client';
 /* eslint-disable */
 describe('UsersController', () => {
   let controller: UsersController;
