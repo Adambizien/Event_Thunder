@@ -20,6 +20,7 @@ const Subscription = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [canceling, setCanceling] = useState<string | null>(null);
   const [isLogged, setIsLogged] = useState(false);
   const [showAuthChoice, setShowAuthChoice] = useState<null | string>(null);
   const navigate = useNavigate();
@@ -85,6 +86,43 @@ const Subscription = () => {
     }
   };
 
+  const handleCancelSubscription = async (stripeSubscriptionId: string) => {
+    const user = authService.getStoredUser();
+    const userId = user?.id;
+
+    if (!userId) {
+      setError('Session utilisateur invalide. Reconnectez-vous.');
+      return;
+    }
+
+    setCanceling(stripeSubscriptionId);
+    try {
+      await subscriptionService.cancelSubscription({
+        userId,
+        stripeSubscriptionId,
+      });
+
+      const nowIso = new Date().toISOString();
+      setUserSubscriptions((prev) =>
+        prev.map((sub) =>
+          sub.stripeSubscriptionId === stripeSubscriptionId
+            ? {
+                ...sub,
+                status: 'canceled',
+                canceledAt: nowIso,
+                endedAt: nowIso,
+              }
+            : sub,
+        ),
+      );
+      setError(null);
+    } catch {
+      setError("Erreur lors de l'annulation de l'abonnement");
+    } finally {
+      setCanceling(null);
+    }
+  };
+
   if (loading) return <div className="text-center py-12 text-gray-400">Chargement des plans...</div>;
   if (error) return <div className="text-center py-12 text-red-400">{error}</div>;
 
@@ -105,13 +143,22 @@ const Subscription = () => {
               </div>
               {plan.description && <p className="text-gray-400 mb-4 text-center">{plan.description}</p>}
               {userSub ? (
-                <div className="mt-auto px-6 py-2 bg-green-700 text-white font-semibold rounded opacity-80 cursor-not-allowed">
-                  Déjà inscrit à ce plan (actif)
+                <div className="mt-auto w-full flex flex-col gap-3">
+                  <div className="px-6 py-2 bg-green-700 text-white font-semibold rounded opacity-80 text-center">
+                    Déjà inscrit à ce plan (actif)
+                  </div>
+                  <button
+                    onClick={() => handleCancelSubscription(userSub.stripeSubscriptionId)}
+                    disabled={!!canceling}
+                    className="px-6 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700 transition-colors disabled:opacity-60"
+                  >
+                    {canceling === userSub.stripeSubscriptionId ? 'Annulation...' : "Annuler l'abonnement"}
+                  </button>
                 </div>
               ) : (
                 <button
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={!!subscribing}
+                  disabled={!!subscribing || !!canceling}
                   className="mt-auto px-6 py-2 bg-thunder-gold text-black font-semibold rounded hover:bg-thunder-orange transition-colors disabled:opacity-60"
                 >
                   {subscribing === plan.id ? 'Redirection...' : 'S’abonner'}

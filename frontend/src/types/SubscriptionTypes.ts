@@ -2,6 +2,7 @@ export interface SubscriptionType {
   id: string;
   userId: string;
   planId: string;
+  stripeSubscriptionId: string;
   plan: {
     id: string;
     name: string;

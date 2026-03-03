@@ -458,6 +458,45 @@ export class SubscriptionsService {
     });
   }
 
+  async cancelSubscription(
+    userId: string,
+    stripeSubscriptionId: string,
+    authHeader?: string,
+  ): Promise<{ message: string }> {
+    const existing = await this.prisma.subscription.findFirst({
+      where: {
+        user_id: userId,
+        stripe_subscription_id: stripeSubscriptionId,
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Abonnement introuvable');
+    }
+
+    const subscription = this.toSubscriptionModel(existing);
+    if (subscription.status === SubscriptionStatus.canceled) {
+      return { message: 'Abonnement déjà annulé' };
+    }
+
+    await this.cancelSubscriptionWithBilling(
+      userId,
+      stripeSubscriptionId,
+      authHeader,
+    );
+
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.canceled,
+        canceled_at: new Date(),
+        ended_at: new Date(),
+      },
+    });
+
+    return { message: 'Abonnement annulé avec succès' };
+  }
+
   async handleBillingEvent(routingKey: string, payload: BillingEventPayload) {
     switch (routingKey) {
       case 'billing.subscription.created':

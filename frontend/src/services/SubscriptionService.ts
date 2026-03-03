@@ -22,4 +22,12 @@ export const subscriptionService = {
     const response = await api.post('/api/subscriptions/checkout-session', payload);
     return response.data;
   },
+
+  cancelSubscription: async (payload: {
+    userId: string;
+    stripeSubscriptionId: string;
+  }) => {
+    const response = await api.post('/api/subscriptions/cancel', payload);
+    return response.data;
+  },
 };
