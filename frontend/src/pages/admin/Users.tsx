@@ -2,16 +2,25 @@ import { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
 import type { User } from '../../types/AuthTypes';
 import { userService } from '../../services/UserService';
+import { subscriptionService } from '../../services/SubscriptionService';
+import type { SubscriptionType } from '../../types/SubscriptionTypes';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [activeSubscriptionsByUser, setActiveSubscriptionsByUser] = useState<
+    Record<string, SubscriptionType | null>
+  >({});
   const [loading, setLoading] = useState(true);
+  const [subsLoading, setSubsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  const [unsubscribeLoadingUserId, setUnsubscribeLoadingUserId] = useState<
+    string | null
+  >(null);
   const [roleError, setRoleError] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
   const openRoleModal = (user: User) => {
@@ -45,18 +54,48 @@ const AdminUsers = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
+    void fetchUsers();
   }, []);
+
+  const fetchActiveSubscriptions = async (userList: User[]) => {
+    setSubsLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        userList.map(async (user) => {
+          const subs = await subscriptionService.getUserSubscriptions(user.id);
+          const normalized = Array.isArray(subs)
+            ? (subs as SubscriptionType[])
+            : [];
+          const active =
+            normalized.find((sub) => sub.status === 'active') ?? null;
+          return [user.id, active] as const;
+        }),
+      );
+
+      const next: Record<string, SubscriptionType | null> = {};
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const [userId, activeSub] = result.value;
+          next[userId] = activeSub;
+        }
+      }
+      setActiveSubscriptionsByUser(next);
+    } finally {
+      setSubsLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const data = await userService.fetchUsers();
       setUsers(data);
+      await fetchActiveSubscriptions(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       setUsers([]);
+      setActiveSubscriptionsByUser({});
     } finally {
       setLoading(false);
     }
@@ -70,6 +109,42 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    }
+  };
+
+  const handleUnsubscribe = async (user: User) => {
+    const activeSub = activeSubscriptionsByUser[user.id];
+    if (!activeSub?.stripeSubscriptionId) {
+      return;
+    }
+
+    if (
+      !confirm(
+        `Désinscrire ${user.email} du plan ${activeSub.plan.name} ?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setUnsubscribeLoadingUserId(user.id);
+      await subscriptionService.cancelSubscription({
+        userId: user.id,
+        stripeSubscriptionId: activeSub.stripeSubscriptionId,
+      });
+      setActiveSubscriptionsByUser((prev) => ({
+        ...prev,
+        [user.id]: null,
+      }));
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de la désinscription",
+      );
+    } finally {
+      setUnsubscribeLoadingUserId(null);
     }
   };
 
@@ -151,7 +226,7 @@ const AdminUsers = () => {
           <p className="text-2xl font-bold text-thunder-gold">{users.length}</p>
         </div>
         <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-          <p className="text-gray-400 text-sm mb-1">🔑 Administrateurs</p>
+          <p className="text-gray-400 text-sm mb-1">Administrateurs</p>
           <p className="text-2xl font-bold text-purple-400">
             {users.filter((u) => u.role === 'Admin').length}
           </p>
@@ -243,10 +318,17 @@ const AdminUsers = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-300">
-                      {user.planId ? (
-                        <span className="bg-gray-800 px-3 py-1 rounded text-sm">
-                          {user.planId}
-                        </span>
+                      {subsLoading ? (
+                        <span className="text-gray-500">Chargement...</span>
+                      ) : activeSubscriptionsByUser[user.id] ? (
+                        <div className="space-y-1">
+                          <div className="inline-flex bg-green-900/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
+                            Abonné
+                          </div>
+                          <p className="text-sm text-white">
+                            {activeSubscriptionsByUser[user.id]?.plan.name}
+                          </p>
+                        </div>
                       ) : (
                         <span className="text-gray-500">-</span>
                       )}
@@ -260,6 +342,18 @@ const AdminUsers = () => {
                         >
                           Modifier le rôle
                         </button>
+                        {activeSubscriptionsByUser[user.id] && (
+                          <button
+                            onClick={() => void handleUnsubscribe(user)}
+                            className="px-2 py-1 bg-red-900/30 hover:bg-red-900/50 text-red-300 rounded text-xs border border-red-800"
+                            title="Désinscrire de l'abonnement"
+                            disabled={unsubscribeLoadingUserId === user.id}
+                          >
+                            {unsubscribeLoadingUserId === user.id
+                              ? 'Désinscription...'
+                              : 'Désinscrire'}
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDelete(user.id)}
                           className="p-2 hover:bg-red-900/20 rounded transition-colors text-red-400 hover:text-red-300 text-lg"

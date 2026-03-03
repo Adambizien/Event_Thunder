@@ -43,6 +43,12 @@ interface HeaderProps {
                 Accueil
               </Link>
               <Link
+                to="/subscription"
+                className="font-semibold px-4 py-2 rounded-lg bg-thunder-gold text-black hover:bg-thunder-orange transition-all"
+              >
+                S’abonner
+              </Link>
+              <Link
                 to="/login"
                 className={`font-semibold transition-colors ${
                   isActive('/login') 

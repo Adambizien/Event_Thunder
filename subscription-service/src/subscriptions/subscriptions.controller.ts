@@ -18,6 +18,7 @@ import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { FinalizePlanChangeDto } from './dto/finalize-plan-change.dto';
 import { PlanCurrency, PlanInterval } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
@@ -189,6 +190,29 @@ export class SubscriptionsController {
     return this.subscriptionsService.cancelSubscription(
       dto.userId,
       dto.stripeSubscriptionId,
+      authHeader,
+    );
+  }
+
+  @Post('finalize-plan-change')
+  @UseGuards(AuthGuard)
+  finalizePlanChange(
+    @Body() dto: FinalizePlanChangeDto,
+    @Req() req: AuthenticatedRequest,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    this.ensureNonEmptyString(dto.userId, 'userId');
+    this.ensureNonEmptyString(dto.activePlanId, 'activePlanId');
+
+    const requestUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'Admin';
+    if (!isAdmin && requestUserId && requestUserId !== dto.userId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    return this.subscriptionsService.finalizePlanChange(
+      dto.userId,
+      dto.activePlanId,
       authHeader,
     );
   }

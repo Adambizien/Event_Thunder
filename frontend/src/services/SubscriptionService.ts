@@ -30,4 +30,12 @@ export const subscriptionService = {
     const response = await api.post('/api/subscriptions/cancel', payload);
     return response.data;
   },
+
+  finalizePlanChange: async (payload: {
+    userId: string;
+    activePlanId: string;
+  }) => {
+    const response = await api.post('/api/subscriptions/finalize-plan-change', payload);
+    return response.data;
+  },
 };

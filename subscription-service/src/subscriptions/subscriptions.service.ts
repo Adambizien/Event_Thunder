@@ -359,11 +359,7 @@ export class SubscriptionsService {
 
     const planModel = this.toPlanModel(plan);
 
-    await this.cancelExistingActiveSubscriptions(
-      dto.userId,
-      dto.planId,
-      authHeader,
-    );
+    await this.ensureUserNotAlreadyActiveOnPlan(dto.userId, dto.planId);
 
     const response = await firstValueFrom(
       this.httpService.post(
@@ -388,41 +384,20 @@ export class SubscriptionsService {
     return data;
   }
 
-  private async cancelExistingActiveSubscriptions(
+  private async ensureUserNotAlreadyActiveOnPlan(
     userId: string,
-    nextPlanId: string,
-    authHeader?: string,
+    targetPlanId: string,
   ) {
     const activeSubscriptions = await this.prisma.subscription.findMany({
       where: { user_id: userId, status: SubscriptionStatus.active },
     });
 
-    const activeOnTargetPlan = activeSubscriptions.find(
-      (subscription) => subscription.plan_id === nextPlanId,
-    );
+    const activeOnTargetPlan = activeSubscriptions.find((subscription) => {
+      return subscription.plan_id === targetPlanId;
+    });
+
     if (activeOnTargetPlan) {
       throw new BadRequestException('Utilisateur déjà abonné à ce plan');
-    }
-
-    if (activeSubscriptions.length === 0) {
-      return;
-    }
-
-    for (const current of activeSubscriptions) {
-      const subscription = this.toSubscriptionModel(current);
-      await this.cancelSubscriptionWithBilling(
-        userId,
-        subscription.stripe_subscription_id,
-        authHeader,
-      );
-      await this.prisma.subscription.update({
-        where: { id: subscription.id },
-        data: {
-          status: SubscriptionStatus.canceled,
-          canceled_at: new Date(),
-          ended_at: new Date(),
-        },
-      });
     }
   }
 
@@ -495,6 +470,59 @@ export class SubscriptionsService {
     });
 
     return { message: 'Abonnement annulé avec succès' };
+  }
+
+  async finalizePlanChange(
+    userId: string,
+    activePlanId: string,
+    authHeader?: string,
+  ): Promise<{ message: string; canceledCount: number }> {
+    const activeSubscriptions = await this.prisma.subscription.findMany({
+      where: {
+        user_id: userId,
+        status: SubscriptionStatus.active,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const activeOnTargetPlan = activeSubscriptions.filter(
+      (sub) => sub.plan_id === activePlanId,
+    );
+
+    if (activeOnTargetPlan.length === 0) {
+      throw new BadRequestException(
+        'Aucun abonnement actif trouvé pour le nouveau plan',
+      );
+    }
+
+    const subscriptionToKeep = this.toSubscriptionModel(activeOnTargetPlan[0]);
+    const toCancel = activeSubscriptions.filter(
+      (sub) => sub.id !== subscriptionToKeep.id,
+    );
+
+    let canceledCount = 0;
+    for (const sub of toCancel) {
+      const subscription = this.toSubscriptionModel(sub);
+      await this.cancelSubscriptionWithBilling(
+        userId,
+        subscription.stripe_subscription_id,
+        authHeader,
+      );
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: SubscriptionStatus.canceled,
+          canceled_at: new Date(),
+          ended_at: new Date(),
+        },
+      });
+      canceledCount += 1;
+    }
+
+    return {
+      message: 'Changement de plan finalisé',
+      canceledCount,
+    };
   }
 
   async handleBillingEvent(routingKey: string, payload: BillingEventPayload) {

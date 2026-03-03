@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import { authService } from '../../services/AuthServices';
 import { subscriptionService } from '../../services/SubscriptionService';
@@ -21,9 +21,14 @@ const Subscription = () => {
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<string | null>(null);
+  const [transactionMessage, setTransactionMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const [isLogged, setIsLogged] = useState(false);
   const [showAuthChoice, setShowAuthChoice] = useState<null | string>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
     const fetchPlansAndSubs = async () => {
@@ -54,6 +59,58 @@ const Subscription = () => {
     fetchPlansAndSubs();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const success = params.get('success');
+    const planId = params.get('planId');
+
+    if (success === '1') {
+      const finalize = async () => {
+        const user = authService.getStoredUser();
+        const userId = user?.id;
+
+        if (!userId || !planId) {
+          setTransactionMessage({
+            type: 'success',
+            text: 'Abonnement souscrit avec succès.',
+          });
+          navigate('/subscription', { replace: true });
+          return;
+        }
+
+        try {
+          await subscriptionService.finalizePlanChange({
+            userId,
+            activePlanId: planId,
+          });
+          setTransactionMessage({
+            type: 'success',
+            text: 'Abonnement souscrit avec succès.',
+          });
+        } catch {
+          setTransactionMessage({
+            type: 'error',
+            text: "Paiement validé, mais l'ancien abonnement n'a pas pu être annulé automatiquement.",
+          });
+        } finally {
+          navigate('/subscription', { replace: true });
+          const subs = await subscriptionService.getUserSubscriptions(userId);
+          setUserSubscriptions(Array.isArray(subs) ? subs : []);
+        }
+      };
+      void finalize();
+      return;
+    }
+
+    if (success === '0') {
+      setTransactionMessage({
+        type: 'error',
+        text: 'Erreur de transaction.',
+      });
+      navigate('/subscription', { replace: true });
+    }
+  }, [location.search, navigate]);
+
   const handleSubscribe = async (planId: string) => {
     if (!isLogged) {
       setShowAuthChoice(planId);
@@ -61,8 +118,8 @@ const Subscription = () => {
     }
     setSubscribing(planId);
     try {
-      const successUrl = `${window.location.origin}/subscription?success=1`;
-      const cancelUrl = `${window.location.origin}/subscription?canceled=1`;
+      const successUrl = `${window.location.origin}/subscription?success=1&planId=${encodeURIComponent(planId)}`;
+      const cancelUrl = `${window.location.origin}/subscription?success=0`;
       const user = authService.getStoredUser();
       const userId = user?.id;
       const customerEmail = user?.email;
@@ -115,8 +172,16 @@ const Subscription = () => {
             : sub,
         ),
       );
+      setTransactionMessage({
+        type: 'success',
+        text: 'Annulation de l’abonnement effectuée avec succès.',
+      });
       setError(null);
     } catch {
+      setTransactionMessage({
+        type: 'error',
+        text: "L'annulation de l'abonnement a échoué.",
+      });
       setError("Erreur lors de l'annulation de l'abonnement");
     } finally {
       setCanceling(null);
@@ -124,11 +189,26 @@ const Subscription = () => {
   };
 
   if (loading) return <div className="text-center py-12 text-gray-400">Chargement des plans...</div>;
-  if (error) return <div className="text-center py-12 text-red-400">{error}</div>;
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-center mb-8">Choisissez votre abonnement</h1>
+      {transactionMessage && (
+        <div
+          className={`mb-6 rounded-lg border p-4 text-center font-medium ${
+            transactionMessage.type === 'success'
+              ? 'border-green-700 bg-green-900/20 text-green-300'
+              : 'border-red-700 bg-red-900/20 text-red-300'
+          }`}
+        >
+          {transactionMessage.text}
+        </div>
+      )}
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-700 bg-red-900/20 p-4 text-center font-medium text-red-300">
+          {error}
+        </div>
+      )}
       <div className="grid md:grid-cols-2 gap-8">
         {plans.map((plan) => {
 
