@@ -119,7 +119,7 @@ export class SubscriptionsService {
   ) {
     this.billingServiceUrl =
       this.configService.get<string>('BILLING_SERVICE_URL') ??
-      'http://billing-service:3000';
+      'http://billing-service:3006';
   }
 
   private toPlanModel(plan: {

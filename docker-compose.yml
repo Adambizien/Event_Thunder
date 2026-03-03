@@ -139,8 +139,6 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-    ports:
-      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -159,10 +157,11 @@ services:
 
   # Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${API_GATEWAY_URL}
     restart: unless-stopped
-    environment:
-      VITE_API_URL: ${API_GATEWAY_URL}
     ports:
       - "${FRONTEND_PORT}:80"
 
