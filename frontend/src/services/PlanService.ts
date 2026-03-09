@@ -15,6 +15,9 @@ export const planService = {
       interval: formData.interval,
       currency: formData.currency,
       maxEvents: parseInt(formData.maxEvents),
+      maxPosts: parseInt(formData.maxPosts),
+      maxEventsPeriod: formData.maxEventsPeriod,
+      maxPostsPeriod: formData.maxPostsPeriod,
       displayOrder: parseInt(formData.displayOrder),
       description: formData.description.trim() || null,
     };
@@ -28,6 +31,9 @@ export const planService = {
       interval: formData.interval,
       currency: formData.currency,
       maxEvents: parseInt(formData.maxEvents),
+      maxPosts: parseInt(formData.maxPosts),
+      maxEventsPeriod: formData.maxEventsPeriod,
+      maxPostsPeriod: formData.maxPostsPeriod,
       displayOrder: parseInt(formData.displayOrder),
       description: formData.description.trim() || null,
     };

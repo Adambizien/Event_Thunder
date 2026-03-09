@@ -9,6 +9,7 @@ import {
   PaymentStatus,
   PlanCurrency,
   PlanInterval,
+  PlanLimitPeriod,
   Prisma,
   SubscriptionStatus,
 } from '@prisma/client';
@@ -44,6 +45,9 @@ type PlanResponse = {
   currency: PlanCurrency;
   stripePriceId: string;
   maxEvents: number;
+  maxPosts: number;
+  maxEventsPeriod: PlanLimitPeriod;
+  maxPostsPeriod: PlanLimitPeriod;
   displayOrder: number;
   description: string | null;
   createdAt: Date;
@@ -73,6 +77,9 @@ type PlanModel = {
   currency: PlanCurrency;
   stripe_price_id: string;
   max_events: number;
+  max_posts: number;
+  max_events_period: PlanLimitPeriod;
+  max_posts_period: PlanLimitPeriod;
   display_order: number;
   description: string | null;
   created_at: Date;
@@ -130,6 +137,9 @@ export class SubscriptionsService {
     currency: string;
     stripe_price_id: string;
     max_events: number;
+    max_posts: number;
+    max_events_period: string;
+    max_posts_period: string;
     display_order: number;
     description: string | null;
     created_at: Date;
@@ -142,6 +152,9 @@ export class SubscriptionsService {
       currency: plan.currency as PlanCurrency,
       stripe_price_id: plan.stripe_price_id,
       max_events: plan.max_events,
+      max_posts: plan.max_posts,
+      max_events_period: plan.max_events_period as PlanLimitPeriod,
+      max_posts_period: plan.max_posts_period as PlanLimitPeriod,
       display_order: plan.display_order,
       description: plan.description,
       created_at: plan.created_at,
@@ -207,6 +220,9 @@ export class SubscriptionsService {
       currency: plan.currency,
       stripePriceId: plan.stripe_price_id,
       maxEvents: plan.max_events,
+      maxPosts: plan.max_posts,
+      maxEventsPeriod: plan.max_events_period,
+      maxPostsPeriod: plan.max_posts_period,
       displayOrder: plan.display_order,
       description: plan.description,
       createdAt: plan.created_at,
@@ -237,6 +253,9 @@ export class SubscriptionsService {
         currency: dto.currency ?? PlanCurrency.EUR,
         stripe_price_id: stripePriceId,
         max_events: dto.maxEvents,
+        max_posts: dto.maxPosts,
+        max_events_period: dto.maxEventsPeriod ?? PlanLimitPeriod.monthly,
+        max_posts_period: dto.maxPostsPeriod ?? PlanLimitPeriod.monthly,
         display_order: dto.displayOrder ?? 0,
         description: dto.description ?? null,
       },
@@ -262,6 +281,10 @@ export class SubscriptionsService {
     const nextInterval = dto.interval ?? plan.interval;
     const nextCurrency = dto.currency ?? plan.currency;
     const nextMaxEvents = dto.maxEvents ?? plan.max_events;
+    const nextMaxPosts = dto.maxPosts ?? plan.max_posts;
+    const nextMaxEventsPeriod =
+    dto.maxEventsPeriod ?? plan.max_events_period;
+    const nextMaxPostsPeriod = dto.maxPostsPeriod ?? plan.max_posts_period;
     const nextDisplayOrder = dto.displayOrder ?? plan.display_order;
     const nextDescription = dto.description ?? plan.description;
 
@@ -294,6 +317,9 @@ export class SubscriptionsService {
         interval: nextInterval,
         currency: nextCurrency,
         max_events: nextMaxEvents,
+        max_posts: nextMaxPosts,
+        max_events_period: nextMaxEventsPeriod,
+        max_posts_period: nextMaxPostsPeriod,
         display_order: nextDisplayOrder,
         description: nextDescription,
         stripe_price_id: stripePriceId,

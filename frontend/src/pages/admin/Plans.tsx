@@ -18,6 +18,9 @@ const AdminPlans = () => {
     interval: 'monthly',
     currency: 'EUR',
     maxEvents: '0',
+    maxPosts: '0',
+    maxEventsPeriod: 'monthly',
+    maxPostsPeriod: 'monthly',
     displayOrder: '0',
     description: '',
   });
@@ -43,7 +46,12 @@ const AdminPlans = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!formData.name || !formData.price || !formData.maxEvents) {
+    if (
+      !formData.name ||
+      !formData.price ||
+      !formData.maxEvents ||
+      !formData.maxPosts
+    ) {
       setFormError('Veuillez remplir tous les champs');
       return;
     }
@@ -60,6 +68,9 @@ const AdminPlans = () => {
         interval: 'monthly',
         currency: 'EUR',
         maxEvents: '0',
+        maxPosts: '0',
+        maxEventsPeriod: 'monthly',
+        maxPostsPeriod: 'monthly',
         displayOrder: '0',
         description: '',
       });
@@ -81,6 +92,9 @@ const AdminPlans = () => {
       interval: plan.interval as 'monthly' | 'yearly',
       currency: (plan.currency || 'EUR') as 'EUR' | 'USD',
       maxEvents: plan.maxEvents.toString(),
+      maxPosts: plan.maxPosts.toString(),
+      maxEventsPeriod: plan.maxEventsPeriod,
+      maxPostsPeriod: plan.maxPostsPeriod,
       displayOrder: plan.displayOrder?.toString() ?? '0',
       description: plan.description ?? '',
     });
@@ -110,6 +124,9 @@ const AdminPlans = () => {
       interval: 'monthly',
       currency: 'EUR',
       maxEvents: '0',
+      maxPosts: '0',
+      maxEventsPeriod: 'monthly',
+      maxPostsPeriod: 'monthly',
       displayOrder: '0',
       description: '',
     });
@@ -241,6 +258,57 @@ const AdminPlans = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
+                Période événements
+              </label>
+              <select
+                value={formData.maxEventsPeriod}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    maxEventsPeriod: e.target.value as 'weekly' | 'monthly',
+                  })
+                }
+                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              >
+                <option value="weekly">Par semaine</option>
+                <option value="monthly">Par mois</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Posts max (-1 = illimité)
+              </label>
+              <input
+                type="number"
+                value={formData.maxPosts}
+                onChange={(e) => setFormData({ ...formData, maxPosts: e.target.value })}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                placeholder="10"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Période posts
+              </label>
+              <select
+                value={formData.maxPostsPeriod}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    maxPostsPeriod: e.target.value as 'weekly' | 'monthly',
+                  })
+                }
+                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              >
+                <option value="weekly">Par semaine</option>
+                <option value="monthly">Par mois</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Ordre d'affichage
               </label>
               <input
@@ -318,7 +386,16 @@ const AdminPlans = () => {
                     <span className="text-gray-400">Prix:</span> {plan.price}
                     {plan.currency ?? 'EUR'}/{plan.interval === 'monthly' ? 'mois' : 'an'}
                   </p>
-                  <p><span className="text-gray-400">Événements:</span> {plan.maxEvents === -1 ? 'Illimité' : plan.maxEvents}</p>
+                  <p>
+                    <span className="text-gray-400">Événements:</span>{' '}
+                    {plan.maxEvents === -1 ? 'Illimité' : plan.maxEvents}/
+                    {plan.maxEventsPeriod === 'weekly' ? 'semaine' : 'mois'}
+                  </p>
+                  <p>
+                    <span className="text-gray-400">Posts:</span>{' '}
+                    {plan.maxPosts === -1 ? 'Illimité' : plan.maxPosts}/
+                    {plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}
+                  </p>
                   <p><span className="text-gray-400">Ordre:</span> {plan.displayOrder ?? 0}</p>
                   {plan.description && (
                     <p>

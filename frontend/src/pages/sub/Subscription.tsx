@@ -12,6 +12,11 @@ interface Plan {
   currency: string;
   interval: string;
   description?: string;
+  maxEvents: number;
+  maxPosts: number;
+  maxEventsPeriod: 'weekly' | 'monthly';
+  maxPostsPeriod: 'weekly' | 'monthly';
+  displayOrder: number;
 }
 
 const Subscription = () => {
@@ -210,18 +215,38 @@ const Subscription = () => {
         </div>
       )}
       <div className="grid md:grid-cols-2 gap-8">
-        {plans.map((plan) => {
+        {[...plans]
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map((plan) => {
+          const maxEventsLabel =
+            plan.maxEvents === -1
+              ? `Illimité / ${plan.maxEventsPeriod === 'weekly' ? 'semaine' : 'mois'}`
+              : `${plan.maxEvents} / ${plan.maxEventsPeriod === 'weekly' ? 'semaine' : 'mois'}`;
+          const maxPostsLabel =
+            plan.maxPosts === -1
+              ? `Illimité / ${plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}`
+              : `${plan.maxPosts} / ${plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}`;
 
           const userSub = userSubscriptions.find(
             (sub) => sub.planId === plan.id && sub.status === 'active'
           );
-          return (
+            return (
             <div key={plan.id} className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center">
               <h2 className="text-xl font-bold mb-2 text-white">{plan.name}</h2>
               <div className="text-3xl font-bold text-thunder-gold mb-2">
                 {plan.price} {plan.currency} / {plan.interval === 'monthly' ? 'mois' : 'an'}
               </div>
-              {plan.description && <p className="text-gray-400 mb-4 text-center">{plan.description}</p>}
+              {plan.description && (
+                <p className="text-gray-400 mb-4 text-center">{plan.description}</p>
+              )}
+              <div className="w-full mb-4 rounded-lg border border-gray-800 bg-gray-950/50 p-3 text-sm text-gray-300">
+                <p>
+                  <span className="text-gray-400">Evenements max:</span> {maxEventsLabel}
+                </p>
+                <p>
+                  <span className="text-gray-400">Posts max:</span> {maxPostsLabel}
+                </p>
+              </div>
               {userSub ? (
                 <div className="mt-auto w-full flex flex-col gap-3">
                   <div className="px-6 py-2 bg-green-700 text-white font-semibold rounded opacity-80 text-center">
@@ -245,8 +270,8 @@ const Subscription = () => {
                 </button>
               )}
             </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* Modal choix inscription/connexion */}
