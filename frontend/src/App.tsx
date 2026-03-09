@@ -25,6 +25,7 @@ import AdminUsers from './pages/admin/Users';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
+import SubscriptionHistory from './pages/sub/SubscriptionHistory';
 
 
 function AppContent() {
@@ -161,6 +162,14 @@ function AppContent() {
         <Route
           path="/subscription/*"
           element={<Subscription />}
+        />
+        <Route
+          path="/subscription-history"
+          element={
+            <ProtectedRoute user={user}>
+              <SubscriptionHistory />
+            </ProtectedRoute>
+          }
         />
         <Route 
           path="/profile" 

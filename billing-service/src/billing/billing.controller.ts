@@ -3,9 +3,11 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   UseGuards,
@@ -93,6 +95,13 @@ export class BillingController {
     }
 
     return this.billingService.cancelSubscription(dto.stripeSubscriptionId);
+  }
+
+  @Get('invoices/:stripeInvoiceId')
+  @UseGuards(AuthGuard)
+  async getInvoiceLinks(@Param('stripeInvoiceId') stripeInvoiceId: string) {
+    this.ensureNonEmptyString(stripeInvoiceId, 'stripeInvoiceId');
+    return this.billingService.getInvoiceLinks(stripeInvoiceId);
   }
 
   @Post('plans/sync-price')

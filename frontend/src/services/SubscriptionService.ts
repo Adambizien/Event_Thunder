@@ -1,9 +1,46 @@
 import api from './api';
+import type {
+  PaymentHistoryType,
+  SubscriptionType,
+} from '../types/SubscriptionTypes';
+
+const normalizeSubscription = (
+  subscription: Record<string, unknown>,
+): SubscriptionType => {
+  const payments: PaymentHistoryType[] = Array.isArray(subscription.payments)
+    ? subscription.payments.map((payment) => {
+        const paymentRecord = payment as Record<string, unknown>;
+
+        return {
+          id: String(paymentRecord.id ?? ''),
+          subscriptionId: String(paymentRecord.subscription_id ?? paymentRecord.subscriptionId ?? ''),
+          stripeInvoiceId: String(
+            paymentRecord.stripe_invoice_id ?? paymentRecord.stripeInvoiceId ?? '',
+          ),
+          amount: Number(paymentRecord.amount ?? 0),
+          currency: String(paymentRecord.currency ?? 'EUR'),
+          status:
+            String(paymentRecord.status ?? 'paid') === 'failed'
+              ? 'failed'
+              : 'paid',
+          paidAt: (paymentRecord.paid_at ?? paymentRecord.paidAt ?? null) as string | null,
+          createdAt: String(paymentRecord.created_at ?? paymentRecord.createdAt ?? ''),
+        };
+      })
+    : [];
+
+  return {
+    ...(subscription as Omit<SubscriptionType, 'payments'>),
+    payments,
+  };
+};
 
 export const subscriptionService = {
-  getUserSubscriptions: async (userId: string) => {
+  getUserSubscriptions: async (userId: string): Promise<SubscriptionType[]> => {
     const response = await api.get(`/api/subscriptions/user/${userId}`);
-    return response.data;
+    return Array.isArray(response.data)
+      ? response.data.map((subscription) => normalizeSubscription(subscription as Record<string, unknown>))
+      : [];
   },
 
   getPlans: async () => {
@@ -37,5 +74,13 @@ export const subscriptionService = {
   }) => {
     const response = await api.post('/api/subscriptions/finalize-plan-change', payload);
     return response.data;
+  },
+
+  getInvoiceLinks: async (stripeInvoiceId: string) => {
+    const response = await api.get(`/api/subscriptions/invoices/${encodeURIComponent(stripeInvoiceId)}`);
+    return response.data as {
+      hostedInvoiceUrl: string | null;
+      invoicePdfUrl: string | null;
+    };
   },
 };

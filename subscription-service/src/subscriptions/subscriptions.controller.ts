@@ -259,4 +259,25 @@ export class SubscriptionsController {
 
     return this.subscriptionsService.getUserSubscriptions(userId);
   }
+
+  @Get('invoices/:stripeInvoiceId')
+  @UseGuards(AuthGuard)
+  getInvoiceLinks(
+    @Param('stripeInvoiceId') stripeInvoiceId: string,
+    @Req() req: AuthenticatedRequest,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    this.ensureNonEmptyString(stripeInvoiceId, 'stripeInvoiceId');
+
+    const requestUserId = req.user?.id;
+    if (!requestUserId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    return this.subscriptionsService.getInvoiceLinks(
+      requestUserId,
+      stripeInvoiceId,
+      authHeader,
+    );
+  }
 }

@@ -27,6 +27,8 @@ interface BillingEventPayload {
   stripePriceId?: string;
   stripeSubscriptionId?: string;
   stripeInvoiceId?: string;
+  hostedInvoiceUrl?: string | null;
+  invoicePdfUrl?: string | null;
   amount?: number;
   currency?: string;
   status?: string;
@@ -457,6 +459,42 @@ export class SubscriptionsService {
         ),
       };
     });
+  }
+
+  async getInvoiceLinks(
+    userId: string,
+    stripeInvoiceId: string,
+    authHeader?: string,
+  ): Promise<{ hostedInvoiceUrl: string | null; invoicePdfUrl: string | null }> {
+    const payment = await this.prisma.paymentSubHistory.findUnique({
+      where: { stripe_invoice_id: stripeInvoiceId },
+      include: {
+        subscription: true,
+      },
+    });
+
+    if (!payment || payment.subscription.user_id !== userId) {
+      throw new NotFoundException('Facture introuvable');
+    }
+
+    const response = await firstValueFrom(
+      this.httpService.get(
+        `${this.billingServiceUrl}/api/billing/invoices/${encodeURIComponent(stripeInvoiceId)}`,
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+        },
+      ),
+    );
+
+    const data = (response as unknown as Record<string, unknown>)
+      .data as Record<string, unknown>;
+
+    return {
+      hostedInvoiceUrl:
+        typeof data.hostedInvoiceUrl === 'string' ? data.hostedInvoiceUrl : null,
+      invoicePdfUrl:
+        typeof data.invoicePdfUrl === 'string' ? data.invoicePdfUrl : null,
+    };
   }
 
   async cancelSubscription(

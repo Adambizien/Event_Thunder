@@ -91,6 +91,21 @@ export class BillingService {
     };
   }
 
+  async getInvoiceLinks(
+    stripeInvoiceId: string,
+  ): Promise<{ hostedInvoiceUrl: string | null; invoicePdfUrl: string | null }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const invoice = await this.stripe.invoices.retrieve(stripeInvoiceId);
+
+    return {
+      hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+      invoicePdfUrl: invoice.invoice_pdf ?? null,
+    };
+  }
+
   async syncPlanPrice(
     dto: SyncPlanPriceDto,
   ): Promise<{ stripePriceId: string; stripeProductId: string }> {
@@ -277,6 +292,8 @@ export class BillingService {
     await this.rabbitmqPublisher.publishWithRetry('billing.payment.succeeded', {
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
+      hostedInvoiceUrl: invoice.hosted_invoice_url,
+      invoicePdfUrl: invoice.invoice_pdf,
       amount: (invoice.amount_paid ?? 0) / 100,
       currency: (invoice.currency ?? 'eur').toUpperCase(),
       status: 'paid',
@@ -307,6 +324,8 @@ export class BillingService {
     await this.rabbitmqPublisher.publishWithRetry('billing.payment.failed', {
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
+      hostedInvoiceUrl: invoice.hosted_invoice_url,
+      invoicePdfUrl: invoice.invoice_pdf,
       amount: (invoice.amount_due ?? 0) / 100,
       currency: (invoice.currency ?? 'eur').toUpperCase(),
       status: 'failed',

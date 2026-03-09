@@ -19,6 +19,7 @@ interface HeaderProps {
   };
 
   const isActive = (path: string) => location.pathname === path;
+  const isSubscriptionHistoryActive = location.pathname === '/subscription-history';
 
   return (
     <header className="bg-thunder-dark border-b-2 border-thunder-gold shadow-lg">
@@ -92,6 +93,16 @@ interface HeaderProps {
                 className="font-semibold px-4 py-2 rounded-lg bg-thunder-gold text-black hover:bg-thunder-orange transition-all"
               >
                 S’abonner
+              </Link>
+              <Link
+                to="/subscription-history"
+                className={`font-semibold transition-colors ${
+                  isSubscriptionHistoryActive
+                    ? 'text-thunder-gold'
+                    : 'text-gray-100 hover:text-thunder-gold'
+                }`}
+              >
+                Mes transactions
               </Link>
               {user.role === 'Admin' && (
                 <Link

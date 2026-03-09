@@ -16,4 +16,16 @@ export interface SubscriptionType {
   currentPeriodEnd: string | null;
   canceledAt: string | null;
   endedAt: string | null;
+  payments?: PaymentHistoryType[];
+}
+
+export interface PaymentHistoryType {
+  id: string;
+  subscriptionId: string;
+  stripeInvoiceId: string;
+  amount: number;
+  currency: string;
+  status: 'paid' | 'failed';
+  paidAt: string | null;
+  createdAt: string;
 }

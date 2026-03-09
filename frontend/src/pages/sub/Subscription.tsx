@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import { authService } from '../../services/AuthServices';
 import { subscriptionService } from '../../services/SubscriptionService';
@@ -464,7 +464,17 @@ const Subscription = () => {
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold text-center mb-8">Choisissez votre abonnement</h1>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-3xl font-bold text-center md:text-left">Choisissez votre abonnement</h1>
+        {isLogged && (
+          <Link
+            to="/subscription-history"
+            className="inline-flex items-center justify-center rounded-lg border border-thunder-gold/40 px-4 py-2 font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black"
+          >
+            Voir mes transactions
+          </Link>
+        )}
+      </div>
       {transactionMessage && (
         <div
           className={`mb-6 rounded-lg border p-4 text-center font-medium ${
