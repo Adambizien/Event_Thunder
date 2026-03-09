@@ -159,7 +159,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/subscription"
+          path="/subscription/*"
           element={<Subscription />}
         />
         <Route 

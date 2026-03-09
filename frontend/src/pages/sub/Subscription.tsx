@@ -19,6 +19,34 @@ interface Plan {
   displayOrder: number;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const CHECKOUT_GUARD_KEY = 'subscription-checkout-guard';
+const FINALIZE_GUARD_KEY = 'subscription-finalize-guard';
+
+const readRouteGuard = (key: string) => {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeRouteGuard = (key: string, value: string) => {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const clearRouteGuard = (key: string) => {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
 const Subscription = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [userSubscriptions, setUserSubscriptions] = useState<SubscriptionType[]>([]);
@@ -26,6 +54,8 @@ const Subscription = () => {
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<string | null>(null);
+  const [isProcessingRoute, setIsProcessingRoute] = useState(false);
+  const [isResolvingSubscriptionState, setIsResolvingSubscriptionState] = useState(false);
   const [transactionMessage, setTransactionMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -34,7 +64,87 @@ const Subscription = () => {
   const [showAuthChoice, setShowAuthChoice] = useState<null | string>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const currentStep = location.pathname.startsWith('/subscription/')
+    ? location.pathname.slice('/subscription/'.length)
+    : '';
+  const isCheckoutStep = currentStep === 'checkout';
+  const isSuccessStep = currentStep === 'success';
+  const isCancelStep = currentStep === 'cancel';
+  const searchParams = new URLSearchParams(location.search);
+  const navigationState = location.state as {
+    transactionMessage?: { type: 'success' | 'error'; text: string };
+    preloadedSubscriptions?: SubscriptionType[] | null;
+  } | null;
+  const activeSubscriptions = userSubscriptions.filter(
+    (sub) => sub.status === 'active',
+  );
+  const hasMultipleActiveSubscriptions = activeSubscriptions.length > 1;
+  const activeUserSubscription = userSubscriptions.find(
+    (sub) => sub.status === 'active',
+  );
+
+  useEffect(() => {
+    if (!isCheckoutStep && !isSuccessStep && !isCancelStep) {
+      clearRouteGuard(CHECKOUT_GUARD_KEY);
+      clearRouteGuard(FINALIZE_GUARD_KEY);
+      setIsProcessingRoute(false);
+    }
+  }, [isCancelStep, isCheckoutStep, isSuccessStep]);
+
+  useEffect(() => {
+    if (!hasMultipleActiveSubscriptions) {
+      setIsResolvingSubscriptionState(false);
+      return;
+    }
+
+    const user = authService.getStoredUser();
+    const userId = user?.id;
+
+    if (!userId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const resolveSubscriptions = async () => {
+      setIsResolvingSubscriptionState(true);
+
+      try {
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+          const subs = await subscriptionService.getUserSubscriptions(userId);
+          const normalized = Array.isArray(subs) ? subs : [];
+          const activeCount = normalized.filter(
+            (sub) => sub.status === 'active',
+          ).length;
+
+          if (cancelled) {
+            return;
+          }
+
+          setUserSubscriptions(normalized);
+
+          if (activeCount <= 1) {
+            break;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch {
+        // Ignore polling errors and keep the current state.
+      } finally {
+        if (!cancelled) {
+          setIsResolvingSubscriptionState(false);
+        }
+      }
+    };
+
+    void resolveSubscriptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasMultipleActiveSubscriptions]);
+
   useEffect(() => {
     const fetchPlansAndSubs = async () => {
       try {
@@ -47,11 +157,15 @@ const Subscription = () => {
         if (token) {
           const user = authService.getStoredUser();
           if (user?.id) {
-            try {
-              const subs = await subscriptionService.getUserSubscriptions(user.id);
-              setUserSubscriptions(Array.isArray(subs) ? subs : []);
-            } catch {
-              setUserSubscriptions([]);
+            if (Array.isArray(navigationState?.preloadedSubscriptions)) {
+              setUserSubscriptions(navigationState.preloadedSubscriptions);
+            } else {
+              try {
+                const subs = await subscriptionService.getUserSubscriptions(user.id);
+                setUserSubscriptions(Array.isArray(subs) ? subs : []);
+              } catch {
+                setUserSubscriptions([]);
+              }
             }
           }
         }
@@ -61,91 +175,228 @@ const Subscription = () => {
         setLoading(false);
       }
     };
-    fetchPlansAndSubs();
-  }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const success = params.get('success');
-    const planId = params.get('planId');
-
-    if (success === '1') {
-      const finalize = async () => {
-        const user = authService.getStoredUser();
-        const userId = user?.id;
-
-        if (!userId || !planId) {
-          setTransactionMessage({
-            type: 'success',
-            text: 'Abonnement souscrit avec succès.',
-          });
-          navigate('/subscription', { replace: true });
-          return;
-        }
-
-        try {
-          await subscriptionService.finalizePlanChange({
-            userId,
-            activePlanId: planId,
-          });
-          setTransactionMessage({
-            type: 'success',
-            text: 'Abonnement souscrit avec succès.',
-          });
-        } catch {
-          setTransactionMessage({
-            type: 'error',
-            text: "Paiement validé, mais l'ancien abonnement n'a pas pu être annulé automatiquement.",
-          });
-        } finally {
-          navigate('/subscription', { replace: true });
-          const subs = await subscriptionService.getUserSubscriptions(userId);
-          setUserSubscriptions(Array.isArray(subs) ? subs : []);
-        }
-      };
-      void finalize();
+    if (isCheckoutStep || isSuccessStep || isCancelStep) {
+      setLoading(false);
       return;
     }
 
-    if (success === '0') {
+    fetchPlansAndSubs();
+  }, [isCancelStep, isCheckoutStep, isSuccessStep, navigationState?.preloadedSubscriptions]);
+
+  useEffect(() => {
+    if (navigationState?.transactionMessage) {
+      clearRouteGuard(FINALIZE_GUARD_KEY);
+      setIsProcessingRoute(false);
+      setTransactionMessage(navigationState.transactionMessage);
+      if (Array.isArray(navigationState.preloadedSubscriptions)) {
+        setUserSubscriptions(navigationState.preloadedSubscriptions);
+      }
+      navigate('/subscription', { replace: true, state: null });
+      return;
+    }
+
+    if (new URLSearchParams(location.search).get('success') === '0') {
+      clearRouteGuard(CHECKOUT_GUARD_KEY);
+      clearRouteGuard(FINALIZE_GUARD_KEY);
+      setIsProcessingRoute(false);
       setTransactionMessage({
         type: 'error',
         text: 'Erreur de transaction.',
       });
       navigate('/subscription', { replace: true });
     }
-  }, [location.search, navigate]);
+  }, [location.search, navigate, navigationState]);
+
+  useEffect(() => {
+    if (!isCheckoutStep) {
+      return;
+    }
+
+    const redirectToCheckout = async () => {
+      setIsProcessingRoute(true);
+      const planId = searchParams.get('planId');
+      const user = authService.getStoredUser();
+      const userId = user?.id;
+      const customerEmail = user?.email;
+      const guardValue = planId && userId ? `${userId}:${planId}` : null;
+
+      if (!planId) {
+        clearRouteGuard(CHECKOUT_GUARD_KEY);
+        navigate('/subscription', {
+          replace: true,
+          state: {
+            transactionMessage: {
+              type: 'error' as const,
+              text: 'Plan invalide.',
+            },
+          },
+        });
+        return;
+      }
+
+      if (!userId || !customerEmail) {
+        clearRouteGuard(CHECKOUT_GUARD_KEY);
+        navigate('/subscription', {
+          replace: true,
+          state: {
+            transactionMessage: {
+              type: 'error' as const,
+              text: 'Session utilisateur invalide. Reconnectez-vous.',
+            },
+          },
+        });
+        return;
+      }
+
+      if (guardValue && readRouteGuard(CHECKOUT_GUARD_KEY) === guardValue) {
+        return;
+      }
+
+      if (guardValue) {
+        writeRouteGuard(CHECKOUT_GUARD_KEY, guardValue);
+      }
+
+      try {
+        const successUrl = `${window.location.origin}/subscription/success?planId=${encodeURIComponent(planId)}`;
+        const cancelUrl = `${window.location.origin}/subscription/cancel`;
+        const data = await subscriptionService.createCheckoutSession({
+          userId,
+          planId,
+          successUrl,
+          cancelUrl,
+          customerEmail,
+        });
+
+        window.location.replace(data.url);
+      } catch {
+        clearRouteGuard(CHECKOUT_GUARD_KEY);
+        navigate('/subscription', {
+          replace: true,
+          state: {
+            transactionMessage: {
+              type: 'error' as const,
+              text: 'Erreur lors de la souscription',
+            },
+          },
+        });
+      }
+    };
+
+    void redirectToCheckout();
+  }, [isCheckoutStep, navigate, searchParams]);
+
+  useEffect(() => {
+    if (!isSuccessStep) {
+      return;
+    }
+
+    const finalize = async () => {
+      setIsProcessingRoute(true);
+      const user = authService.getStoredUser();
+      const userId = user?.id;
+      const planId = searchParams.get('planId');
+      const guardValue = planId && userId ? `${userId}:${planId}` : null;
+
+      if (!userId || !planId) {
+        clearRouteGuard(FINALIZE_GUARD_KEY);
+        navigate('/subscription', {
+          replace: true,
+          state: {
+            transactionMessage: {
+              type: 'success' as const,
+              text: 'Abonnement souscrit avec succès.',
+            },
+          },
+        });
+        return;
+      }
+
+      if (guardValue && readRouteGuard(FINALIZE_GUARD_KEY) === guardValue) {
+        return;
+      }
+
+      if (guardValue) {
+        writeRouteGuard(FINALIZE_GUARD_KEY, guardValue);
+      }
+
+      let nextTransactionMessage: {
+        type: 'success' | 'error';
+        text: string;
+      } = {
+        type: 'success',
+        text: 'Abonnement souscrit avec succès.',
+      };
+      let resolvedSubscriptions: SubscriptionType[] | null = null;
+
+      try {
+        await subscriptionService.finalizePlanChange({
+          userId,
+          activePlanId: planId,
+        });
+
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const subs = await subscriptionService.getUserSubscriptions(userId);
+          const normalized = Array.isArray(subs) ? subs : [];
+          const activeSubs = normalized.filter((sub) => sub.status === 'active');
+
+          resolvedSubscriptions = normalized;
+
+          if (activeSubs.length <= 1) {
+            break;
+          }
+
+          await sleep(500);
+        }
+      } catch {
+        nextTransactionMessage = {
+          type: 'error',
+          text: "Paiement validé, mais l'ancien abonnement n'a pas pu être annulé automatiquement.",
+        };
+      }
+
+      clearRouteGuard(CHECKOUT_GUARD_KEY);
+      navigate('/subscription', {
+        replace: true,
+        state: {
+          transactionMessage: nextTransactionMessage,
+          preloadedSubscriptions: resolvedSubscriptions,
+        },
+      });
+    };
+
+    void finalize();
+  }, [isSuccessStep, navigate, searchParams]);
+
+  useEffect(() => {
+    if (!isCancelStep) {
+      return;
+    }
+
+    setIsProcessingRoute(false);
+    navigate('/subscription', {
+      replace: true,
+      state: {
+        transactionMessage: {
+          type: 'error' as const,
+          text: 'Erreur de transaction.',
+        },
+      },
+    });
+  }, [isCancelStep, navigate]);
 
   const handleSubscribe = async (planId: string) => {
     if (!isLogged) {
       setShowAuthChoice(planId);
       return;
     }
+    clearRouteGuard(CHECKOUT_GUARD_KEY);
+    clearRouteGuard(FINALIZE_GUARD_KEY);
+    setError(null);
+    setTransactionMessage(null);
+    setIsProcessingRoute(true);
     setSubscribing(planId);
-    try {
-      const successUrl = `${window.location.origin}/subscription?success=1&planId=${encodeURIComponent(planId)}`;
-      const cancelUrl = `${window.location.origin}/subscription?success=0`;
-      const user = authService.getStoredUser();
-      const userId = user?.id;
-      const customerEmail = user?.email;
-      if (!userId || !customerEmail) {
-        setError('Session utilisateur invalide. Reconnectez-vous.');
-        setSubscribing(null);
-        return;
-      }
-      const data = await subscriptionService.createCheckoutSession({
-        userId,
-        planId,
-        successUrl,
-        cancelUrl,
-        customerEmail,
-      });
-      window.location.href = data.url;
-    } catch {
-      setError('Erreur lors de la souscription');
-    } finally {
-      setSubscribing(null);
-    }
+    navigate(`/subscription/checkout?planId=${encodeURIComponent(planId)}`);
   };
 
   const handleCancelSubscription = async (stripeSubscriptionId: string) => {
@@ -193,7 +444,23 @@ const Subscription = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-12 text-gray-400">Chargement des plans...</div>;
+  if (
+    loading ||
+    isProcessingRoute ||
+    hasMultipleActiveSubscriptions ||
+    isResolvingSubscriptionState
+  ) {
+    return (
+      <div className="max-w-3xl mx-auto py-12 px-4">
+        <h1 className="text-3xl font-bold text-center mb-8">Choisissez votre abonnement</h1>
+        <div className="rounded-lg border border-thunder-gold/40 bg-thunder-gold/10 p-6 text-center font-medium text-thunder-gold">
+          {loading
+            ? 'Chargement des plans...'
+            : 'Mise à jour de votre abonnement en cours...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
@@ -227,9 +494,9 @@ const Subscription = () => {
               ? `Illimité / ${plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}`
               : `${plan.maxPosts} / ${plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}`;
 
-          const userSub = userSubscriptions.find(
-            (sub) => sub.planId === plan.id && sub.status === 'active'
-          );
+          const userSub = activeUserSubscription?.planId === plan.id
+            ? activeUserSubscription
+            : null;
             return (
             <div key={plan.id} className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center">
               <h2 className="text-xl font-bold mb-2 text-white">{plan.name}</h2>
