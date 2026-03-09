@@ -284,8 +284,7 @@ export class SubscriptionsService {
     const nextCurrency = dto.currency ?? plan.currency;
     const nextMaxEvents = dto.maxEvents ?? plan.max_events;
     const nextMaxPosts = dto.maxPosts ?? plan.max_posts;
-    const nextMaxEventsPeriod =
-    dto.maxEventsPeriod ?? plan.max_events_period;
+    const nextMaxEventsPeriod = dto.maxEventsPeriod ?? plan.max_events_period;
     const nextMaxPostsPeriod = dto.maxPostsPeriod ?? plan.max_posts_period;
     const nextDisplayOrder = dto.displayOrder ?? plan.display_order;
     const nextDescription = dto.description ?? plan.description;
@@ -465,7 +464,10 @@ export class SubscriptionsService {
     userId: string,
     stripeInvoiceId: string,
     authHeader?: string,
-  ): Promise<{ hostedInvoiceUrl: string | null; invoicePdfUrl: string | null }> {
+  ): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+  }> {
     const payment = await this.prisma.paymentSubHistory.findUnique({
       where: { stripe_invoice_id: stripeInvoiceId },
       include: {
@@ -491,7 +493,9 @@ export class SubscriptionsService {
 
     return {
       hostedInvoiceUrl:
-        typeof data.hostedInvoiceUrl === 'string' ? data.hostedInvoiceUrl : null,
+        typeof data.hostedInvoiceUrl === 'string'
+          ? data.hostedInvoiceUrl
+          : null,
       invoicePdfUrl:
         typeof data.invoicePdfUrl === 'string' ? data.invoicePdfUrl : null,
     };

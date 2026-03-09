@@ -91,9 +91,10 @@ export class BillingService {
     };
   }
 
-  async getInvoiceLinks(
-    stripeInvoiceId: string,
-  ): Promise<{ hostedInvoiceUrl: string | null; invoicePdfUrl: string | null }> {
+  async getInvoiceLinks(stripeInvoiceId: string): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+  }> {
     if (!this.stripe) {
       throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
     }

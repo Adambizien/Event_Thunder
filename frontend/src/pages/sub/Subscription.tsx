@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import { authService } from '../../services/AuthServices';
@@ -70,7 +70,7 @@ const Subscription = () => {
   const isCheckoutStep = currentStep === 'checkout';
   const isSuccessStep = currentStep === 'success';
   const isCancelStep = currentStep === 'cancel';
-  const searchParams = new URLSearchParams(location.search);
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const navigationState = location.state as {
     transactionMessage?: { type: 'success' | 'error'; text: string };
     preloadedSubscriptions?: SubscriptionType[] | null;

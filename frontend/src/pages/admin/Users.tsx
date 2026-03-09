@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
 import type { User } from '../../types/AuthTypes';
 import { userService } from '../../services/UserService';
@@ -30,7 +30,6 @@ const AdminUsers = () => {
     setShowRoleModal(true);
   };
 
-
   const closeRoleModal = () => {
     setShowRoleModal(false);
     setSelectedUser(null);
@@ -53,11 +52,7 @@ const AdminUsers = () => {
     }
   };
 
-  useEffect(() => {
-    void fetchUsers();
-  }, []);
-
-  const fetchActiveSubscriptions = async (userList: User[]) => {
+  const fetchActiveSubscriptions = useCallback(async (userList: User[]) => {
     setSubsLoading(true);
     try {
       const results = await Promise.allSettled(
@@ -83,9 +78,9 @@ const AdminUsers = () => {
     } finally {
       setSubsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const data = await userService.fetchUsers();
@@ -99,7 +94,11 @@ const AdminUsers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchActiveSubscriptions]);
+
+  useEffect(() => {
+    void fetchUsers();
+  }, [fetchUsers]);
 
   const handleDelete = async (userId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
