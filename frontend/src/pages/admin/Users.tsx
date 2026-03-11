@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
+import UserTransactionsModal from '../../components/UserTransactionsModal';
 import type { User } from '../../types/AuthTypes';
 import { userService } from '../../services/UserService';
 import { subscriptionService } from '../../services/SubscriptionService';
@@ -15,14 +16,24 @@ const AdminUsers = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [filterPlan, setFilterPlan] = useState<'all' | 'subscribed' | 'unsubscribed'>('all');
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
-  const [unsubscribeLoadingUserId, setUnsubscribeLoadingUserId] = useState<
-    string | null
-  >(null);
   const [roleError, setRoleError] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
+  const [showTransactionsModal, setShowTransactionsModal] = useState(false);
+  const [transactionsUser, setTransactionsUser] = useState<User | null>(null);
+
+  const openTransactionsModal = (user: User) => {
+    setTransactionsUser(user);
+    setShowTransactionsModal(true);
+  };
+
+  const closeTransactionsModal = () => {
+    setShowTransactionsModal(false);
+    setTransactionsUser(null);
+  };
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
     setNewRole(user.role === 'Admin' ? 'Admin' : 'User');
@@ -111,41 +122,6 @@ const AdminUsers = () => {
     }
   };
 
-  const handleUnsubscribe = async (user: User) => {
-    const activeSub = activeSubscriptionsByUser[user.id];
-    if (!activeSub?.stripeSubscriptionId) {
-      return;
-    }
-
-    if (
-      !confirm(
-        `Désinscrire ${user.email} du plan ${activeSub.plan.name} ?`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setUnsubscribeLoadingUserId(user.id);
-      await subscriptionService.cancelSubscription({
-        userId: user.id,
-        stripeSubscriptionId: activeSub.stripeSubscriptionId,
-      });
-      setActiveSubscriptionsByUser((prev) => ({
-        ...prev,
-        [user.id]: null,
-      }));
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Erreur lors de la désinscription",
-      );
-    } finally {
-      setUnsubscribeLoadingUserId(null);
-    }
-  };
 
   const filteredUsers = users.filter((user) => {
     const haystack = [user.firstName, user.lastName, user.email]
@@ -158,7 +134,12 @@ const AdminUsers = () => {
       .filter(Boolean);
     const matchesSearch = searchWords.every(word => haystack.includes(word));
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesRole;
+    const hasActiveSubscription = Boolean(activeSubscriptionsByUser[user.id]);
+    const matchesPlan =
+      filterPlan === 'all' ||
+      (filterPlan === 'subscribed' && hasActiveSubscription) ||
+      (filterPlan === 'unsubscribed' && !hasActiveSubscription);
+    return matchesSearch && matchesRole && matchesPlan;
   });
 
   if (loading) {
@@ -187,7 +168,7 @@ const AdminUsers = () => {
 
       {/* Filters */}
       <div className="bg-gray-900 border border-gray-700 rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Rechercher
@@ -213,6 +194,23 @@ const AdminUsers = () => {
               <option value="all">Tous les rôles</option>
               <option value="User">Utilisateur</option>
               <option value="Admin">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Abonnement
+            </label>
+            <select
+              value={filterPlan}
+              onChange={(e) =>
+                setFilterPlan(e.target.value as 'all' | 'subscribed' | 'unsubscribed')
+              }
+              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            >
+              <option value="all">Tous</option>
+              <option value="subscribed">Abonnés</option>
+              <option value="unsubscribed">Non abonnés</option>
             </select>
           </div>
         </div>
@@ -318,18 +316,33 @@ const AdminUsers = () => {
                     </td>
                     <td className="px-6 py-4 text-gray-300">
                       {subsLoading ? (
-                        <span className="text-gray-500">Chargement...</span>
-                      ) : activeSubscriptionsByUser[user.id] ? (
-                        <div className="space-y-1">
-                          <div className="inline-flex bg-green-900/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
-                            Abonné
+                          <span className="text-gray-500">Chargement...</span>
+                        ) : activeSubscriptionsByUser[user.id] ? (
+                          <div className="flex flex-col space-y-2">
+                            <div className="inline-flex bg-green-900/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium self-start">
+                              Abonné
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openTransactionsModal(user)}
+                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
+                            >
+                              Voir les détails
+                            </button>
                           </div>
-                          <p className="text-sm text-white">
-                            {activeSubscriptionsByUser[user.id]?.plan.name}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">-</span>
+                        ) : (
+                          <div className="flex flex-col space-y-2">
+                            <div className="inline-flex bg-red-900/20 text-red-400 px-3 py-1 rounded-full text-sm font-medium self-start">
+                              Non abonné
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openTransactionsModal(user)}
+                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
+                            >
+                              Voir les détails
+                            </button>
+                          </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -341,24 +354,12 @@ const AdminUsers = () => {
                         >
                           Modifier le rôle
                         </button>
-                        {activeSubscriptionsByUser[user.id] && (
-                          <button
-                            onClick={() => void handleUnsubscribe(user)}
-                            className="px-2 py-1 bg-red-900/30 hover:bg-red-900/50 text-red-300 rounded text-xs border border-red-800"
-                            title="Désinscrire de l'abonnement"
-                            disabled={unsubscribeLoadingUserId === user.id}
-                          >
-                            {unsubscribeLoadingUserId === user.id
-                              ? 'Désinscription...'
-                              : 'Désinscrire'}
-                          </button>
-                        )}
                         <button
                           onClick={() => handleDelete(user.id)}
                           className="p-2 hover:bg-red-900/20 rounded transition-colors text-red-400 hover:text-red-300 text-lg"
                           title="Supprimer l'utilisateur"
                         >
-                          🗑️
+                          Supprimer le compte
                         </button>
                       </div>
                     </td>
@@ -417,6 +418,12 @@ const AdminUsers = () => {
           </div>
         </form>
       </Modal>
+
+      <UserTransactionsModal
+        isOpen={showTransactionsModal}
+        onClose={closeTransactionsModal}
+        user={transactionsUser}
+      />
     </div>
   );
 };

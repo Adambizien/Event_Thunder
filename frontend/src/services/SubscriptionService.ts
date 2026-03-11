@@ -76,8 +76,11 @@ export const subscriptionService = {
     return response.data;
   },
 
-  getInvoiceLinks: async (stripeInvoiceId: string) => {
-    const response = await api.get(`/api/subscriptions/invoices/${encodeURIComponent(stripeInvoiceId)}`);
+  getInvoiceLinks: async (stripeInvoiceId: string, userId?: string) => {
+    const response = await api.get(
+      `/api/subscriptions/invoices/${encodeURIComponent(stripeInvoiceId)}`,
+      userId ? { params: { userId } } : undefined,
+    );
     return response.data as {
       hostedInvoiceUrl: string | null;
       invoicePdfUrl: string | null;

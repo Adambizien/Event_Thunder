@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -266,16 +267,26 @@ export class SubscriptionsController {
     @Param('stripeInvoiceId') stripeInvoiceId: string,
     @Req() req: AuthenticatedRequest,
     @Headers('authorization') authHeader?: string,
+    @Query('userId') userId?: string | string[],
   ) {
     this.ensureNonEmptyString(stripeInvoiceId, 'stripeInvoiceId');
 
     const requestUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'Admin';
+    const normalizedUserId = Array.isArray(userId) ? userId[0] : userId;
+
     if (!requestUserId) {
       throw new ForbiddenException('Accès refusé');
     }
 
+    if (!isAdmin && normalizedUserId && normalizedUserId !== requestUserId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    const targetUserId = isAdmin && normalizedUserId ? normalizedUserId : requestUserId;
+
     return this.subscriptionsService.getInvoiceLinks(
-      requestUserId,
+      targetUserId,
       stripeInvoiceId,
       authHeader,
     );

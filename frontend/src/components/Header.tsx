@@ -102,7 +102,7 @@ interface HeaderProps {
                     : 'text-gray-100 hover:text-thunder-gold'
                 }`}
               >
-                Mes transactions
+                détails de l’abonnement
               </Link>
               {user.role === 'Admin' && (
                 <Link
