@@ -108,7 +108,10 @@ interface HeaderProps {
                 <Link
                   to="/admin"
                   className={`font-semibold px-4 py-2 rounded-lg transition-all ${
-                    isActive('/admin') || isActive('/admin/plans') || isActive('/admin/users')
+                    isActive('/admin') ||
+                    isActive('/admin/plans') ||
+                    isActive('/admin/subscription-transactions') ||
+                    isActive('/admin/users')
                       ? 'bg-purple-600 text-white'
                       : 'bg-purple-700 text-white hover:bg-purple-600'
                   }`}

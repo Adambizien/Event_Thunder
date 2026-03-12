@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
 import type { Plan, FormData } from '../../types/PlanTypes';
 import { planService } from '../../services/PlanService';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 const AdminPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -148,19 +149,19 @@ const AdminPlans = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Gestion des plans</h1>
-          <p className="text-gray-400">Gérez les plans d'abonnement de votre service</p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105"
-        >
-          <span>➕</span>
-          Nouveau plan
-        </button>
-      </div>
+      <AdminPageHeader
+        title="Gestion des plans"
+        subtitle="Gérez les plans d'abonnement de votre service"
+        action={
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105"
+          >
+            <span>➕</span>
+            Nouveau plan
+          </button>
+        }
+      />
 
       {error && (
         <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400">

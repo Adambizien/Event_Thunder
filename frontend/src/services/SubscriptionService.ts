@@ -43,6 +43,13 @@ export const subscriptionService = {
       : [];
   },
 
+  getAdminSubscriptionsOverview: async (): Promise<SubscriptionType[]> => {
+    const response = await api.get('/api/subscriptions/admin/overview');
+    return Array.isArray(response.data)
+      ? response.data.map((subscription) => normalizeSubscription(subscription as Record<string, unknown>))
+      : [];
+  },
+
   getPlans: async () => {
     const response = await api.get('/api/subscriptions/plans');
     return Array.isArray(response.data) ? response.data : [];

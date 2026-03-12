@@ -261,6 +261,12 @@ export class SubscriptionsController {
     return this.subscriptionsService.getUserSubscriptions(userId);
   }
 
+  @Get('admin/overview')
+  @UseGuards(AuthGuard, AdminGuard)
+  getAdminSubscriptionsOverview() {
+    return this.subscriptionsService.getAdminSubscriptionsOverview();
+  }
+
   @Get('invoices/:stripeInvoiceId')
   @UseGuards(AuthGuard)
   getInvoiceLinks(

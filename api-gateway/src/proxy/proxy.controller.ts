@@ -77,6 +77,10 @@ export class ProxyController {
       return method === 'PATCH' || method === 'DELETE';
     }
 
+    if (path === '/api/subscriptions/admin/overview' && method === 'GET') {
+      return true;
+    }
+
     if (path === '/api/users' && method === 'GET') {
       return true;
     }

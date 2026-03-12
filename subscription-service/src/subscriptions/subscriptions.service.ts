@@ -231,6 +231,30 @@ export class SubscriptionsService {
     };
   }
 
+  private toSubscriptionResponse(
+    subscription: SubscriptionWithRelations,
+  ): SubscriptionResponse {
+    const subscriptionModel = this.toSubscriptionModel(subscription);
+
+    return {
+      id: subscriptionModel.id,
+      userId: subscriptionModel.user_id,
+      planId: subscriptionModel.plan_id,
+      stripeSubscriptionId: subscriptionModel.stripe_subscription_id,
+      status: subscriptionModel.status,
+      currentPeriodStart: subscriptionModel.current_period_start,
+      currentPeriodEnd: subscriptionModel.current_period_end,
+      canceledAt: subscriptionModel.canceled_at,
+      endedAt: subscriptionModel.ended_at,
+      createdAt: subscriptionModel.created_at,
+      updatedAt: subscriptionModel.updated_at,
+      plan: this.toPlanModel(subscription.plan),
+      payments: [...subscription.payments]
+        .sort((left, right) => right.created_at.getTime() - left.created_at.getTime())
+        .map((payment) => this.toPaymentModel(payment)),
+    };
+  }
+
   async createPlan(
     dto: CreatePlanDto,
     authHeader?: string,
@@ -438,26 +462,23 @@ export class SubscriptionsService {
       orderBy: { created_at: 'desc' },
     })) as SubscriptionWithRelations[];
 
-    return subscriptions.map((subscription) => {
-      const subscriptionModel = this.toSubscriptionModel(subscription);
-      return {
-        id: subscriptionModel.id,
-        userId: subscriptionModel.user_id,
-        planId: subscriptionModel.plan_id,
-        stripeSubscriptionId: subscriptionModel.stripe_subscription_id,
-        status: subscriptionModel.status,
-        currentPeriodStart: subscriptionModel.current_period_start,
-        currentPeriodEnd: subscriptionModel.current_period_end,
-        canceledAt: subscriptionModel.canceled_at,
-        endedAt: subscriptionModel.ended_at,
-        createdAt: subscriptionModel.created_at,
-        updatedAt: subscriptionModel.updated_at,
-        plan: this.toPlanModel(subscription.plan),
-        payments: subscription.payments.map((payment) =>
-          this.toPaymentModel(payment),
-        ),
-      };
-    });
+    return subscriptions.map((subscription) =>
+      this.toSubscriptionResponse(subscription),
+    );
+  }
+
+  async getAdminSubscriptionsOverview(): Promise<SubscriptionResponse[]> {
+    const subscriptions = (await this.prisma.subscription.findMany({
+      include: {
+        plan: true,
+        payments: true,
+      },
+      orderBy: { created_at: 'desc' },
+    })) as SubscriptionWithRelations[];
+
+    return subscriptions.map((subscription) =>
+      this.toSubscriptionResponse(subscription),
+    );
   }
 
   async getInvoiceLinks(

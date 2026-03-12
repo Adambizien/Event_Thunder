@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
 import UserTransactionsModal from '../../components/UserTransactionsModal';
+import AdminPageHeader from '../../components/AdminPageHeader';
 import type { User } from '../../types/AuthTypes';
 import { userService } from '../../services/UserService';
 import { subscriptionService } from '../../services/SubscriptionService';
@@ -155,10 +156,10 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-bold text-white mb-2">Liste des utilisateurs</h1>
-        <p className="text-gray-400">Gérez les utilisateurs de votre plateforme</p>
-      </div>
+      <AdminPageHeader
+        title="Liste des utilisateurs"
+        subtitle="Gérez les utilisateurs de votre plateforme"
+      />
 
       {error && (
         <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400">

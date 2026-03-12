@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { userService } from '../../services/UserService';
 import { planService } from '../../services/PlanService';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 interface Stats {
   totalUsers: number;
@@ -65,8 +66,10 @@ const AdminDashboard = () => {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">Tableau de bord</h1>
-        <p className="text-gray-400">Bienvenue dans l'interface d'administration</p>
+        <AdminPageHeader
+          title="Tableau de bord"
+          subtitle="Bienvenue dans l'interface d'administration"
+        />
       </div>
 
       {/* Stats Cards */}

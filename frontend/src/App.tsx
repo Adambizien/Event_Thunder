@@ -21,6 +21,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import Home from './pages/Home';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminPlans from './pages/admin/Plans';
+import AdminSubscriptionTransactions from './pages/admin/SubscriptionTransactions';
 import AdminUsers from './pages/admin/Users';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
@@ -33,6 +34,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -189,10 +191,11 @@ function AppContent() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="plans" element={<AdminPlans />} />
+          <Route path="subscription-transactions" element={<AdminSubscriptionTransactions />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>
       </Routes>
-      <Footer />
+      {!isAdminRoute && <Footer />}
     </>
   );
 }
