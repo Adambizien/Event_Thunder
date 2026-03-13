@@ -324,7 +324,7 @@ const AdminUsers = () => {
                             <button
                               type="button"
                               onClick={() => openTransactionsModal(user)}
-                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
+                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
                             >
                               Voir les détails
                             </button>
@@ -337,7 +337,7 @@ const AdminUsers = () => {
                             <button
                               type="button"
                               onClick={() => openTransactionsModal(user)}
-                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
+                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
                             >
                               Voir les détails
                             </button>
@@ -348,14 +348,14 @@ const AdminUsers = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => openRoleModal(user)}
-                          className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs border border-white/20"
+                          className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm border border-white/20"
                           title="Modifier le rôle"
                         >
                           Modifier le rôle
                         </button>
                         <button
                           onClick={() => handleDelete(user.id)}
-                          className="px-2 py-1 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-xs transition-colors"
+                          className="px-3 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-sm transition-colors"
                           title="Supprimer l'utilisateur"
                         >
                           Supprimer le compte

@@ -823,7 +823,7 @@ const AdminSubscriptionTransactions = () => {
                           type="button"
                           onClick={() => void handleOpenInvoice(payment)}
                           disabled={!payment.stripeInvoiceId || openingInvoiceId === payment.id}
-                          className="inline-flex items-center justify-center rounded border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-gray-500"
+                          className="inline-flex items-center justify-center rounded border border-white/30 bg-white/15 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-gray-500"
                         >
                           {openingInvoiceId === payment.id ? 'Ouverture...' : 'Voir la facture'}
                         </button>
