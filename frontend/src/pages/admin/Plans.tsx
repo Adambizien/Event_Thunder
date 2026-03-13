@@ -140,7 +140,7 @@ const AdminPlans = () => {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin mb-4 text-4xl">⚡</div>
+          <div className="animate-spin mb-4 text-4xl" aria-hidden="true"></div>
           <p className="text-gray-400">Chargement des plans...</p>
         </div>
       </div>
@@ -155,9 +155,8 @@ const AdminPlans = () => {
         action={
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105"
+            className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
-            <span>➕</span>
             Nouveau plan
           </button>
         }
@@ -342,7 +341,7 @@ const AdminPlans = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-thunder-gold"
+              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
             >
               {isSubmitting
                 ? 'Sauvegarde...'
@@ -353,7 +352,7 @@ const AdminPlans = () => {
             <button
               type="button"
               onClick={resetForm}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
+              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors"
             >
               Annuler
             </button>
@@ -378,7 +377,7 @@ const AdminPlans = () => {
                 {isDeleting && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 z-10 rounded-lg">
                     <span className="text-white text-xl font-bold mb-2">En cours de suppression...</span>
-                    <span className="animate-spin text-3xl">⚡</span>
+                    <span className="animate-spin text-3xl" aria-hidden="true"></span>
                   </div>
                 )}
                 <h3 className="text-xl font-bold text-white mb-4">{plan.name}</h3>
@@ -408,18 +407,16 @@ const AdminPlans = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(plan)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white py-2 rounded transition-colors"
                     disabled={isDeleting}
                   >
-                    <span>✏️</span>
                     Modifier
                   </button>
                   <button
                     onClick={() => handleDelete(plan.id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 py-2 rounded transition-colors"
                     disabled={isDeleting}
                   >
-                    <span>🗑️</span>
                     Supprimer
                   </button>
                 </div>

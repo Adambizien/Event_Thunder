@@ -599,117 +599,115 @@ const AdminSubscriptionTransactions = () => {
       )}
 
       <section className="bg-gray-900 border border-gray-700 rounded-lg p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Filtres d’analyse</h2>
-            <p className="text-sm text-gray-400">Période active : {periodDescription}</p>
-          </div>
+        <div className="mb-5">
+          <h2 className="text-xl font-semibold text-white">Filtres d’analyse</h2>
+          <p className="text-sm text-gray-400">Période active : {periodDescription}</p>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <label className="flex flex-col gap-2 text-sm text-gray-300">
+            Vue
+            <select
+              value={periodMode}
+              onChange={(event) => setPeriodMode(event.target.value as PeriodMode)}
+              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            >
+              <option value="month">Mois</option>
+              <option value="year">Année</option>
+              <option value="all">Total</option>
+            </select>
+          </label>
+
+          {periodMode === 'month' && (
             <label className="flex flex-col gap-2 text-sm text-gray-300">
-              Vue
-              <select
-                value={periodMode}
-                onChange={(event) => setPeriodMode(event.target.value as PeriodMode)}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              >
-                <option value="month">Mois</option>
-                <option value="year">Année</option>
-                <option value="all">Total</option>
-              </select>
-            </label>
-
-            {periodMode === 'month' && (
-              <label className="flex flex-col gap-2 text-sm text-gray-300">
-                Mois
-                <div className="relative">
-                  <input
-                    ref={monthInputRef}
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(event) => setSelectedMonth(event.target.value)}
-                    onClick={openMonthPicker}
-                    className="w-full cursor-pointer bg-gray-800 border border-gray-700 rounded px-4 py-2 pr-11 text-white focus:border-thunder-gold focus:outline-none [&::-webkit-calendar-picker-indicator]:opacity-0"
-                    style={{ colorScheme: 'dark' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={openMonthPicker}
-                    aria-label="Ouvrir le calendrier du mois"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 transition hover:text-thunder-gold"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      className="h-5 w-5"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 2v3m8-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
-                    </svg>
-                  </button>
-                </div>
-              </label>
-            )}
-
-            {periodMode === 'year' && (
-              <label className="flex flex-col gap-2 text-sm text-gray-300">
-                Année
-                <select
-                  value={selectedYear}
-                  onChange={(event) => setSelectedYear(Number(event.target.value))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              Mois
+              <div className="relative">
+                <input
+                  ref={monthInputRef}
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(event) => setSelectedMonth(event.target.value)}
+                  onClick={openMonthPicker}
+                  className="w-full cursor-pointer bg-gray-800 border border-gray-700 rounded px-4 py-2 pr-11 text-white focus:border-thunder-gold focus:outline-none [&::-webkit-calendar-picker-indicator]:opacity-0"
+                  style={{ colorScheme: 'dark' }}
+                />
+                <button
+                  type="button"
+                  onClick={openMonthPicker}
+                  aria-label="Ouvrir le calendrier du mois"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 transition hover:text-thunder-gold"
                 >
-                  {availableYears.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className="flex flex-col gap-2 text-sm text-gray-300">
-              Statut
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              >
-                <option value="all">Tous</option>
-                <option value="paid">Payées</option>
-                <option value="failed">Échouées</option>
-              </select>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="h-5 w-5"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 2v3m8-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+                  </svg>
+                </button>
+              </div>
             </label>
+          )}
 
+          {periodMode === 'year' && (
             <label className="flex flex-col gap-2 text-sm text-gray-300">
-              Plan
+              Année
               <select
-                value={planFilter}
-                onChange={(event) => setPlanFilter(event.target.value)}
+                value={selectedYear}
+                onChange={(event) => setSelectedYear(Number(event.target.value))}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
-                <option value="all">Tous les plans</option>
-                {planOptions.map((plan) => (
-                  <option key={plan} value={plan}>
-                    {plan}
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
                   </option>
                 ))}
               </select>
             </label>
+          )}
 
-            <label className="flex flex-col gap-2 text-sm text-gray-300">
-              Recherche
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Email, plan, facture..."
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              />
-            </label>
-          </div>
+          <label className="flex flex-col gap-2 text-sm text-gray-300">
+            Statut
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            >
+              <option value="all">Tous</option>
+              <option value="paid">Payées</option>
+              <option value="failed">Échouées</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm text-gray-300">
+            Plan
+            <select
+              value={planFilter}
+              onChange={(event) => setPlanFilter(event.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            >
+              <option value="all">Tous les plans</option>
+              {planOptions.map((plan) => (
+                <option key={plan} value={plan}>
+                  {plan}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm text-gray-300">
+            Recherche
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Email, plan, facture..."
+              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            />
+          </label>
         </div>
       </section>
 
