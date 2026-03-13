@@ -39,8 +39,8 @@ export const PasswordInput = ({
   return (
     <div>
       {label && (
-        <label htmlFor={id} className="block text-sm font-semibold text-gray-700 mb-2">
-          {label} {required ? <span className="text-red-600">*</span> : null}
+        <label htmlFor={id} className="block text-sm font-semibold text-gray-300 mb-2">
+          {label} {required ? <span className="text-red-300">*</span> : null}
         </label>
       )}
       
@@ -53,18 +53,18 @@ export const PasswordInput = ({
           onChange={handleChange}
           required={required}
           disabled={disabled}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
+          className="input-field"
           placeholder={placeholder}
         />
         
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-3 text-gray-600 hover:text-gray-800"
+          className="absolute right-3 top-3 text-xs font-semibold uppercase tracking-wide text-gray-300 hover:text-white"
           disabled={disabled}
           aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
         >
-          {showPassword ? '👁️' : '👁️‍🗨️'}
+          {showPassword ? 'Masquer' : 'Voir'}
         </button>
       </div>
 

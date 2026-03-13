@@ -52,23 +52,23 @@ const Modal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/20 min-h-screen"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/30 min-h-screen"
       onClick={onClose}
     >
       <div
-        className={`bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col`}
+        className={`bg-white/5 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-lg w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
           <h2 className="text-2xl font-bold text-white">{title}</h2>
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white text-xl"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-300 hover:text-white text-xl"
               aria-label="Fermer"
             >
-              ✕
+              X
             </button>
           )}
         </div>

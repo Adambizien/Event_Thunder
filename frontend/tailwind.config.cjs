@@ -7,8 +7,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'thunder-navy': '#071e2b',
-        'thunder-dark': '#0a2540',
+        'thunder-navy': '#095668',
+        'thunder-dark': '#074353',
         'thunder-gold': '#ffb020',
         'thunder-orange': '#ff922b',
         'thunder-yellow': '#ffd24a',

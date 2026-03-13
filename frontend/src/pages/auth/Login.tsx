@@ -82,17 +82,16 @@ const Login = ({ onLogin }: LoginProps) => {
         {/* Error Message */}
         {error && (
           <div className="error-box mb-6">
-            <span className="text-xl">⚠️</span>
             <div className="flex-1">
               <p className="font-semibold">Error</p>
               <p className="text-sm">{error}</p>
             </div>
             <button
               onClick={() => setError('')}
-              className="text-red-700 hover:text-red-900 font-bold text-lg leading-none"
+              className="text-red-200 hover:text-red-100 font-bold text-lg leading-none"
               aria-label="Close error"
             >
-              ✕
+              X
             </button>
           </div>
         )}
@@ -108,17 +107,17 @@ const Login = ({ onLogin }: LoginProps) => {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full border-t border-white/15"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-600">ou avec l'email</span>
+              <span className="px-4 bg-transparent text-gray-300">ou avec l'email</span>
             </div>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
                 Adresse e-mail
               </label>
               <input
@@ -135,7 +134,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-semibold text-gray-700">
+                <label className="block text-sm font-semibold text-gray-300">
                   Mot de passe
                 </label>
               </div>
@@ -182,8 +181,8 @@ const Login = ({ onLogin }: LoginProps) => {
         </div>
 
         {/* Sign Up Link */}
-        <div className="text-center py-4 border-t border-gray-200">
-          <p className="text-gray-600 text-sm">
+        <div className="text-center py-4 border-t border-white/10">
+          <p className="text-gray-300 text-sm">
             Vous n'avez pas de compte?{' '}
             <Link 
               to="/register"

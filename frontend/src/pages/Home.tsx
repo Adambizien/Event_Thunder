@@ -18,7 +18,7 @@ const Home = () => {
             <span className="text-thunder-yellow">THUNDER</span>
           </h1>
           
-          <p className="text-2xl md:text-3xl text-gray-300 mb-4">⚡ Gère tes événements avec la puissance de la foudre</p>
+          <p className="text-2xl md:text-3xl text-gray-300 mb-4">Gère tes événements avec la puissance de la foudre</p>
           
           <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
             Plateforme complète de gestion d'événements. Crée, organise et gère tes événements en quelques clics.
@@ -50,23 +50,23 @@ const Home = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Feature 1 */}
             <div className="card p-8">
-              <div className="text-5xl mb-4">📅</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Création Facile</h3>
-              <p className="text-gray-600">Crée tes événements en quelques secondes avec notre interface intuitive et simple d'utilisation.</p>
+              <div className="text-2xl font-semibold text-thunder-gold mb-4">01</div>
+              <h3 className="text-xl font-bold text-white mb-3">Création Facile</h3>
+              <p className="text-gray-300">Crée tes événements en quelques secondes avec notre interface intuitive et simple d'utilisation.</p>
             </div>
 
             {/* Feature 2 */}
             <div className="card p-8">
-              <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Gestion des Participants</h3>
-              <p className="text-gray-600">Invite des participants, suit les RSVPs et gère les présences simplement.</p>
+              <div className="text-2xl font-semibold text-thunder-gold mb-4">02</div>
+              <h3 className="text-xl font-bold text-white mb-3">Gestion des Participants</h3>
+              <p className="text-gray-300">Invite des participants, suit les RSVPs et gère les présences simplement.</p>
             </div>
 
             {/* Feature 3 */}
             <div className="card p-8">
-              <div className="text-5xl mb-4">⚡</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Rapide & Fiable</h3>
-              <p className="text-gray-600">Infrastructure robuste et performante pour vos événements les plus importants.</p>
+              <div className="text-2xl font-semibold text-thunder-gold mb-4">03</div>
+              <h3 className="text-xl font-bold text-white mb-3">Rapide & Fiable</h3>
+              <p className="text-gray-300">Infrastructure robuste et performante pour vos événements les plus importants.</p>
             </div>
           </div>
         </div>

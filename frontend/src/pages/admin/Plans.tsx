@@ -138,17 +138,15 @@ const AdminPlans = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin mb-4 text-4xl" aria-hidden="true"></div>
-          <p className="text-gray-400">Chargement des plans...</p>
-        </div>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
+        <span className="spinner mr-2 align-middle"></span>
+        Chargement des plans...
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <AdminPageHeader
         title="Gestion des plans"
         subtitle="Gérez les plans d'abonnement de votre service"
@@ -163,7 +161,7 @@ const AdminPlans = () => {
       />
 
       {error && (
-        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
           {error}
         </div>
       )}
@@ -176,7 +174,7 @@ const AdminPlans = () => {
         size="lg"
       >
         {formError && (
-          <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400 mb-4">
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300 mb-4">
             {formError}
           </div>
         )}
@@ -191,7 +189,7 @@ const AdminPlans = () => {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
                 placeholder="Ex: Pro"
               />
             </div>
@@ -205,7 +203,7 @@ const AdminPlans = () => {
                 step="0.01"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
                 placeholder="9.99"
               />
             </div>
@@ -217,7 +215,7 @@ const AdminPlans = () => {
               <select
                 value={formData.interval}
                 onChange={(e) => setFormData({ ...formData, interval: e.target.value as 'monthly' | 'yearly' })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
                 <option value="monthly">Mensuel</option>
                 <option value="yearly">Annuel</option>
@@ -236,7 +234,7 @@ const AdminPlans = () => {
                     currency: e.target.value as 'EUR' | 'USD',
                   })
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
                 <option value="EUR">EUR</option>
                 <option value="USD">USD</option>
@@ -251,7 +249,7 @@ const AdminPlans = () => {
                 type="number"
                 value={formData.maxEvents}
                 onChange={(e) => setFormData({ ...formData, maxEvents: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
                 placeholder="2"
               />
             </div>
@@ -268,7 +266,7 @@ const AdminPlans = () => {
                     maxEventsPeriod: e.target.value as 'weekly' | 'monthly',
                   })
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
                 <option value="weekly">Par semaine</option>
                 <option value="monthly">Par mois</option>
@@ -283,7 +281,7 @@ const AdminPlans = () => {
                 type="number"
                 value={formData.maxPosts}
                 onChange={(e) => setFormData({ ...formData, maxPosts: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
                 placeholder="10"
               />
             </div>
@@ -300,7 +298,7 @@ const AdminPlans = () => {
                     maxPostsPeriod: e.target.value as 'weekly' | 'monthly',
                   })
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
                 <option value="weekly">Par semaine</option>
                 <option value="monthly">Par mois</option>
@@ -317,7 +315,7 @@ const AdminPlans = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, displayOrder: e.target.value })
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
                 placeholder="0"
               />
             </div>
@@ -331,7 +329,7 @@ const AdminPlans = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none min-h-[96px]"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none min-h-[96px]"
                 placeholder="Décrivez le plan (optionnel)"
               />
             </div>
@@ -372,7 +370,7 @@ const AdminPlans = () => {
             return (
               <div
                 key={plan.id}
-                className={`relative bg-gray-900 border border-gray-700 rounded-lg p-6 transition-colors ${isDeleting ? 'opacity-60 grayscale pointer-events-none' : 'hover:border-thunder-gold'}`}
+                className={`relative rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg transition-colors ${isDeleting ? 'opacity-60 grayscale pointer-events-none' : 'hover:border-thunder-gold/60'}`}
               >
                 {isDeleting && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 z-10 rounded-lg">

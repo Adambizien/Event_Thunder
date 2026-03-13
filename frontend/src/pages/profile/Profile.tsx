@@ -351,7 +351,7 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
                 disabled={isLoading || (isPasswordMode && passwordValidation !== null && !passwordValidation.isValid)}
                 className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
                   isLoading || (isPasswordMode && passwordValidation !== null && !passwordValidation.isValid)
-                    ? 'bg-gray-500 cursor-not-allowed'
+                    ? 'bg-white/10 text-gray-400 cursor-not-allowed'
                     : 'bg-thunder-gold text-black hover:bg-thunder-orange'
                 }`}
               >

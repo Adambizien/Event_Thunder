@@ -46,77 +46,73 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin mb-4">⚡</div>
-          <p className="text-gray-400">Chargement des statistiques...</p>
-        </div>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
+        <span className="spinner mr-2 align-middle"></span>
+        Chargement des statistiques...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400">
+      <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
         {error}
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <AdminPageHeader
-          title="Tableau de bord"
-          subtitle="Bienvenue dans l'interface d'administration"
-        />
-      </div>
+    <div className="space-y-8">
+      <AdminPageHeader
+        title="Tableau de bord"
+        subtitle="Bienvenue dans l'interface d'administration"
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Total Users */}
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 hover:border-thunder-gold transition-colors">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Total Utilisateurs</p>
-              <p className="text-3xl font-bold text-thunder-gold">{stats.totalUsers}</p>
+              <p className="text-gray-300 text-sm mb-1">Total Utilisateurs</p>
+              <p className="text-3xl font-bold text-white">{stats.totalUsers}</p>
             </div>
-            <span className="text-5xl opacity-50">👥</span>
+            <span className="text-2xl font-semibold text-thunder-gold">Users</span>
           </div>
         </div>
 
         {/* Total Plans */}
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 hover:border-thunder-gold transition-colors">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Plans de Service</p>
-              <p className="text-3xl font-bold text-thunder-gold">{stats.totalPlans}</p>
+              <p className="text-gray-300 text-sm mb-1">Plans de Service</p>
+              <p className="text-3xl font-bold text-white">{stats.totalPlans}</p>
             </div>
-            <span className="text-5xl opacity-50">🛒</span>
+            <span className="text-2xl font-semibold text-thunder-gold">Plans</span>
           </div>
         </div>
 
         {/* Active Subscriptions */}
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 hover:border-thunder-gold transition-colors">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Abonnements Actifs</p>
-              <p className="text-3xl font-bold text-thunder-gold">{stats.activeSubscriptions}</p>
+              <p className="text-gray-300 text-sm mb-1">Abonnements Actifs</p>
+              <p className="text-3xl font-bold text-white">{stats.activeSubscriptions}</p>
             </div>
-            <span className="text-5xl opacity-50">📊</span>
+            <span className="text-2xl font-semibold text-thunder-gold">Active</span>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gray-900 border border-gray-700 rounded-lg p-6">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
         <h2 className="text-xl font-bold text-white mb-4">Actions rapides</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button className="bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 rounded-lg transition-all transform hover:scale-105">
-            ➕ Créer un plan
+          <button className="bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 rounded-lg transition-colors">
+            Créer un plan
           </button>
-          <button className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-all transform hover:scale-105">
-            👁️ Voir les utilisateurs
+          <button className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors">
+            Voir les utilisateurs
           </button>
         </div>
       </div>

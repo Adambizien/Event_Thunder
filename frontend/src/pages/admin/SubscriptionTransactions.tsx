@@ -170,9 +170,9 @@ const StatCard = ({
   helper: string;
 }) => {
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-      <p className="text-gray-400 text-sm mb-1">{label}</p>
-      <p className="text-2xl font-bold text-thunder-gold">{value}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-lg">
+      <p className="text-gray-300 text-sm mb-1">{label}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
       <p className="mt-1 text-sm text-gray-400">{helper}</p>
     </div>
   );
@@ -211,7 +211,7 @@ const RevenueLineChart = ({ data, currency }: { data: ChartPoint[]; currency: st
     );
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-6">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Évolution du chiffre d’affaires</h2>
@@ -223,7 +223,7 @@ const RevenueLineChart = ({ data, currency }: { data: ChartPoint[]; currency: st
       </div>
 
       {data.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-700 bg-gray-800/40 p-8 text-center text-gray-400">
+        <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-8 text-center text-gray-400">
           Aucune donnée disponible pour générer le graphique.
         </div>
       ) : (
@@ -312,14 +312,14 @@ const PlanRevenueBars = ({
   currency: string;
 }) => {
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-6">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
       <div className="mb-5">
         <h2 className="text-xl font-semibold text-white">Répartition par plan</h2>
         <p className="text-sm text-gray-400">Plans les plus performants sur la période.</p>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-700 bg-gray-800/40 p-8 text-center text-gray-400">
+        <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-8 text-center text-gray-400">
           Aucun paiement encaissé sur cette période.
         </div>
       ) : (
@@ -576,29 +576,27 @@ const AdminSubscriptionTransactions = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin mb-4 text-4xl">⚡</div>
-          <p className="text-gray-400">Chargement des transactions d’abonnement...</p>
-        </div>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
+        <span className="spinner mr-2 align-middle"></span>
+        Chargement des transactions d’abonnement...
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <AdminPageHeader
         title="Transactions des abonnements"
         subtitle="Suivez toutes les transactions liées aux abonnements, analysez les revenus par mois, année ou historique complet, et consultez rapidement les tendances utiles pour vos statistiques."
       />
 
       {error && (
-        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
           {error}
         </div>
       )}
 
-      <section className="bg-gray-900 border border-gray-700 rounded-lg p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
         <div className="mb-5">
           <h2 className="text-xl font-semibold text-white">Filtres d’analyse</h2>
           <p className="text-sm text-gray-400">Période active : {periodDescription}</p>
@@ -610,7 +608,7 @@ const AdminSubscriptionTransactions = () => {
             <select
               value={periodMode}
               onChange={(event) => setPeriodMode(event.target.value as PeriodMode)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             >
               <option value="month">Mois</option>
               <option value="year">Année</option>
@@ -628,7 +626,7 @@ const AdminSubscriptionTransactions = () => {
                   value={selectedMonth}
                   onChange={(event) => setSelectedMonth(event.target.value)}
                   onClick={openMonthPicker}
-                  className="w-full cursor-pointer bg-gray-800 border border-gray-700 rounded px-4 py-2 pr-11 text-white focus:border-thunder-gold focus:outline-none [&::-webkit-calendar-picker-indicator]:opacity-0"
+                  className="w-full cursor-pointer bg-white/10 border border-white/20 rounded px-4 py-2 pr-11 text-white focus:border-thunder-gold focus:outline-none [&::-webkit-calendar-picker-indicator]:opacity-0"
                   style={{ colorScheme: 'dark' }}
                 />
                 <button
@@ -658,7 +656,7 @@ const AdminSubscriptionTransactions = () => {
               <select
                 value={selectedYear}
                 onChange={(event) => setSelectedYear(Number(event.target.value))}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
                 {availableYears.map((year) => (
                   <option key={year} value={year}>
@@ -674,7 +672,7 @@ const AdminSubscriptionTransactions = () => {
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             >
               <option value="all">Tous</option>
               <option value="paid">Payées</option>
@@ -687,7 +685,7 @@ const AdminSubscriptionTransactions = () => {
             <select
               value={planFilter}
               onChange={(event) => setPlanFilter(event.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             >
               <option value="all">Tous les plans</option>
               {planOptions.map((plan) => (
@@ -705,7 +703,7 @@ const AdminSubscriptionTransactions = () => {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Email, plan, facture..."
-              className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             />
           </label>
         </div>
@@ -739,15 +737,15 @@ const AdminSubscriptionTransactions = () => {
         <PlanRevenueBars items={planRevenue} currency={primaryCurrency} />
       </section>
 
-      <section className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
-        <div className="px-6 py-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between border-b border-gray-700">
+      <section className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl backdrop-blur-lg">
+        <div className="px-6 py-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between border-b border-white/10">
           <div>
             <h2 className="text-xl font-semibold text-white">Historique détaillé</h2>
             <p className="text-sm text-gray-400">
               {displayedPayments.length} transaction(s) affichée(s) sur {paymentsInPeriod.length} pour {periodDescription.toLowerCase()}.
             </p>
           </div>
-          <div className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-300">
+          <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300">
             Dernier point encaissé :{' '}
             <span className="font-semibold text-white">
               {displayedPaidPayments[0]
@@ -765,7 +763,7 @@ const AdminSubscriptionTransactions = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700 bg-gray-800">
+                <tr className="border-b border-white/10 bg-white/5">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Date</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Client</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Plan</th>
@@ -782,7 +780,7 @@ const AdminSubscriptionTransactions = () => {
                   return (
                     <tr
                       key={payment.id}
-                      className="border-b border-gray-700 hover:bg-gray-800 transition-colors"
+                      className="border-b border-white/10 hover:bg-white/5 transition-colors"
                     >
                       <td className="px-6 py-4">
                         <div className="font-medium text-white">{formatDateTime(payment.effectiveDate)}</div>
@@ -825,7 +823,7 @@ const AdminSubscriptionTransactions = () => {
                           type="button"
                           onClick={() => void handleOpenInvoice(payment)}
                           disabled={!payment.stripeInvoiceId || openingInvoiceId === payment.id}
-                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500"
+                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black disabled:cursor-not-allowed disabled:border-white/10 disabled:text-gray-500"
                         >
                           {openingInvoiceId === payment.id ? 'Ouverture...' : 'Voir la facture'}
                         </button>

@@ -72,7 +72,7 @@ interface HeaderProps {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-3 border-r border-gray-600 pr-6">
+              <div className="flex items-center gap-3 border-r border-white/10 pr-6">
                 <div className="text-right">
                   <p className="text-sm text-gray-300">Bienvenue</p>
                   <p className="font-semibold text-thunder-gold">{`${user.firstName || ''} ${user.lastName || ''}`.trim()}</p>
@@ -112,8 +112,8 @@ interface HeaderProps {
                     isActive('/admin/plans') ||
                     isActive('/admin/subscription-transactions') ||
                     isActive('/admin/users')
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-purple-700 text-white hover:bg-purple-600'
+                      ? 'bg-white/15 border border-white/30 text-white'
+                      : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                   }`}
                 >
                   Interface Admin
@@ -131,7 +131,7 @@ interface HeaderProps {
               </Link>
               <button
                 onClick={handleLogout}
-                className="font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                className="font-semibold px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-200 transition-colors"
               >
                 Se déconnecter
               </button>

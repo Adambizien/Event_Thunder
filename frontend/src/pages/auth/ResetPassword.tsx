@@ -90,10 +90,10 @@ const ResetPassword = () => {
 
   if (verifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Vérification du lien...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
+          <span className="spinner mr-2 align-middle"></span>
+          Vérification du lien...
         </div>
       </div>
     );
@@ -101,31 +101,32 @@ const ResetPassword = () => {
 
   if (!token && !error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="text-white">Chargement...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
+          Chargement...
+        </div>
       </div>
     );
   }
 
   if (!isTokenValid && error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="card p-8 text-center">
             <div className="flex justify-center mb-6">
               <Logo />
             </div>
 
             <div className="mb-6">
-              <div className="text-6xl mb-4">❌</div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              <h2 className="text-3xl font-bold text-white mb-4">
                 Lien invalide ou expiré
               </h2>
-              <div className="mb-6 p-4 bg-red-50 border-2 border-red-300 text-red-800 rounded-lg">
+              <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
                 <p className="font-semibold mb-2">Erreur :</p>
                 <p className="text-sm">{error}</p>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-300 mb-6">
                 Le lien de réinitialisation a peut-être expiré ou n'est plus valide.
               </p>
             </div>
@@ -133,13 +134,13 @@ const ResetPassword = () => {
             <div className="space-y-3">
               <Link
                 to="/forgot-password"
-                className="block w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition-all text-center"
+                className="block w-full bg-thunder-gold text-black py-3 px-4 rounded-lg font-semibold hover:bg-thunder-orange transition-colors text-center"
               >
                 Demander un nouveau lien
               </Link>
               <Link
                 to="/login"
-                className="block w-full bg-gray-200 text-gray-800 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-all text-center"
+                className="block w-full bg-white/10 border border-white/20 text-white py-3 px-4 rounded-lg font-semibold hover:bg-white/20 transition-colors text-center"
               >
                 Retour à la connexion
               </Link>
@@ -152,29 +153,28 @@ const ResetPassword = () => {
 
   if (message) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="card p-8 text-center">
             <div className="flex justify-center mb-6">
               <Logo />
             </div>
 
             <div className="mb-6">
-              <div className="text-6xl mb-4">✅</div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              <h2 className="text-3xl font-bold text-white mb-4">
                 Mot de passe réinitialisé
               </h2>
-              <div className="mb-6 p-4 bg-green-50 border-2 border-green-300 text-green-800 rounded-lg">
+              <div className="mb-6 rounded-xl border border-green-500/40 bg-green-500/10 p-4 text-green-300">
                 <p className="font-semibold text-lg">{message}</p>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-300 mb-6">
                 Votre mot de passe a été changé avec succès. Vous allez être redirigé vers la page de connexion dans quelques secondes.
               </p>
             </div>
 
             <Link
               to="/login"
-              className="block w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition-all text-center"
+              className="block w-full bg-thunder-gold text-black py-3 px-4 rounded-lg font-semibold hover:bg-thunder-orange transition-colors text-center"
             >
               Aller à la connexion
             </Link>
@@ -185,22 +185,22 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy">
       <div className="w-full max-w-md px-6">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="card p-8">
           <div className="flex justify-center mb-6">
             <Logo />
           </div>
 
-          <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
+          <h2 className="text-3xl font-bold text-center text-white mb-2">
             Réinitialiser le mot de passe
           </h2>
-          <p className="text-center text-gray-600 mb-8">
+          <p className="text-center text-gray-300 mb-8">
             Entrez votre nouveau mot de passe
           </p>
 
           {passwordError && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+            <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
               {passwordError}
             </div>
           )}
@@ -245,7 +245,7 @@ const ResetPassword = () => {
             <button
               type="submit"
               disabled={loading || !passwordValidation?.isValid}
-              className="w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary"
             >
               {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
             </button>
@@ -254,7 +254,7 @@ const ResetPassword = () => {
           <div className="mt-6 text-center">
             <Link
               to="/login"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              className="text-sm text-gray-300 hover:text-white transition-colors"
             >
               ← Retour à la connexion
             </Link>

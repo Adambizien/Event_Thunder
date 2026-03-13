@@ -222,7 +222,7 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
       {loading ? (
-        <div className="rounded-lg border border-gray-700 bg-gray-800/40 p-6 text-center text-gray-300">
+        <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center text-gray-300">
           Chargement des transactions...
         </div>
       ) : (
@@ -245,7 +245,7 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
             </div>
           )}
 
-          <section className="rounded-lg border border-gray-700 bg-gray-800/30 p-4">
+          <section className="rounded-lg border border-white/10 bg-white/5 p-4">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">Abonnement actuel</h3>
               {activeSubscription ? (
@@ -253,7 +253,7 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
                   Actif
                 </span>
               ) : (
-                <span className="rounded-full bg-gray-500/15 px-3 py-1 text-xs font-semibold text-gray-300">
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-gray-300">
                   Aucun abonnement actif
                 </span>
               )}
@@ -269,14 +269,14 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
                       {getIntervalLabel(activeSubscription.plan.interval)}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-700 bg-gray-800/40 p-4">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-4">
                     <p className="text-sm text-gray-300">Tarif</p>
                     <p className="mt-1 text-lg font-bold text-white">
                       {formatCurrency(activeSubscription.plan.price, activeSubscription.plan.currency)}
                     </p>
                     <p className="text-sm text-gray-400">par période</p>
                   </div>
-                  <div className="rounded-lg border border-gray-700 bg-gray-800/40 p-4">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-4">
                     <p className="text-sm text-gray-300">Début de période</p>
                     <p className="mt-1 text-base font-semibold text-white">
                       {formatDate(activeSubscription.currentPeriodStart)}
@@ -285,7 +285,7 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
                       Stripe ID: {activeSubscription.stripeSubscriptionId}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-700 bg-gray-800/40 p-4">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-4">
                     <p className="text-sm text-gray-300">Fin de période</p>
                     <p className="mt-1 text-base font-semibold text-white">
                       {formatDate(activeSubscription.currentPeriodEnd)}
@@ -316,21 +316,21 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-700 bg-gray-800/30 p-4 text-gray-300">
+              <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-4 text-gray-300">
                 Aucun abonnement actif pour cet utilisateur.
               </div>
             )}
           </section>
 
           {payments.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-700 bg-gray-800/30 p-6 text-gray-400">
+            <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-6 text-gray-400">
               Aucune transaction disponible pour cet utilisateur.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-gray-700">
+            <div className="overflow-hidden rounded-lg border border-white/10">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700 text-left text-sm">
-                  <thead className="bg-gray-800 text-gray-300">
+                <table className="min-w-full divide-y divide-white/10 text-left text-sm">
+                  <thead className="bg-white/5 text-gray-300">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Date</th>
                       <th className="px-4 py-3 font-semibold">Plan</th>
@@ -339,7 +339,7 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
                       <th className="px-4 py-3 font-semibold">Facture Stripe</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700 text-white">
+                  <tbody className="divide-y divide-white/10 text-white">
                     {payments.map((payment) => (
                       <tr key={payment.id} className="bg-transparent">
                         <td className="px-4 py-3 text-gray-300">
@@ -387,10 +387,10 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
             </div>
           )}
 
-          <section className="rounded-lg border border-gray-700 bg-gray-800/30 p-4">
+          <section className="rounded-lg border border-white/10 bg-white/5 p-4">
             <h3 className="mb-4 text-lg font-semibold text-white">Abonnements annulés</h3>
             {canceledSubscriptions.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-700 bg-gray-800/30 p-4 text-gray-300">
+              <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-4 text-gray-300">
                 Aucun abonnement annulé pour le moment.
               </div>
             ) : (
@@ -398,7 +398,7 @@ const UserTransactionsModal = ({ isOpen, onClose, user }: UserTransactionsModalP
                 {canceledSubscriptions.map((subscription) => (
                   <article
                     key={subscription.id}
-                    className="rounded-lg border border-gray-700 bg-gray-800/40 p-4"
+                    className="rounded-lg border border-white/10 bg-white/5 p-4"
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>

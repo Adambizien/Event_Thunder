@@ -9,10 +9,10 @@ type AdminPageHeaderProps = {
 const AdminPageHeader = ({ title, subtitle, action }: AdminPageHeaderProps) => {
   if (action) {
     return (
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">{title}</h1>
-          <p className="text-gray-400">{subtitle}</p>
+          <h1 className="text-3xl font-bold text-thunder-gold mb-2">{title}</h1>
+          <p className="text-gray-300">{subtitle}</p>
         </div>
         {action}
       </div>
@@ -21,8 +21,8 @@ const AdminPageHeader = ({ title, subtitle, action }: AdminPageHeaderProps) => {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">{title}</h1>
-      <p className="text-gray-400">{subtitle}</p>
+      <h1 className="text-3xl font-bold text-thunder-gold mb-2">{title}</h1>
+      <p className="text-gray-300">{subtitle}</p>
     </div>
   );
 };

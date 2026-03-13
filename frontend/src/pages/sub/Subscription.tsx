@@ -451,21 +451,24 @@ const Subscription = () => {
     isResolvingSubscriptionState
   ) {
     return (
-      <div className="max-w-3xl mx-auto py-12 px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">Choisissez votre abonnement</h1>
-        <div className="rounded-lg border border-thunder-gold/40 bg-thunder-gold/10 p-6 text-center font-medium text-thunder-gold">
-          {loading
-            ? 'Chargement des plans...'
-            : 'Mise à jour de votre abonnement en cours...'}
+      <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold text-center mb-8 text-thunder-gold">Choisissez votre abonnement</h1>
+          <div className="rounded-2xl border border-thunder-gold/30 bg-thunder-gold/10 p-6 text-center font-medium text-thunder-gold">
+            {loading
+              ? 'Chargement des plans...'
+              : 'Mise à jour de votre abonnement en cours...'}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-4">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold text-center md:text-left">Choisissez votre abonnement</h1>
+    <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy py-12 px-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-3xl font-bold text-center md:text-left text-thunder-gold">Choisissez votre abonnement</h1>
         {isLogged && (
           <Link
             to="/subscription-history"
@@ -487,7 +490,7 @@ const Subscription = () => {
         </div>
       )}
       {error && (
-        <div className="mb-6 rounded-lg border border-red-700 bg-red-900/20 p-4 text-center font-medium text-red-300">
+        <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-center font-medium text-red-300">
           {error}
         </div>
       )}
@@ -508,7 +511,7 @@ const Subscription = () => {
             ? activeUserSubscription
             : null;
             return (
-            <div key={plan.id} className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center">
+            <div key={plan.id} className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg flex flex-col items-center">
               <h2 className="text-xl font-bold mb-2 text-white">{plan.name}</h2>
               <div className="text-3xl font-bold text-thunder-gold mb-2">
                 {plan.price} {plan.currency} / {plan.interval === 'monthly' ? 'mois' : 'an'}
@@ -516,7 +519,7 @@ const Subscription = () => {
               {plan.description && (
                 <p className="text-gray-400 mb-4 text-center">{plan.description}</p>
               )}
-              <div className="w-full mb-4 rounded-lg border border-gray-800 bg-gray-950/50 p-3 text-sm text-gray-300">
+              <div className="w-full mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                 <p>
                   <span className="text-gray-400">Evenements max:</span> {maxEventsLabel}
                 </p>
@@ -526,13 +529,13 @@ const Subscription = () => {
               </div>
               {userSub ? (
                 <div className="mt-auto w-full flex flex-col gap-3">
-                  <div className="px-6 py-2 bg-green-700 text-white font-semibold rounded opacity-80 text-center">
+                  <div className="px-6 py-2 bg-green-500/15 text-green-300 font-semibold rounded text-center border border-green-500/30">
                     Déjà inscrit à ce plan (actif)
                   </div>
                   <button
                     onClick={() => handleCancelSubscription(userSub.stripeSubscriptionId)}
                     disabled={!!canceling}
-                    className="px-6 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700 transition-colors disabled:opacity-60"
+                    className="px-6 py-2 bg-red-500/20 text-red-200 font-semibold rounded border border-red-500/40 hover:bg-red-500/30 transition-colors disabled:opacity-60"
                   >
                     {canceling === userSub.stripeSubscriptionId ? 'Annulation...' : "Annuler l'abonnement"}
                   </button>
@@ -569,7 +572,7 @@ const Subscription = () => {
             Oui, j'ai déjà un compte
           </button>
           <button
-            className="px-6 py-2 bg-gray-700 text-white font-semibold rounded hover:bg-thunder-gold hover:text-black transition-colors w-full"
+            className="px-6 py-2 bg-white/10 border border-white/20 text-white font-semibold rounded hover:bg-white/20 transition-colors w-full"
             onClick={() => {
               setShowAuthChoice(null);
               navigate('/register?redirect=subscription');
@@ -585,6 +588,7 @@ const Subscription = () => {
           </button>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };

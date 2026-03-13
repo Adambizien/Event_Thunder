@@ -102,17 +102,16 @@ const Register = ({ onRegister }: RegisterProps) => {
         {/* Error Message */}
         {error && (
           <div className="error-box mb-6">
-            <span className="text-xl">⚠️</span>
             <div className="flex-1">
               <p className="font-semibold">Error</p>
               <p className="text-sm">{error}</p>
             </div>
             <button
               onClick={() => setError('')}
-              className="text-red-700 hover:text-red-900 font-bold text-lg leading-none"
+              className="text-red-200 hover:text-red-100 font-bold text-lg leading-none"
               aria-label="Close error"
             >
-              ✕
+              X
             </button>
           </div>
         )}
@@ -120,8 +119,8 @@ const Register = ({ onRegister }: RegisterProps) => {
         {/* Card */}
         <div className="card p-8 mb-6">
           {/* Required Fields Note */}
-          <p className="text-gray-500 text-xs mb-4">
-            Les champs marqués <span className="text-red-600 font-bold">*</span> sont obligatoires.
+          <p className="text-gray-400 text-xs mb-4">
+            Les champs marqués <span className="text-red-300 font-bold">*</span> sont obligatoires.
           </p>
           {/* Google Auth Button */}
           <GoogleAuthButton 
@@ -132,10 +131,10 @@ const Register = ({ onRegister }: RegisterProps) => {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full border-t border-white/15"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-600">ou avec l'email</span>
+              <span className="px-4 bg-transparent text-gray-300">ou avec l'email</span>
             </div>
           </div>
 
@@ -143,8 +142,8 @@ const Register = ({ onRegister }: RegisterProps) => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Prénom <span className="text-red-600">*</span>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  Prénom <span className="text-red-300">*</span>
                 </label>
                 <input
                   type="text"
@@ -159,8 +158,8 @@ const Register = ({ onRegister }: RegisterProps) => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nom <span className="text-red-600">*</span>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  Nom <span className="text-red-300">*</span>
                 </label>
                 <input
                   type="text"
@@ -176,8 +175,8 @@ const Register = ({ onRegister }: RegisterProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Numéro de téléphone <span className="text-gray-500">(optionnel)</span>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Numéro de téléphone <span className="text-gray-400">(optionnel)</span>
               </label>
               <input
                 type="tel"
@@ -191,8 +190,8 @@ const Register = ({ onRegister }: RegisterProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Adresse e-mail <span className="text-red-600">*</span>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Adresse e-mail <span className="text-red-300">*</span>
               </label>
               <input
                 type="email"
@@ -264,8 +263,8 @@ const Register = ({ onRegister }: RegisterProps) => {
         </div>
 
         {/* Sign In Link */}
-        <div className="text-center py-4 border-t border-gray-200">
-          <p className="text-gray-600 text-sm">
+        <div className="text-center py-4 border-t border-white/10">
+          <p className="text-gray-300 text-sm">
             Vous avez déjà un compte?{' '}
             <Link 
               to="/login"
