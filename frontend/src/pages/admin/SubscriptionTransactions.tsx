@@ -591,7 +591,7 @@ const AdminSubscriptionTransactions = () => {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+        <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
           {error}
         </div>
       )}
@@ -803,8 +803,8 @@ const AdminSubscriptionTransactions = () => {
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             payment.status === 'paid'
-                              ? 'bg-green-500/15 text-green-300'
-                              : 'bg-red-500/15 text-red-300'
+                              ? 'bg-green-500/25 text-green-300'
+                              : 'bg-red-500/25 text-red-300'
                           }`}
                         >
                           {payment.status === 'paid' ? 'Payée' : 'Échouée'}
@@ -823,7 +823,7 @@ const AdminSubscriptionTransactions = () => {
                           type="button"
                           onClick={() => void handleOpenInvoice(payment)}
                           disabled={!payment.stripeInvoiceId || openingInvoiceId === payment.id}
-                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-3 py-1 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black disabled:cursor-not-allowed disabled:border-white/10 disabled:text-gray-500"
+                          className="inline-flex items-center justify-center rounded border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-gray-500"
                         >
                           {openingInvoiceId === payment.id ? 'Ouverture...' : 'Voir la facture'}
                         </button>

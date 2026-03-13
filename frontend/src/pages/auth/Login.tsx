@@ -157,9 +157,9 @@ const Login = ({ onLogin }: LoginProps) => {
               />
               <Link 
                 to="/forgot-password"
-                className="text-sm text-thunder-gold hover:text-thunder-orange transition-colors mt-2 inline-block"
+                className="text-sm text-thunder-gold hover:text-thunder-orange transition-colors mt-2 inline-block underline"
               >
-                Mot de passe oublié?
+                Mot de passe oublié ?
               </Link>
             </div>
 
@@ -183,7 +183,7 @@ const Login = ({ onLogin }: LoginProps) => {
         {/* Sign Up Link */}
         <div className="text-center py-4 border-t border-white/10">
           <p className="text-gray-300 text-sm">
-            Vous n'avez pas de compte?{' '}
+            Vous n'avez pas de compte ?{' '}
             <Link 
               to="/register"
               className="btn-secondary ml-1"

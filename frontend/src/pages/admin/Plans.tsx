@@ -161,7 +161,7 @@ const AdminPlans = () => {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+        <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
           {error}
         </div>
       )}
@@ -174,7 +174,7 @@ const AdminPlans = () => {
         size="lg"
       >
         {formError && (
-          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300 mb-4">
+          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300 mb-4">
             {formError}
           </div>
         )}
@@ -412,7 +412,7 @@ const AdminPlans = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(plan.id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 py-2 rounded transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 py-2 rounded transition-colors"
                     disabled={isDeleting}
                   >
                     Supprimer

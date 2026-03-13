@@ -178,13 +178,13 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
           </div>
 
           {successMessage && (
-            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
+            <div className="mb-6 p-4 bg-green-500/25 border border-green-500/50 rounded-lg">
               <p className="text-green-400 text-sm">{successMessage}</p>
             </div>
           )}
 
           {errors.submit && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="mb-6 p-4 bg-red-500/30 border border-red-500/50 rounded-lg">
               <p className="text-red-400 text-sm">{errors.submit}</p>
             </div>
           )}
@@ -340,19 +340,12 @@ const Profile = ({ user, onUpdate, onLogout }: ProfileProps) => {
             {/* Submit Button */}
             <div className="flex gap-4 pt-4">
               <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="flex-1 py-3 px-6 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all"
-              >
-                Annuler
-              </button>
-              <button
                 type="submit"
                 disabled={isLoading || (isPasswordMode && passwordValidation !== null && !passwordValidation.isValid)}
                 className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
                   isLoading || (isPasswordMode && passwordValidation !== null && !passwordValidation.isValid)
-                    ? 'bg-white/10 text-gray-400 cursor-not-allowed'
-                    : 'bg-thunder-gold text-black hover:bg-thunder-orange'
+                    ? 'bg-white/15 text-gray-400 cursor-not-allowed'
+                    : 'bg-white/15 hover:bg-white/25 border border-white/30 text-white'
                 }`}
               >
                 {isLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}

@@ -240,14 +240,14 @@ const SubscriptionHistory = () => {
           </div>
           <Link
             to="/subscription"
-            className="inline-flex items-center justify-center rounded-lg bg-thunder-gold px-4 py-2 font-semibold text-black transition-colors hover:bg-thunder-orange"
+            className="inline-flex items-center justify-center rounded-lg border border-thunder-gold/40 px-4 py-2 font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black"
           >
             Voir les offres
           </Link>
         </div>
 
         {error && (
-          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
             {error}
           </div>
         )}
@@ -256,8 +256,8 @@ const SubscriptionHistory = () => {
           <div
             className={`rounded-xl border p-4 ${
               actionMessage.type === 'success'
-                ? 'border-green-500/40 bg-green-500/10 text-green-300'
-                : 'border-red-500/40 bg-red-500/10 text-red-300'
+                ? 'border-green-500/50 bg-green-500/25 text-green-300'
+                : 'border-red-500/50 bg-red-500/30 text-red-300'
             }`}
           >
             {actionMessage.text}
@@ -268,7 +268,7 @@ const SubscriptionHistory = () => {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-white">Abonnement actuel</h2>
             {activeSubscription ? (
-              <span className="rounded-full bg-green-500/15 px-3 py-1 text-sm font-semibold text-green-300">
+              <span className="rounded-full bg-green-500/25 px-3 py-1 text-sm font-semibold text-green-300">
                 Actif
               </span>
             ) : (
@@ -309,7 +309,7 @@ const SubscriptionHistory = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/25 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="font-semibold text-white">Annuler cet abonnement</p>
                   <p className="text-sm text-gray-300">
@@ -320,7 +320,7 @@ const SubscriptionHistory = () => {
                   type="button"
                   onClick={() => void handleCancelSubscription(activeSubscription.stripeSubscriptionId)}
                   disabled={cancelingSubscriptionId === activeSubscription.stripeSubscriptionId}
-                  className="inline-flex items-center justify-center rounded-lg border border-red-400/50 px-4 py-2 font-semibold text-red-300 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center justify-center rounded-lg border border-red-400/50 px-4 py-2 font-semibold text-red-300 transition-colors hover:bg-red-500/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {cancelingSubscriptionId === activeSubscription.stripeSubscriptionId
                     ? 'Annulation...'
@@ -373,8 +373,8 @@ const SubscriptionHistory = () => {
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-semibold ${
                               payment.status === 'paid'
-                                ? 'bg-green-500/15 text-green-300'
-                                : 'bg-red-500/15 text-red-300'
+                                ? 'bg-green-500/25 text-green-300'
+                                : 'bg-red-500/25 text-red-300'
                             }`}
                           >
                             {payment.status === 'paid' ? 'Payé' : 'Échec'}
@@ -385,7 +385,7 @@ const SubscriptionHistory = () => {
                             type="button"
                             onClick={() => void handleOpenInvoice(payment.stripeInvoiceId)}
                             disabled={openingInvoiceId === payment.stripeInvoiceId || !payment.stripeInvoiceId}
-                            className="rounded-lg border border-thunder-gold/40 px-3 py-2 text-xs font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {openingInvoiceId === payment.stripeInvoiceId
                               ? 'Ouverture...'
@@ -421,7 +421,7 @@ const SubscriptionHistory = () => {
                         {formatCurrency(subscription.plan.price, subscription.plan.currency)} • {getIntervalLabel(subscription.plan.interval)}
                       </p>
                     </div>
-                    <span className="rounded-full bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300">
+                    <span className="rounded-full bg-red-500/25 px-3 py-1 text-xs font-semibold text-red-300">
                       Annulé
                     </span>
                   </div>

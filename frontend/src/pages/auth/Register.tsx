@@ -265,7 +265,7 @@ const Register = ({ onRegister }: RegisterProps) => {
         {/* Sign In Link */}
         <div className="text-center py-4 border-t border-white/10">
           <p className="text-gray-300 text-sm">
-            Vous avez déjà un compte?{' '}
+            Vous avez déjà un compte ?{' '}
             <Link 
               to="/login"
               className={`ml-1 ${loading ? 'opacity-50 cursor-not-allowed' : 'btn-secondary'}`}

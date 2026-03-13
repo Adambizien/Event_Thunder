@@ -131,7 +131,7 @@ interface HeaderProps {
               </Link>
               <button
                 onClick={handleLogout}
-                className="font-semibold px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-200 transition-colors"
+                className="font-semibold px-4 py-2 rounded-lg bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 text-red-200 transition-colors"
               >
                 Se déconnecter
               </button>

@@ -29,6 +29,11 @@ button {
   transition: all 0.2s ease-in-out;
 }
 
+select option {
+  background-color: #0b3f4c;
+  color: #ffffff;
+}
+
 .btn-primary {
   width: 100%;
   padding: 0.75rem 1rem;

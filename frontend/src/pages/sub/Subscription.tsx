@@ -490,7 +490,7 @@ const Subscription = () => {
         </div>
       )}
       {error && (
-        <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-center font-medium text-red-300">
+        <div className="mb-6 rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-center font-medium text-red-300">
           {error}
         </div>
       )}
@@ -529,13 +529,13 @@ const Subscription = () => {
               </div>
               {userSub ? (
                 <div className="mt-auto w-full flex flex-col gap-3">
-                  <div className="px-6 py-2 bg-green-500/15 text-green-300 font-semibold rounded text-center border border-green-500/30">
+                  <div className="px-6 py-2 bg-green-500/25 text-green-300 font-semibold rounded text-center border border-green-500/50">
                     Déjà inscrit à ce plan (actif)
                   </div>
                   <button
                     onClick={() => handleCancelSubscription(userSub.stripeSubscriptionId)}
                     disabled={!!canceling}
-                    className="px-6 py-2 bg-red-500/20 text-red-200 font-semibold rounded border border-red-500/40 hover:bg-red-500/30 transition-colors disabled:opacity-60"
+                    className="px-6 py-2 bg-red-500/30 text-red-200 font-semibold rounded border border-red-500/50 hover:bg-red-500/40 transition-colors disabled:opacity-60"
                   >
                     {canceling === userSub.stripeSubscriptionId ? 'Annulation...' : "Annuler l'abonnement"}
                   </button>
@@ -544,7 +544,7 @@ const Subscription = () => {
                 <button
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={!!subscribing || !!canceling}
-                  className="mt-auto px-6 py-2 bg-thunder-gold text-black font-semibold rounded hover:bg-thunder-orange transition-colors disabled:opacity-60"
+                  className="mt-auto px-6 py-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold rounded transition-colors disabled:opacity-60"
                 >
                   {subscribing === plan.id ? 'Redirection...' : 'S’abonner'}
                 </button>

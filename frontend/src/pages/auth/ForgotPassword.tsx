@@ -29,7 +29,25 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy">
       <div className="w-full max-w-md px-6">
-        <div className="card p-8">
+        <div className="card p-8 relative">
+          <Link
+            to="/login"
+            className="absolute left-4 top-4 inline-flex items-center justify-center rounded-lg bg-white/10 border border-white/20 p-2 text-white transition-colors hover:bg-white/20"
+            aria-label="Retour à la connexion"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </Link>
           <div className="flex justify-center mb-6">
             <Logo />
           </div>
@@ -42,13 +60,13 @@ const ForgotPassword = () => {
           </p>
 
           {message && (
-            <div className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 p-4 text-green-300">
+            <div className="mb-4 rounded-xl border border-green-500/50 bg-green-500/25 p-4 text-green-300">
               {message}
             </div>
           )}
 
           {error && (
-            <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+            <div className="mb-4 rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
               {error}
             </div>
           )}
@@ -79,14 +97,7 @@ const ForgotPassword = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <Link
-              to="/login"
-              className="text-sm text-gray-300 hover:text-white transition-colors"
-            >
-              ← Retour à la connexion
-            </Link>
-          </div>
+          <div className="mt-6 text-center"></div>
         </div>
       </div>
     </div>

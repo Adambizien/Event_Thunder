@@ -55,7 +55,7 @@ const AdminDashboard = () => {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+      <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
         {error}
       </div>
     );
@@ -101,19 +101,6 @@ const AdminDashboard = () => {
             </div>
             <span className="text-2xl font-semibold text-thunder-gold">Active</span>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-        <h2 className="text-xl font-bold text-white mb-4">Actions rapides</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button className="bg-thunder-gold hover:bg-thunder-orange text-black font-semibold py-3 rounded-lg transition-colors">
-            Créer un plan
-          </button>
-          <button className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors">
-            Voir les utilisateurs
-          </button>
         </div>
       </div>
     </div>

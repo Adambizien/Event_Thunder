@@ -160,7 +160,7 @@ const AdminUsers = () => {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+        <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
           {error}
         </div>
       )}
@@ -331,7 +331,7 @@ const AdminUsers = () => {
                           </div>
                         ) : (
                           <div className="flex flex-col space-y-2">
-                            <div className="inline-flex bg-red-500/10 text-red-300 px-3 py-1 rounded-full text-sm font-medium self-start border border-red-500/30">
+                            <div className="inline-flex bg-red-500/30 text-red-300 px-3 py-1 rounded-full text-sm font-medium self-start border border-red-500/50">
                               Non abonné
                             </div>
                             <button
@@ -355,7 +355,7 @@ const AdminUsers = () => {
                         </button>
                         <button
                           onClick={() => handleDelete(user.id)}
-                          className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-red-200 text-xs transition-colors"
+                          className="px-2 py-1 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-xs transition-colors"
                           title="Supprimer l'utilisateur"
                         >
                           Supprimer le compte
@@ -394,7 +394,7 @@ const AdminUsers = () => {
             </select>
           </div>
           {roleError && (
-            <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-300 mb-2">
+            <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300 mb-2">
               {roleError}
             </div>
           )}
@@ -409,7 +409,7 @@ const AdminUsers = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded bg-thunder-gold text-black font-semibold hover:bg-thunder-orange disabled:opacity-60"
+              className="px-4 py-2 rounded bg-white/15 hover:bg-white/25 border border-white/30 text-white disabled:opacity-60"
               disabled={roleLoading}
             >
               {roleLoading ? 'Modification...' : 'Valider'}
