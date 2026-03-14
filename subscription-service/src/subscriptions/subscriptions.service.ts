@@ -566,7 +566,7 @@ export class SubscriptionsService {
     activePlanId: string,
     authHeader?: string,
   ): Promise<{ message: string; canceledCount: number }> {
-    const activeSubscriptions = await this.prisma.subscription.findMany({
+    let activeSubscriptions = await this.prisma.subscription.findMany({
       where: {
         user_id: userId,
         status: SubscriptionStatus.active,
@@ -574,9 +574,28 @@ export class SubscriptionsService {
       orderBy: { created_at: 'desc' },
     });
 
-    const activeOnTargetPlan = activeSubscriptions.filter(
+    let activeOnTargetPlan = activeSubscriptions.filter(
       (sub) => sub.plan_id === activePlanId,
     );
+
+    for (
+      let attempt = 0;
+      attempt < 8 && activeOnTargetPlan.length === 0;
+      attempt += 1
+    ) {
+      await this.wait(500);
+      activeSubscriptions = await this.prisma.subscription.findMany({
+        where: {
+          user_id: userId,
+          status: SubscriptionStatus.active,
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      activeOnTargetPlan = activeSubscriptions.filter(
+        (sub) => sub.plan_id === activePlanId,
+      );
+    }
 
     if (activeOnTargetPlan.length === 0) {
       throw new BadRequestException(
@@ -939,5 +958,9 @@ export class SubscriptionsService {
         },
       ),
     );
+  }
+
+  private async wait(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
