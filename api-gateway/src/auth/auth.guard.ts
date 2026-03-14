@@ -17,7 +17,7 @@ export class AuthGuard implements CanActivate {
 
   private getAuthUrl(): string {
     return (
-      (process.env.AUTH_SERVICE_URL || 'http://auth-service:3003') +
+      (process.env.AUTH_SERVICE_URL || 'http://auth-service:3000') +
       '/api/auth/verify'
     );
   }

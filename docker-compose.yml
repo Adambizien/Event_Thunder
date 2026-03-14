@@ -27,25 +27,29 @@ services:
     build: ./api-gateway
     restart: unless-stopped
     environment:
-      PORT: ${API_GATEWAY_PORT}
+      PORT: 3000
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
       USER_SERVICE_URL: ${USER_SERVICE_URL}
       BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
       SUBSCRIPTION_SERVICE_URL: ${SUBSCRIPTION_SERVICE_URL}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
+      COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL}
     ports:
-      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+      - "${API_GATEWAY_PORT}:3000"
     depends_on:
       - auth-service
       - user-service
       - billing-service
       - subscription-service
+      - event-service
+      - comment-service
 
   # Auth Service
   auth-service:
     build: ./auth-service
     restart: unless-stopped
     environment:
-      PORT: ${AUTH_SERVICE_PORT}
+      PORT: 3000
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       USER_SERVICE_URL: ${USER_SERVICE_URL}
@@ -68,7 +72,7 @@ services:
     build: ./user-service
     restart: unless-stopped
     environment:
-      PORT: ${USER_SERVICE_PORT}
+      PORT: 3000
       DB_HOST: ${POSTGRES_HOST}
       DB_PORT: 5432
       DB_NAME: ${USER_DATABASE}
@@ -84,18 +88,57 @@ services:
       postgres:
         condition: service_healthy
 
+  # Event Service
+  event-service:
+    build: ./event-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${EVENT_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Comment Service
+  comment-service:
+    build: ./comment-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${COMMENT_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Subscription Service:
   subscription-service:
     build: ./subscription-service
     restart: unless-stopped
     environment:
-      PORT: ${SUBSCRIPTION_SERVICE_PORT}
+      PORT: 3000
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
       DB_HOST: ${POSTGRES_HOST}
       DB_PORT: 5432
       DB_NAME: ${BILLING_DATABASE}
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
-      BILLING_SERVICE_URL: http://billing-service:${BILLING_SERVICE_PORT}
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       RABBITMQ_EXCHANGE: billing.events
       RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.billing.events
@@ -114,7 +157,7 @@ services:
     build: ./billing-service
     restart: unless-stopped
     environment:
-      PORT: ${BILLING_SERVICE_PORT}
+      PORT: 3000
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       RABBITMQ_EXCHANGE: billing.events
       NODE_ENV: ${NODE_ENV}
@@ -124,7 +167,7 @@ services:
       - stripe_secret_key
       - stripe_webhook_secret
     ports:
-      - "${BILLING_SERVICE_PORT}:${BILLING_SERVICE_PORT}"
+      - "${BILLING_SERVICE_PORT}:3000"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -148,7 +191,7 @@ services:
     build: ./mailing-service
     restart: unless-stopped
     environment:
-      PORT: ${MAILING_SERVICE_PORT}
+      PORT: 3000
       RESEND_API_KEY_FILE: /run/secrets/resend_api_key
       MAIL_FROM: ${MAIL_FROM}
       PRODUCT_NAME: ${PRODUCT_NAME}

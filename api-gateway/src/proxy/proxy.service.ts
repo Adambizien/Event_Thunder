@@ -22,18 +22,18 @@ export class ProxyService {
 
   private routeTarget(originalUrl: string) {
     if (originalUrl.startsWith('/api/auth')) {
-      return process.env.AUTH_SERVICE_URL || 'http://auth-service:3003';
+      return process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
     }
     if (originalUrl.startsWith('/api/users')) {
-      return process.env.USER_SERVICE_URL || 'http://user-service:3002';
+      return process.env.USER_SERVICE_URL || 'http://user-service:3000';
     }
     if (originalUrl.startsWith('/api/billing')) {
-      return process.env.BILLING_SERVICE_URL || 'http://billing-service:3006';
+      return process.env.BILLING_SERVICE_URL || 'http://billing-service:3000';
     }
     if (originalUrl.startsWith('/api/subscriptions')) {
       return (
         process.env.SUBSCRIPTION_SERVICE_URL ||
-        'http://subscription-service:3005'
+        'http://subscription-service:3000'
       );
     }
     return null;

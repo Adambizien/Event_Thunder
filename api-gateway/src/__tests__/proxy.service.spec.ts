@@ -25,7 +25,7 @@ describe('ProxyService', () => {
         path: string,
       ) => string | null;
       const target = routeTargetFn.call(service, '/api/auth/login');
-      expect(target).toBe('http://auth-service:3003');
+      expect(target).toBe('http://auth-service:3000');
     });
 
     it("devrait retourner l'URL du service utilisateur pour /api/users", () => {
@@ -34,7 +34,7 @@ describe('ProxyService', () => {
         path: string,
       ) => string | null;
       const target = routeTargetFn.call(service, '/api/users/profile');
-      expect(target).toBe('http://user-service:3002');
+      expect(target).toBe('http://user-service:3000');
     });
 
     it('devrait retourner null pour un chemin non reconnu', () => {
@@ -127,7 +127,7 @@ describe('ProxyService', () => {
        
       expect(mockedAxios.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: 'http://auth-service:3003/api/auth/login',
+          url: 'http://auth-service:3000/api/auth/login',
         }),
       );
     });
@@ -399,7 +399,7 @@ describe('ProxyService', () => {
 
       expect(mockedAxios.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: 'http://user-service:3002/api/users/profile',
+          url: 'http://user-service:3000/api/users/profile',
         }),
       );
       expect(result.status).toBe(200);
@@ -475,7 +475,7 @@ describe('ProxyService', () => {
 
       expect(mockedAxios.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: 'http://user-service:3002/api/users/search?filter=active&sort=name&page=1',
+          url: 'http://user-service:3000/api/users/search?filter=active&sort=name&page=1',
           params: { filter: 'active', sort: 'name', page: '1' },
         }),
       );

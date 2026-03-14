@@ -40,8 +40,8 @@ describe('AuthService - Tests réels de logique métier', () => {
     process.env.JWT_SECRET = 'test-secret-key';
     process.env.GOOGLE_CLIENT_ID = 'test-client-id';
     process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
-    process.env.USER_SERVICE_URL = 'http://user-service:3002';
-    process.env.MAILING_SERVICE_URL = 'http://mailing-service:3004';
+    process.env.USER_SERVICE_URL = 'http://user-service:3000';
+    process.env.MAILING_SERVICE_URL = 'http://mailing-service:3000';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -99,7 +99,7 @@ describe('AuthService - Tests réels de logique métier', () => {
 
       // ✓ Vérifie les appels réels
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        'http://user-service:3002/api/users',
+        'http://user-service:3000/api/users',
         registerDto,
       );
       expect(mockJwtService.sign).toHaveBeenCalledWith({ id: 'user-123' });
@@ -298,7 +298,7 @@ describe('AuthService - Tests réels de logique métier', () => {
 
       // ✓ Vérifie que le service d'authentification utilisateur a été appelé
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        'http://user-service:3002/api/users/verify',
+        'http://user-service:3000/api/users/verify',
         loginDto,
       );
       expect(mockJwtService.sign).toHaveBeenCalledWith({ id: 'user-789' });
@@ -401,7 +401,7 @@ describe('AuthService - Tests réels de logique métier', () => {
       
       // ✓ Vérifie que le bon endpoint est appelé
       expect(mockHttpService.get).toHaveBeenCalledWith(
-        'http://user-service:3002/api/users/user-123',
+        'http://user-service:3000/api/users/user-123',
       );
     });
 
@@ -494,7 +494,7 @@ describe('AuthService - Tests réels de logique métier', () => {
 
       // ✓ VRAI TEST: Appel correct au service utilisateur
       expect(mockHttpService.patch).toHaveBeenCalledWith(
-        'http://user-service:3002/api/users/password',
+        'http://user-service:3000/api/users/password',
         {
           email,
           newPassword: 'NewPassword999!',

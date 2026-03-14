@@ -18,6 +18,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
 
 
-EXPOSE 3005
+EXPOSE 3000
 
 CMD ["dist/main.js"]

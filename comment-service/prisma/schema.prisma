@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Comment {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String        @db.Uuid
+  event_id      String        @db.Uuid
+  content       String        @db.Text
+  created_at    DateTime      @default(now()) @db.Timestamp(6)
+  updated_at    DateTime      @updatedAt @db.Timestamp(6)
+  comment_likes CommentLike[]
+
+  @@index([user_id])
+  @@index([event_id])
+  @@map("comments")
+}
+
+model CommentLike {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  comment_id String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  comment    Comment  @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([comment_id])
+  @@map("comment_likes")
+}

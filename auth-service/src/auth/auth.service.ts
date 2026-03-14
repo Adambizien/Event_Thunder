@@ -47,9 +47,9 @@ export class AuthService {
     private readonly httpService: HttpService,
   ) {
     this.userServiceUrl =
-      process.env.USER_SERVICE_URL || 'http://user-service:3002';
+      process.env.USER_SERVICE_URL || 'http://user-service:3000';
     this.mailingServiceUrl =
-      process.env.MAILING_SERVICE_URL || 'http://mailing-service:3004';
+      process.env.MAILING_SERVICE_URL || 'http://mailing-service:3000';
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     const googleClientSecret = readSecret('GOOGLE_CLIENT_SECRET');

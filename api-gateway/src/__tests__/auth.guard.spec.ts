@@ -129,7 +129,7 @@ describe('AuthGuard', () => {
       await guard.canActivate(context);
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        'http://auth-service:3003/api/auth/verify',
+        'http://auth-service:3000/api/auth/verify',
         expect.any(Object),
       );
 
