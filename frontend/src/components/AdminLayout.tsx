@@ -6,6 +6,7 @@ const AdminLayout = () => {
   const menuItems = [
     { path: '/admin', label: 'Tableau de bord' },
     { path: '/admin/plans', label: 'Gestion des plans' },
+    { path: '/admin/event-categories', label: "Catégories d'événements" },
     {
       path: '/admin/subscription-transactions',
       label: 'Transactions abonnements',

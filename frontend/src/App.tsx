@@ -23,6 +23,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminPlans from './pages/admin/Plans';
 import AdminSubscriptionTransactions from './pages/admin/SubscriptionTransactions';
 import AdminUsers from './pages/admin/Users';
+import AdminEventCategories from './pages/admin/EventCategories';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
@@ -191,6 +192,7 @@ function AppContent() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="plans" element={<AdminPlans />} />
+          <Route path="event-categories" element={<AdminEventCategories />} />
           <Route path="subscription-transactions" element={<AdminSubscriptionTransactions />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>

@@ -36,6 +36,9 @@ export class ProxyService {
         'http://subscription-service:3000'
       );
     }
+    if (originalUrl.startsWith('/api/events')) {
+      return process.env.EVENT_SERVICE_URL || 'http://event-service:3000';
+    }
     return null;
   }
 

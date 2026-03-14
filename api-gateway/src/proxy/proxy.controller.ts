@@ -101,6 +101,18 @@ export class ProxyController {
       return true;
     }
 
+    if (path === '/api/events/categories' && method === 'POST') {
+      return true;
+    }
+
+    if (/^\/api\/events\/categories\/[^/]+$/.test(path) && method === 'PATCH') {
+      return true;
+    }
+
+    if (/^\/api\/events\/categories\/[^/]+$/.test(path) && method === 'DELETE') {
+      return true;
+    }
+
     return false;
   }
 
