@@ -2,7 +2,7 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
+  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import axios from 'axios';
@@ -26,7 +26,7 @@ export class AuthGuard implements CanActivate {
     const authHeader = req.get('authorization');
 
     if (!authHeader) {
-      throw new ForbiddenException('En-tête Authorization manquant');
+      throw new UnauthorizedException('En-tête Authorization manquant');
     }
 
     try {
@@ -40,14 +40,14 @@ export class AuthGuard implements CanActivate {
       });
 
       if (response.status !== 200) {
-        throw new ForbiddenException('Token invalide');
+        throw new UnauthorizedException('Token invalide');
       }
 
       return response.data.user;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn('Vérification du token échouée: ' + message);
-      throw new ForbiddenException('Token invalide ou expiré');
+      throw new UnauthorizedException('Token invalide ou expiré');
     }
   }
 

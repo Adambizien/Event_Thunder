@@ -14,6 +14,26 @@ const api = axios.create({
   timeout: 10000,
 });
 
+const extractErrorMessage = (error: unknown): string => {
+  if (!axios.isAxiosError(error)) {
+    return 'Erreur inconnue';
+  }
+
+  const payload = error.response?.data as
+    | { message?: string | string[]; error?: string }
+    | undefined;
+
+  if (Array.isArray(payload?.message) && payload.message.length > 0) {
+    return payload.message.join(', ');
+  }
+
+  if (typeof payload?.message === 'string' && payload.message.trim()) {
+    return payload.message;
+  }
+
+  return error.message || 'Erreur inconnue';
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -28,11 +48,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const requestUrl = String(error.config?.url || '');
+    const isAuthSessionRoute =
+      requestUrl.includes('/api/auth/verify') ||
+      requestUrl.includes('/api/auth/logout');
+
+    if (status === 401 || (status === 403 && isAuthSessionRoute)) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
-    return Promise.reject(error);
+
+    return Promise.reject(new Error(extractErrorMessage(error)));
   }
 );
 

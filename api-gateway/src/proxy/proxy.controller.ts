@@ -113,6 +113,18 @@ export class ProxyController {
       return true;
     }
 
+    if (/^\/api\/events\/?$/.test(path) && method === 'POST') {
+      return true;
+    }
+
+    if (/^\/api\/events\/[^/]+$/.test(path) && method === 'PATCH') {
+      return true;
+    }
+
+    if (/^\/api\/events\/[^/]+$/.test(path) && method === 'DELETE') {
+      return true;
+    }
+
     return false;
   }
 
@@ -149,6 +161,15 @@ export class ProxyController {
           : {};
       req.body = body;
       body['currentEmail'] = user.email;
+    }
+
+    if (/^\/api\/events\/?$/.test(path) && method === 'POST' && user.id) {
+      const body =
+        req.body && typeof req.body === 'object'
+          ? (req.body as Record<string, unknown>)
+          : {};
+      req.body = body;
+      body['creator_id'] = user.id;
     }
 
     if (!isAdmin && /^\/api\/users\/email\/[^/]+$/.test(path)) {

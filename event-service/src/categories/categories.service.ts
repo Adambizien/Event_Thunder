@@ -84,6 +84,18 @@ export class CategoriesService {
   }
 
   async remove(id: string) {
+    const linkedEventsCount = await this.prisma.event.count({
+      where: {
+        category_id: id,
+      },
+    });
+
+    if (linkedEventsCount > 0) {
+      throw new ConflictException(
+        'Impossible de supprimer cette catégorie car elle est utilisée par des événements',
+      );
+    }
+
     try {
       return await this.prisma.category.delete({
         where: { id },
@@ -92,12 +104,6 @@ export class CategoriesService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException('Catégorie introuvable');
-        }
-
-        if (error.code === 'P2003') {
-          throw new ConflictException(
-            'Impossible de supprimer cette catégorie car elle est utilisée par des événements',
-          );
         }
       }
 
