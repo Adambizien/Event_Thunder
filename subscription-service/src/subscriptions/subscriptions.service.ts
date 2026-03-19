@@ -563,7 +563,7 @@ export class SubscriptionsService {
 
   async finalizePlanChange(
     userId: string,
-    activePlanId: string,
+    activePlanId?: string,
     authHeader?: string,
   ): Promise<{ message: string; canceledCount: number }> {
     let activeSubscriptions = await this.prisma.subscription.findMany({
@@ -574,13 +574,15 @@ export class SubscriptionsService {
       orderBy: { created_at: 'desc' },
     });
 
-    let activeOnTargetPlan = activeSubscriptions.filter(
-      (sub) => sub.plan_id === activePlanId,
-    );
+    let activeOnTargetPlan = activePlanId
+      ? activeSubscriptions.filter((sub) => sub.plan_id === activePlanId)
+      : [];
 
     for (
       let attempt = 0;
-      attempt < 8 && activeOnTargetPlan.length === 0;
+      attempt < 20 &&
+      (activeSubscriptions.length === 0 ||
+        (Boolean(activePlanId) && activeOnTargetPlan.length === 0));
       attempt += 1
     ) {
       await this.wait(500);
@@ -592,25 +594,62 @@ export class SubscriptionsService {
         orderBy: { created_at: 'desc' },
       });
 
-      activeOnTargetPlan = activeSubscriptions.filter(
-        (sub) => sub.plan_id === activePlanId,
+      activeOnTargetPlan = activePlanId
+        ? activeSubscriptions.filter((sub) => sub.plan_id === activePlanId)
+        : [];
+    }
+
+    if (activeSubscriptions.length === 0) {
+      return {
+        message:
+          "Aucun abonnement actif n'est encore visible. Réessayez dans quelques secondes.",
+        canceledCount: 0,
+      };
+    }
+
+    const subscriptionToKeepRaw =
+      activeOnTargetPlan[0] ?? activeSubscriptions[0] ?? null;
+
+    if (!subscriptionToKeepRaw) {
+      return {
+        message: 'Aucun abonnement actif à consolider',
+        canceledCount: 0,
+      };
+    }
+
+    if (activePlanId && activeOnTargetPlan.length === 0) {
+      this.logger.warn(
+        `Plan actif cible non trouvé pour user=${userId}, plan=${activePlanId}; conservation du plus récent abonnement actif`,
       );
     }
 
-    if (activeOnTargetPlan.length === 0) {
-      throw new BadRequestException(
-        'Aucun abonnement actif trouvé pour le nouveau plan',
-      );
-    }
-
-    const subscriptionToKeep = this.toSubscriptionModel(activeOnTargetPlan[0]);
-    const toCancel = activeSubscriptions.filter(
+    const subscriptionToKeep = this.toSubscriptionModel(subscriptionToKeepRaw);
+    const toCancelActive = activeSubscriptions.filter(
       (sub) => sub.id !== subscriptionToKeep.id,
     );
 
-    let canceledCount = 0;
-    for (const sub of toCancel) {
+    const recentCancellationCutoff = new Date(Date.now() - 15 * 60 * 1000);
+    const recentlyCanceled = await this.prisma.subscription.findMany({
+      where: {
+        user_id: userId,
+        status: SubscriptionStatus.canceled,
+        canceled_at: { gte: recentCancellationCutoff },
+        id: { not: subscriptionToKeep.id },
+      },
+      orderBy: { updated_at: 'desc' },
+    });
+
+    const toCancelById = new Map<string, SubscriptionModel>();
+    for (const sub of [...toCancelActive, ...recentlyCanceled]) {
       const subscription = this.toSubscriptionModel(sub);
+      if (subscription.stripe_subscription_id === subscriptionToKeep.stripe_subscription_id) {
+        continue;
+      }
+      toCancelById.set(subscription.id, subscription);
+    }
+
+    let canceledCount = 0;
+    for (const subscription of toCancelById.values()) {
       await this.cancelSubscriptionWithBilling(
         userId,
         subscription.stripe_subscription_id,
@@ -662,6 +701,9 @@ export class SubscriptionsService {
       return;
     }
 
+    const userId = payload.userId;
+    const stripeSubscriptionId = payload.stripeSubscriptionId;
+
     const plan = await this.resolvePlan(payload.planId, payload.stripePriceId);
     if (!plan) {
       this.logger.warn(
@@ -670,54 +712,88 @@ export class SubscriptionsService {
       return;
     }
 
-    const existing = await this.prisma.subscription.findUnique({
-      where: { stripe_subscription_id: payload.stripeSubscriptionId },
-    });
+    const targetStatus =
+      payload.status === (SubscriptionStatus.canceled as string)
+        ? SubscriptionStatus.canceled
+        : SubscriptionStatus.active;
 
-    if (!existing) {
-      await this.prisma.subscription.create({
-        data: {
-          user_id: payload.userId,
-          plan_id: plan.id,
-          stripe_subscription_id: payload.stripeSubscriptionId,
-          status:
-            payload.status === (SubscriptionStatus.canceled as string)
-              ? SubscriptionStatus.canceled
-              : SubscriptionStatus.active,
-          current_period_start: this.toDate(payload.currentPeriodStart),
-          current_period_end: this.toDate(payload.currentPeriodEnd),
-          canceled_at: this.toDate(payload.canceledAt),
-          ended_at: this.toDate(payload.endedAt),
-        },
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.subscription.findUnique({
+        where: { stripe_subscription_id: stripeSubscriptionId },
       });
-      return;
-    }
 
-    await this.prisma.subscription.update({
-      where: { id: existing.id },
-      data: {
-        user_id: payload.userId,
-        plan_id: plan.id,
-        status:
-          payload.status === (SubscriptionStatus.canceled as string)
-            ? SubscriptionStatus.canceled
-            : SubscriptionStatus.active,
-        current_period_start: this.toDate(payload.currentPeriodStart),
-        current_period_end: this.toDate(payload.currentPeriodEnd),
-        canceled_at: this.toDate(payload.canceledAt),
-        ended_at: this.toDate(payload.endedAt),
-      },
+      if (targetStatus === SubscriptionStatus.active) {
+        await tx.subscription.updateMany({
+          where: {
+            user_id: userId,
+            status: SubscriptionStatus.active,
+            ...(existing ? { id: { not: existing.id } } : {}),
+          },
+          data: {
+            status: SubscriptionStatus.canceled,
+            canceled_at: new Date(),
+            ended_at: new Date(),
+          },
+        });
+      }
+
+      if (!existing) {
+        await tx.subscription.create({
+          data: {
+            user_id: userId,
+            plan_id: plan.id,
+            stripe_subscription_id: stripeSubscriptionId,
+            status: targetStatus,
+            current_period_start: this.toDate(payload.currentPeriodStart),
+            current_period_end: this.toDate(payload.currentPeriodEnd),
+            canceled_at:
+              targetStatus === SubscriptionStatus.canceled
+                ? this.toDate(payload.canceledAt)
+                : null,
+            ended_at:
+              targetStatus === SubscriptionStatus.canceled
+                ? this.toDate(payload.endedAt)
+                : null,
+          },
+        });
+      } else {
+        await tx.subscription.update({
+          where: { id: existing.id },
+          data: {
+            user_id: userId,
+            plan_id: plan.id,
+            status: targetStatus,
+            current_period_start: this.toDate(payload.currentPeriodStart),
+            current_period_end: this.toDate(payload.currentPeriodEnd),
+            canceled_at:
+              targetStatus === SubscriptionStatus.canceled
+                ? this.toDate(payload.canceledAt)
+                : null,
+            ended_at:
+              targetStatus === SubscriptionStatus.canceled
+                ? this.toDate(payload.endedAt)
+                : null,
+          },
+        });
+      }
     });
   }
 
   private async handleSubscriptionUpdated(payload: BillingEventPayload) {
     if (!payload.stripeSubscriptionId) return;
 
+    const stripeSubscriptionId = payload.stripeSubscriptionId;
+
     let subscription = await this.prisma.subscription.findUnique({
-      where: { stripe_subscription_id: payload.stripeSubscriptionId },
+      where: { stripe_subscription_id: stripeSubscriptionId },
     });
 
     const plan = await this.resolvePlan(payload.planId, payload.stripePriceId);
+
+    const targetStatus =
+      payload.status === (SubscriptionStatus.canceled as string)
+        ? SubscriptionStatus.canceled
+        : SubscriptionStatus.active;
 
     if (!subscription) {
       if (!payload.userId) {
@@ -734,38 +810,79 @@ export class SubscriptionsService {
         return;
       }
 
+      const userId = payload.userId;
+
+      if (targetStatus === SubscriptionStatus.active) {
+        await this.prisma.subscription.updateMany({
+          where: {
+            user_id: userId,
+            status: SubscriptionStatus.active,
+          },
+          data: {
+            status: SubscriptionStatus.canceled,
+            canceled_at: new Date(),
+            ended_at: new Date(),
+          },
+        });
+      }
+
       subscription = await this.prisma.subscription.create({
         data: {
-          user_id: payload.userId,
+          user_id: userId,
           plan_id: plan.id,
-          stripe_subscription_id: payload.stripeSubscriptionId,
-          status:
-            payload.status === (SubscriptionStatus.canceled as string)
-              ? SubscriptionStatus.canceled
-              : SubscriptionStatus.active,
+          stripe_subscription_id: stripeSubscriptionId,
+          status: targetStatus,
           current_period_start: this.toDate(payload.currentPeriodStart),
           current_period_end: this.toDate(payload.currentPeriodEnd),
-          canceled_at: this.toDate(payload.canceledAt),
-          ended_at: this.toDate(payload.endedAt),
+          canceled_at:
+            targetStatus === SubscriptionStatus.canceled
+              ? this.toDate(payload.canceledAt)
+              : null,
+          ended_at:
+            targetStatus === SubscriptionStatus.canceled
+              ? this.toDate(payload.endedAt)
+              : null,
         },
       });
       return;
     }
 
-    await this.prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        user_id: payload.userId ?? subscription.user_id,
-        plan_id: plan?.id ?? subscription.plan_id,
-        status:
-          payload.status === (SubscriptionStatus.canceled as string)
-            ? SubscriptionStatus.canceled
-            : SubscriptionStatus.active,
-        current_period_start: this.toDate(payload.currentPeriodStart),
-        current_period_end: this.toDate(payload.currentPeriodEnd),
-        canceled_at: this.toDate(payload.canceledAt),
-        ended_at: this.toDate(payload.endedAt),
-      },
+    const effectiveUserId = payload.userId ?? subscription.user_id;
+
+    await this.prisma.$transaction(async (tx) => {
+      if (targetStatus === SubscriptionStatus.active) {
+        await tx.subscription.updateMany({
+          where: {
+            user_id: effectiveUserId,
+            status: SubscriptionStatus.active,
+            id: { not: subscription.id },
+          },
+          data: {
+            status: SubscriptionStatus.canceled,
+            canceled_at: new Date(),
+            ended_at: new Date(),
+          },
+        });
+      }
+
+      await tx.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          user_id: effectiveUserId,
+          plan_id: plan?.id ?? subscription.plan_id,
+          status: targetStatus,
+          current_period_start: this.toDate(payload.currentPeriodStart),
+          current_period_end: this.toDate(payload.currentPeriodEnd),
+          canceled_at:
+            targetStatus === SubscriptionStatus.canceled
+              ? this.toDate(payload.canceledAt)
+              : null,
+          ended_at:
+            targetStatus === SubscriptionStatus.canceled
+              ? this.toDate(payload.endedAt)
+              : null,
+        },
+      });
     });
   }
 
@@ -777,15 +894,30 @@ export class SubscriptionsService {
     });
     if (!subscription) return;
 
-    await this.prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: SubscriptionStatus.active,
-        current_period_start: this.toDate(payload.currentPeriodStart),
-        current_period_end: this.toDate(payload.currentPeriodEnd),
-        canceled_at: null,
-        ended_at: null,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.subscription.updateMany({
+        where: {
+          user_id: subscription.user_id,
+          status: SubscriptionStatus.active,
+          id: { not: subscription.id },
+        },
+        data: {
+          status: SubscriptionStatus.canceled,
+          canceled_at: new Date(),
+          ended_at: new Date(),
+        },
+      });
+
+      await tx.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: SubscriptionStatus.active,
+          current_period_start: this.toDate(payload.currentPeriodStart),
+          current_period_end: this.toDate(payload.currentPeriodEnd),
+          canceled_at: null,
+          ended_at: null,
+        },
+      });
     });
   }
 

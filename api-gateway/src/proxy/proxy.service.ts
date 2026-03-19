@@ -20,6 +20,14 @@ type GatewayRequest = Request<
 export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
 
+  private resolveTimeoutMs(originalUrl: string): number {
+    if (originalUrl.startsWith('/api/subscriptions/finalize-plan-change')) {
+      return 30000;
+    }
+
+    return 10000;
+  }
+
   private routeTarget(originalUrl: string) {
     if (originalUrl.startsWith('/api/auth')) {
       return process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
@@ -60,7 +68,7 @@ export class ProxyService {
       params: req.query,
       data: bodyData,
       validateStatus: () => true,
-      timeout: 10000,
+      timeout: this.resolveTimeoutMs(req.originalUrl),
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
       responseType: 'arraybuffer',

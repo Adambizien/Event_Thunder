@@ -77,9 +77,13 @@ export const subscriptionService = {
 
   finalizePlanChange: async (payload: {
     userId: string;
-    activePlanId: string;
+    activePlanId?: string;
   }) => {
-    const response = await api.post('/api/subscriptions/finalize-plan-change', payload);
+    const response = await api.post(
+      '/api/subscriptions/finalize-plan-change',
+      payload,
+      { timeout: 30000 },
+    );
     return response.data;
   },
 

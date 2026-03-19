@@ -231,7 +231,6 @@ export class SubscriptionsController {
     @Headers('authorization') authHeader?: string,
   ) {
     this.ensureNonEmptyString(dto.userId, 'userId');
-    this.ensureNonEmptyString(dto.activePlanId, 'activePlanId');
 
     const requestUserId = req.user?.id;
     const isAdmin = req.user?.role === 'Admin';

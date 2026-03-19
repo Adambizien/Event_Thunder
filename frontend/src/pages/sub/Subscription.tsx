@@ -339,19 +339,30 @@ const Subscription = () => {
           const subs = await subscriptionService.getUserSubscriptions(userId);
           const normalized = Array.isArray(subs) ? subs : [];
           const activeSubs = normalized.filter((sub) => sub.status === 'active');
+          const hasTargetActive = activeSubs.some((sub) => sub.planId === planId);
 
           resolvedSubscriptions = normalized;
 
-          if (activeSubs.length <= 1) {
+          if (activeSubs.length <= 1 && hasTargetActive) {
             break;
           }
 
           await sleep(500);
+
+          if (attempt === 7) {
+            throw new Error(
+              'Le nouveau plan actif n\'a pas encore été synchronisé.',
+            );
+          }
         }
-      } catch {
+      } catch (error) {
+        const detail =
+          error instanceof Error && error.message.trim().length > 0
+            ? ` (${error.message})`
+            : '';
         nextTransactionMessage = {
           type: 'error',
-          text: "Paiement validé, mais l'ancien abonnement n'a pas pu être annulé automatiquement.",
+          text: `Paiement validé, mais l'ancien abonnement n'a pas pu être annulé automatiquement.${detail}`,
         };
       }
 
