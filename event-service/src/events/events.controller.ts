@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { EventsService } from './events.service';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -10,6 +19,15 @@ export class EventsController {
   @Get()
   getAll() {
     return this.eventsService.getAll();
+  }
+
+  @Get(':id')
+  getOne(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-role') userRole?: string,
+  ) {
+    return this.eventsService.getOne(id, userId, userRole);
   }
 
   @Post()

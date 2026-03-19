@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -21,6 +22,30 @@ export class EventsService {
         start_date: 'asc',
       },
     });
+  }
+
+  async getOne(id: string, userId?: string, userRole?: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Evenement introuvable');
+    }
+
+    if (event.status === EventStatus.draft) {
+      const isAdmin = userRole === 'Admin';
+      const isCreator = Boolean(userId) && userId === event.creator_id;
+
+      if (!isAdmin && !isCreator) {
+        throw new ForbiddenException('Cet evenement est inaccessible');
+      }
+    }
+
+    return event;
   }
 
   async create(dto: CreateEventDto) {

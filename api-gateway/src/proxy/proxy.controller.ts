@@ -53,6 +53,10 @@ export class ProxyController {
       return true;
     }
 
+    if (/^\/api\/events\/[^/]+$/.test(path) && method === 'GET') {
+      return true;
+    }
+
     return (
       path === '/api/auth/login' ||
       path === '/api/auth/register' ||
@@ -63,6 +67,12 @@ export class ProxyController {
       path === '/api/auth/verify-reset-token' ||
       path === '/api/auth/health'
     );
+  }
+
+  private isOptionalAuthRoute(req: Request): boolean {
+    const path = this.getPath(req);
+    const method = this.getMethod(req);
+    return /^\/api\/events\/[^/]+$/.test(path) && method === 'GET';
   }
 
   private isAdminRoute(req: Request): boolean {
@@ -198,7 +208,9 @@ export class ProxyController {
   @All('api/*')
   async handle(@Req() req: AuthenticatedRequest, @Res() res: Response) {
     try {
-      if (!this.isPublicRoute(req)) {
+      const isPublic = this.isPublicRoute(req);
+
+      if (!isPublic) {
         const user = await this.authGuard.authenticateRequest(req);
         req.user = user;
 
@@ -207,6 +219,19 @@ export class ProxyController {
         }
 
         this.enforceOwnership(req);
+      } else if (this.isOptionalAuthRoute(req) && req.get('authorization')) {
+        try {
+          req.user = await this.authGuard.authenticateRequest(req);
+        } catch {
+          req.user = undefined;
+        }
+      }
+
+      if (req.user?.id) {
+        req.headers['x-user-id'] = req.user.id;
+      }
+      if (req.user?.role) {
+        req.headers['x-user-role'] = req.user.role;
       }
 
       const result: ProxyResult = await this.proxy.forward(req);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import Modal from '../../components/Modal';
 import { eventCategoryService } from '../../services/EventCategoryService';
@@ -515,6 +516,12 @@ const AdminEvents = () => {
                     <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
+                        <Link
+                          to={`/events/${event.id}`}
+                          className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
+                        >
+                          Voir
+                        </Link>
                         <button
                           onClick={() => handleEdit(event)}
                           className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"

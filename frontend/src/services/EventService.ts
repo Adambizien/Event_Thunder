@@ -13,6 +13,11 @@ export const eventService = {
     return response.data as EventItem;
   },
 
+  async fetchEventById(id: string): Promise<EventItem> {
+    const response = await api.get(`/api/events/${id}`);
+    return response.data as EventItem;
+  },
+
   async updateEvent(id: string, payload: CreateEventPayload): Promise<EventItem> {
     const response = await api.patch(`/api/events/${id}`, payload);
     return response.data as EventItem;

@@ -563,13 +563,13 @@ const Subscription = () => {
       >
         <div className="flex flex-col gap-4 items-center">
           <button
-            className="px-6 py-2 bg-thunder-gold text-black font-semibold rounded hover:bg-thunder-orange transition-colors w-full"
+            className="px-6 py-2 bg-white/10 border border-white/20 text-white font-semibold rounded hover:bg-white/20 transition-colors w-full"
             onClick={() => {
               setShowAuthChoice(null);
               navigate('/login?redirect=subscription');
             }}
           >
-            Oui, j'ai déjà un compte
+            Oui, j'ai un compte
           </button>
           <button
             className="px-6 py-2 bg-white/10 border border-white/20 text-white font-semibold rounded hover:bg-white/20 transition-colors w-full"
@@ -579,12 +579,6 @@ const Subscription = () => {
             }}
           >
             Non, je veux m'inscrire
-          </button>
-          <button
-            className="mt-2 text-gray-400 hover:text-white text-sm underline"
-            onClick={() => setShowAuthChoice(null)}
-          >
-            Annuler
           </button>
         </div>
       </Modal>
