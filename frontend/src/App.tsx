@@ -26,6 +26,7 @@ import AdminUsers from './pages/admin/Users';
 import AdminEventCategories from './pages/admin/EventCategories';
 import AdminEvents from './pages/admin/Events';
 import EventDetails from './pages/events/EventDetails';
+import EventsList from './pages/events/EventsList';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
@@ -140,6 +141,7 @@ function AppContent() {
       <Header user={user} onLogout={handleLogout} />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/events" element={<EventsList />} />
         <Route path="/events/:id" element={<EventDetails />} />
         <Route 
           path="/login" 

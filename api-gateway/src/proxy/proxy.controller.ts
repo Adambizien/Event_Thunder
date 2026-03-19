@@ -57,6 +57,10 @@ export class ProxyController {
       return true;
     }
 
+    if (path === '/api/events/public' && method === 'GET') {
+      return true;
+    }
+
     return (
       path === '/api/auth/login' ||
       path === '/api/auth/register' ||

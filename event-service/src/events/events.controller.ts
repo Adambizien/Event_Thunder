@@ -21,6 +21,11 @@ export class EventsController {
     return this.eventsService.getAll();
   }
 
+  @Get('public')
+  getPublicList() {
+    return this.eventsService.getPublicList();
+  }
+
   @Get(':id')
   getOne(
     @Param('id') id: string,

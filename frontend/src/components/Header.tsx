@@ -25,6 +25,8 @@ const Header = ({ user, onLogout }: HeaderProps) => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+  const isEventsActive =
+    location.pathname === '/events' || location.pathname.startsWith('/events/');
   const isSubscriptionHistoryActive = location.pathname === '/subscription-history';
   const isAdminActive =
     isActive('/admin') ||
@@ -109,6 +111,12 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 Plans d’abonnement
               </Link>
               <Link
+                to="/events"
+                className={navItemClass(isEventsActive)}
+              >
+                Événements
+              </Link>
+              <Link
                 to="/login"
                 className={navItemClass(isActive('/login'))}
               >
@@ -140,6 +148,12 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 className={navItemClass(isActive('/subscription'))}
               >
                 Plans d’abonnement
+              </Link>
+              <Link
+                to="/events"
+                className={navItemClass(isEventsActive)}
+              >
+                Événements
               </Link>
 
               <div className="relative" ref={profileMenuRef}>
@@ -229,6 +243,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               <>
                 <Link to="/" className={navItemClass(isActive('/'))}>Accueil</Link>
                 <Link to="/subscription" className={navItemClass(isActive('/subscription'))}>Plans d’abonnement</Link>
+                <Link to="/events" className={navItemClass(isEventsActive)}>Événements</Link>
                 <Link to="/login" className={navItemClass(isActive('/login'))}>Connexion</Link>
                 <Link to="/register" className={navItemClass(isActive('/register'))}>S'inscrire</Link>
               </>
@@ -237,6 +252,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 <Link to="/" className={navItemClass(isActive('/'))}>Accueil</Link>
                 <Link to="/dashboard" className={navItemClass(isActive('/dashboard'))}>Tableau de bord</Link>
                 <Link to="/subscription" className={navItemClass(isActive('/subscription'))}>Plans d’abonnement</Link>
+                <Link to="/events" className={navItemClass(isEventsActive)}>Événements</Link>
 
                 <div className="mt-2 pt-3 border-t border-white/15">
                   <p className="px-4 pb-2 text-xs uppercase tracking-wide text-gray-300">Compte</p>

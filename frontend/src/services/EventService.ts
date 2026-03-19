@@ -2,6 +2,12 @@ import api from './api';
 import type { CreateEventPayload, EventItem } from '../types/EventTypes';
 
 export const eventService = {
+  async fetchPublicEvents(): Promise<EventItem[]> {
+    const response = await api.get('/api/events/public');
+    const data = response.data;
+    return Array.isArray(data) ? data : [];
+  },
+
   async fetchEvents(): Promise<EventItem[]> {
     const response = await api.get('/api/events');
     const data = response.data;

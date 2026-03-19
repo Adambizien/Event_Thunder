@@ -24,6 +24,22 @@ export class EventsService {
     });
   }
 
+  getPublicList() {
+    return this.prisma.event.findMany({
+      where: {
+        status: {
+          not: EventStatus.draft,
+        },
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        start_date: 'asc',
+      },
+    });
+  }
+
   async getOne(id: string, userId?: string, userRole?: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
