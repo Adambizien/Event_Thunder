@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import Modal from '../../components/Modal';
+import { commentService } from '../../services/CommentService';
 import { eventCategoryService } from '../../services/EventCategoryService';
 import { eventService } from '../../services/EventService';
+import type { CommentItem } from '../../types/CommentTypes';
 import type { EventCategory } from '../../types/EventCategoryTypes';
 import type { CreateEventPayload, EventItem, EventStatus } from '../../types/EventTypes';
 
@@ -55,9 +57,17 @@ const toInputDateTimeValue = (iso: string): string => {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const COMMENT_PREVIEW_LENGTH = 220;
+
 const AdminEvents = () => {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [selectedEventForComments, setSelectedEventForComments] = useState<EventItem | null>(null);
+  const [eventComments, setEventComments] = useState<CommentItem[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -88,8 +98,16 @@ const AdminEvents = () => {
         eventService.fetchEvents(),
       ]);
 
+      const countEntries = await Promise.all(
+        loadedEvents.map(async (event) => {
+          const count = await commentService.fetchCountByEvent(event.id);
+          return [event.id, count] as const;
+        }),
+      );
+
       setCategories(loadedCategories);
       setEvents(loadedEvents);
+      setCommentCounts(Object.fromEntries(countEntries));
       if (!categoryId && loadedCategories.length > 0) {
         setCategoryId(loadedCategories[0].id);
       }
@@ -157,6 +175,11 @@ const AdminEvents = () => {
       setDeletingEventId(id);
       await eventService.deleteEvent(id);
       setEvents((prev) => prev.filter((event) => event.id !== id));
+      setCommentCounts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setError(null);
       setSuccess('Événement supprimé avec succès');
     } catch (err) {
@@ -239,6 +262,10 @@ const AdminEvents = () => {
       } else {
         const createdEvent = await eventService.createEvent(payload);
         setEvents((prev) => [createdEvent, ...prev]);
+        setCommentCounts((prev) => ({
+          ...prev,
+          [createdEvent.id]: 0,
+        }));
         setSuccess("L'événement a été créé avec succès");
       }
       resetForm();
@@ -264,6 +291,75 @@ const AdminEvents = () => {
       const compared = firstTime - secondTime;
       return sortOrder === 'asc' ? compared : -compared;
     });
+
+  const closeCommentsModal = () => {
+    setSelectedEventForComments(null);
+    setEventComments([]);
+    setLoadingComments(false);
+    setDeletingCommentId(null);
+    setExpandedComments({});
+  };
+
+  const openCommentsModal = async (event: EventItem) => {
+    try {
+      setSelectedEventForComments(event);
+      setLoadingComments(true);
+      const comments = await commentService.fetchByEvent(event.id);
+      setEventComments(comments);
+      setExpandedComments({});
+      setCommentCounts((prev) => ({
+        ...prev,
+        [event.id]: comments.length,
+      }));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setEventComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedEventForComments) {
+      return;
+    }
+
+    if (!confirm('Supprimer ce commentaire ?')) {
+      return;
+    }
+
+    try {
+      setDeletingCommentId(commentId);
+      await commentService.deleteComment(commentId);
+      setEventComments((prev) => prev.filter((comment) => comment.id !== commentId));
+      setExpandedComments((prev) => {
+        const next = { ...prev };
+        delete next[commentId];
+        return next;
+      });
+      setCommentCounts((prev) => ({
+        ...prev,
+        [selectedEventForComments.id]: Math.max(
+          0,
+          (prev[selectedEventForComments.id] || 0) - 1,
+        ),
+      }));
+      setError(null);
+      setSuccess('Commentaire supprimé avec succès');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
+  const toggleExpandedComment = (commentId: string) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
 
   if (loading) {
     return (
@@ -477,6 +573,76 @@ const AdminEvents = () => {
         </form>
       </Modal>
 
+      <Modal
+        isOpen={Boolean(selectedEventForComments)}
+        onClose={closeCommentsModal}
+        title={
+          selectedEventForComments
+            ? `Commentaires - ${selectedEventForComments.title}`
+            : 'Commentaires'
+        }
+        size="lg"
+      >
+        {loadingComments ? (
+          <div className="text-gray-300 text-center py-6">
+            <span className="spinner mr-2 align-middle"></span>
+            Chargement des commentaires...
+          </div>
+        ) : eventComments.length === 0 ? (
+          <p className="text-gray-300">Aucun commentaire pour cet événement.</p>
+        ) : (
+          <div className="space-y-4">
+            {eventComments.map((comment) => {
+              const isLongComment = comment.content.length > COMMENT_PREVIEW_LENGTH;
+              const isExpanded = Boolean(expandedComments[comment.id]);
+              const visibleComment =
+                isLongComment && !isExpanded
+                  ? `${comment.content.slice(0, COMMENT_PREVIEW_LENGTH)}...`
+                  : comment.content;
+
+              return (
+                <div
+                  key={comment.id}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {comment.authorDisplayName}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {toLocalInputDateTime(comment.createdAt)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteComment(comment.id)}
+                      disabled={deletingCommentId === comment.id}
+                      className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+                    >
+                      {deletingCommentId === comment.id ? 'Suppression...' : 'Supprimer'}
+                    </button>
+                  </div>
+
+                  <p className="text-gray-200 whitespace-pre-line leading-6">
+                    {visibleComment}
+                  </p>
+
+                  {isLongComment && (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpandedComment(comment.id)}
+                      className="mt-2 text-sm font-semibold text-thunder-gold underline underline-offset-2 decoration-thunder-gold hover:text-thunder-gold-light"
+                    >
+                      {isExpanded ? 'Voir moins' : 'Voir plus'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
+
       <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl backdrop-blur-lg">
         {filteredEvents.length === 0 ? (
           <div className="text-center py-12">
@@ -497,6 +663,7 @@ const AdminEvents = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Debut</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Fin</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Statut</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Commentaires</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
                 </tr>
               </thead>
@@ -514,8 +681,15 @@ const AdminEvents = () => {
                     <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.start_date)}</td>
                     <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
                     <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
+                    <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => openCommentsModal(event)}
+                          className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
+                        >
+                          Commentaires
+                        </button>
                         <Link
                           to={`/events/${event.id}`}
                           className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"

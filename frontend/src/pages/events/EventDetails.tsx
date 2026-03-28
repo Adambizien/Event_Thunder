@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import Modal from '../../components/Modal';
+import { commentService } from '../../services/CommentService';
 import { eventService } from '../../services/EventService';
+import type { User } from '../../types/AuthTypes';
+import type { CommentItem, LikedUser } from '../../types/CommentTypes';
 import type { EventItem } from '../../types/EventTypes';
 
 const formatDate = (value: string) => {
@@ -43,25 +47,74 @@ const getStatusBanner = (status: EventItem['status']) => {
   };
 };
 
+const COMMENT_PREVIEW_LENGTH = 240;
+const LIKE_PREVIEW_LIMIT = 5;
+
+const formatDisplayName = (user: { id: string; firstName?: string; lastName?: string }) => {
+  const firstName = user.firstName?.trim() || '';
+  const lastName = user.lastName?.trim() || '';
+  const fullName = `${firstName} ${lastName}`.trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  return `Utilisateur ${user.id.slice(0, 8)}`;
+};
+
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<EventItem | null>(null);
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [likingCommentId, setLikingCommentId] = useState<string | null>(null);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [likesModalCommentId, setLikesModalCommentId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isAuthenticated = Boolean(localStorage.getItem('token'));
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) {
+      setCurrentUser(null);
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(storedUser) as User;
+      setCurrentUser(parsedUser);
+    } catch {
+      setCurrentUser(null);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchDetails = async () => {
       if (!id) {
         setError('Evenement introuvable');
         setLoading(false);
+        setCommentsLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const data = await eventService.fetchEventById(id);
+        setCommentsLoading(true);
+
+        const [data, loadedComments] = await Promise.all([
+          eventService.fetchEventById(id),
+          commentService.fetchByEvent(id),
+        ]);
+
         setEvent(data);
+        setComments(loadedComments);
         setError(null);
+        setCommentsError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erreur inconnue';
         if (message.toLowerCase().includes('inaccessible')) {
@@ -69,14 +122,102 @@ const EventDetails = () => {
         } else {
           setError(message);
         }
+
+        if (message.toLowerCase().includes('comment')) {
+          setCommentsError(message);
+        }
+
         setEvent(null);
+        setComments([]);
       } finally {
         setLoading(false);
+        setCommentsLoading(false);
       }
     };
 
     void fetchDetails();
   }, [id]);
+
+  const handleSubmitComment = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!id || submittingComment) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setCommentsError('Connectez-vous pour envoyer un commentaire');
+      return;
+    }
+
+    const content = newComment.trim();
+    if (!content) {
+      setCommentsError('Le commentaire ne peut pas etre vide');
+      return;
+    }
+
+    try {
+      setSubmittingComment(true);
+      setCommentsError(null);
+      const createdComment = await commentService.create(id, content);
+      setComments((prev) => [createdComment, ...prev]);
+      setNewComment('');
+    } catch (err) {
+      setCommentsError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleToggleLike = async (commentId: string) => {
+    if (!isAuthenticated) {
+      setCommentsError('Connectez-vous pour aimer un commentaire');
+      return;
+    }
+
+    try {
+      setLikingCommentId(commentId);
+      setCommentsError(null);
+      const response = await commentService.toggleLike(commentId);
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                likeCount: response.likeCount,
+                likedByCurrentUser: response.likedByCurrentUser,
+                likedUserIds: response.likedUserIds,
+                likedUsers: response.likedUsers,
+              }
+            : comment,
+        ),
+      );
+    } catch (err) {
+      setCommentsError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setLikingCommentId(null);
+    }
+  };
+
+  const toggleExpandedComment = (commentId: string) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
+
+  const openLikesModal = (commentId: string) => {
+    setLikesModalCommentId(commentId);
+  };
+
+  const closeLikesModal = () => {
+    setLikesModalCommentId(null);
+  };
+
+  const likesModalComment =
+    likesModalCommentId !== null
+      ? comments.find((comment) => comment.id === likesModalCommentId) || null
+      : null;
 
   if (loading) {
     return (
@@ -201,6 +342,199 @@ const EventDetails = () => {
             </div>
           </aside>
         </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 md:p-8 shadow-2xl backdrop-blur-lg space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-bold text-thunder-gold">Commentaires</h2>
+            <span className="rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs font-semibold text-gray-200">
+              {comments.length} commentaire{comments.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <form onSubmit={handleSubmitComment} className="space-y-3">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder={
+                isAuthenticated
+                  ? 'Ecrivez votre commentaire...'
+                  : 'Connectez-vous pour commenter'
+              }
+              disabled={!isAuthenticated || submittingComment}
+              className="w-full min-h-28 rounded-xl border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {!isAuthenticated ? (
+                <p className="text-sm text-gray-300">
+                  Vous devez etre connecte pour commenter et aimer.
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  Maximum 2000 caracteres.
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={!isAuthenticated || submittingComment}
+                className="inline-flex bg-thunder-gold hover:bg-thunder-gold-light disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                {submittingComment ? 'Envoi...' : 'Publier'}
+              </button>
+            </div>
+          </form>
+
+          {commentsError && (
+            <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-3 text-red-200 text-sm">
+              {commentsError}
+            </div>
+          )}
+
+          {commentsLoading ? (
+            <div className="text-gray-300">
+              <span className="spinner mr-2 align-middle"></span>
+              Chargement des commentaires...
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-5 text-center text-gray-300">
+              Aucun commentaire pour le moment.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => {
+                const isLongComment = comment.content.length > COMMENT_PREVIEW_LENGTH;
+                const showFullComment = Boolean(expandedComments[comment.id]);
+                const visibleComment =
+                  isLongComment && !showFullComment
+                    ? `${comment.content.slice(0, COMMENT_PREVIEW_LENGTH)}...`
+                    : comment.content;
+
+                const hasManyLikes = comment.likedUsers.length > LIKE_PREVIEW_LIMIT;
+                const visibleLikedUsers: LikedUser[] =
+                  hasManyLikes
+                    ? comment.likedUsers.slice(0, LIKE_PREVIEW_LIMIT)
+                    : comment.likedUsers;
+
+                return (
+                  <article
+                    key={comment.id}
+                    className="rounded-xl border border-white/10 bg-white/5 p-4 md:p-5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {currentUser?.id === comment.userId
+                            ? 'Vous'
+                            : (comment.authorDisplayName || formatDisplayName(comment.user))}
+                        </p>
+                        <p className="text-xs text-gray-400">{formatDate(comment.createdAt)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLike(comment.id)}
+                        disabled={!isAuthenticated || likingCommentId === comment.id}
+                        aria-label={comment.likedByCurrentUser ? 'Retirer aimé' : 'Ajouter aimé'}
+                        className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                          comment.likedByCurrentUser
+                            ? 'border-thunder-gold bg-thunder-gold/20 text-thunder-gold'
+                            : 'border-white/30 bg-white/10 text-gray-200 hover:bg-white/20'
+                        }`}
+                      >
+                        {likingCommentId === comment.id ? (
+                          '...'
+                        ) : (
+                          <>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              className="h-5 w-5"
+                              fill={comment.likedByCurrentUser ? 'currentColor' : 'none'}
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                d="M12 21s-6.716-4.35-9.193-8.304C.96 9.756 2.321 5.5 6.03 4.69c2.154-.47 4.067.417 5.17 2.052C12.304 5.107 14.217 4.22 16.37 4.69c3.71.81 5.07 5.066 3.224 8.006C18.716 16.65 12 21 12 21z"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            <span className="ml-1.5">{comment.likeCount}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="text-gray-200 whitespace-pre-line leading-7">{visibleComment}</p>
+
+                    {isLongComment && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpandedComment(comment.id)}
+                        className="mt-2 text-sm font-semibold text-thunder-gold underline underline-offset-2 decoration-thunder-gold hover:text-thunder-gold-light"
+                      >
+                        {showFullComment ? 'Voir moins' : 'Voir plus'}
+                      </button>
+                    )}
+
+                    {comment.likedUsers.length > 0 && (
+                      <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3">
+                        <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
+                          Aimé par
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {visibleLikedUsers.map((likedUser) => (
+                            <span
+                              key={`${comment.id}-${likedUser.id}`}
+                              className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs text-gray-200"
+                            >
+                              {currentUser?.id === likedUser.id
+                                ? 'Vous'
+                                : (likedUser.displayName || formatDisplayName(likedUser))}
+                            </span>
+                          ))}
+                        </div>
+
+                        {hasManyLikes && (
+                          <button
+                            type="button"
+                            onClick={() => openLikesModal(comment.id)}
+                            className="mt-2 text-sm font-semibold text-thunder-gold underline underline-offset-2 decoration-thunder-gold hover:text-thunder-gold-light"
+                          >
+                            Voir plus
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <Modal
+          isOpen={Boolean(likesModalComment)}
+          onClose={closeLikesModal}
+          title="Personnes qui ont aimé"
+          size="sm"
+        >
+          {!likesModalComment || likesModalComment.likedUsers.length === 0 ? (
+            <p className="text-gray-300">Aucune personne pour le moment.</p>
+          ) : (
+            <div className="space-y-3">
+              {likesModalComment.likedUsers.map((likedUser) => (
+                <div
+                  key={`${likesModalComment.id}-${likedUser.id}`}
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                >
+                  {currentUser?.id === likedUser.id
+                    ? 'Vous'
+                    : (likedUser.displayName || formatDisplayName(likedUser))}
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
 
         <div className="flex flex-wrap gap-3">
           <Link

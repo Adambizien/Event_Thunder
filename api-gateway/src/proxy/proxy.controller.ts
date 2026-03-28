@@ -57,6 +57,10 @@ export class ProxyController {
       return true;
     }
 
+    if (/^\/api\/comments\/events\/[^/]+$/.test(path) && method === 'GET') {
+      return true;
+    }
+
     if (path === '/api/events/public' && method === 'GET') {
       return true;
     }
@@ -76,7 +80,10 @@ export class ProxyController {
   private isOptionalAuthRoute(req: Request): boolean {
     const path = this.getPath(req);
     const method = this.getMethod(req);
-    return /^\/api\/events\/[^/]+$/.test(path) && method === 'GET';
+    return (
+      (/^\/api\/events\/[^/]+$/.test(path) && method === 'GET') ||
+      (/^\/api\/comments\/events\/[^/]+$/.test(path) && method === 'GET')
+    );
   }
 
   private isAdminRoute(req: Request): boolean {
@@ -136,6 +143,10 @@ export class ProxyController {
     }
 
     if (/^\/api\/events\/[^/]+$/.test(path) && method === 'DELETE') {
+      return true;
+    }
+
+    if (/^\/api\/comments\/[^/]+$/.test(path) && method === 'DELETE') {
       return true;
     }
 
