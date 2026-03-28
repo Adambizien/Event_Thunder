@@ -3,7 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import frenchBadwordsList from 'french-badwords-list';
 import { PrismaService } from '../prisma/prisma.service';
+
+type ProfanityFilter = {
+  addWords: (...words: string[]) => void;
+  clean: (input: string) => string;
+};
 
 type UserSummary = {
   id: string;
@@ -45,6 +51,59 @@ type DeleteCommentResponse = {
 @Injectable()
 export class CommentsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private profanityFilterPromise: Promise<ProfanityFilter> | null = null;
+
+  private async getProfanityFilter(): Promise<ProfanityFilter> {
+    if (this.profanityFilterPromise) {
+      return this.profanityFilterPromise;
+    }
+
+    this.profanityFilterPromise = import('bad-words')
+      .then((module) => {
+        const FilterCtor = (module as { Filter: new (options?: { emptyList?: boolean; placeHolder?: string }) => ProfanityFilter }).Filter;
+        const filter = new FilterCtor({
+          placeHolder: '*',
+        });
+
+        const words = (frenchBadwordsList as { array?: unknown }).array;
+        if (Array.isArray(words) && words.length > 0) {
+          filter.addWords(
+            ...words.filter((word): word is string => typeof word === 'string'),
+          );
+        }
+
+        return filter;
+      })
+      .catch(() => {
+        const words = (frenchBadwordsList as { array?: unknown }).array;
+        const blocked = Array.isArray(words)
+          ? words.filter((word): word is string => typeof word === 'string')
+          : [];
+
+        return {
+          addWords: (...extraWords: string[]) => {
+            blocked.push(...extraWords);
+          },
+          clean: (input: string) => {
+            let output = input;
+            blocked.forEach((word) => {
+              const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+              output = output.replace(regex, (match) => '*'.repeat(match.length));
+            });
+            return output;
+          },
+        } satisfies ProfanityFilter;
+      });
+
+    return this.profanityFilterPromise;
+  }
+
+  private async sanitizeCommentContent(content: string): Promise<string> {
+    const filter = await this.getProfanityFilter();
+    return filter.clean(content);
+  }
 
   private getUserServiceBaseUrl(): string {
     return process.env.USER_SERVICE_URL || 'http://user-service:3000';
@@ -213,11 +272,13 @@ export class CommentsService {
       throw new BadRequestException('Le commentaire ne peut pas être vide');
     }
 
+    const censoredContent = await this.sanitizeCommentContent(trimmedContent);
+
     const comment = await this.prisma.comment.create({
       data: {
         event_id: eventId,
         user_id: userId,
-        content: trimmedContent,
+        content: censoredContent,
       },
       include: {
         comment_likes: {
