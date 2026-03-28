@@ -377,7 +377,7 @@ const EventDetails = () => {
               <button
                 type="submit"
                 disabled={!isAuthenticated || submittingComment}
-                className="inline-flex bg-thunder-gold hover:bg-thunder-gold-light disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
               >
                 {submittingComment ? 'Envoi...' : 'Publier'}
               </button>
