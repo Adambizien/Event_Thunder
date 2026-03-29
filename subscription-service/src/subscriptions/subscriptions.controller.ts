@@ -288,7 +288,8 @@ export class SubscriptionsController {
       throw new ForbiddenException('Accès refusé');
     }
 
-    const targetUserId = isAdmin && normalizedUserId ? normalizedUserId : requestUserId;
+    const targetUserId =
+      isAdmin && normalizedUserId ? normalizedUserId : requestUserId;
 
     return this.subscriptionsService.getInvoiceLinks(
       targetUserId,

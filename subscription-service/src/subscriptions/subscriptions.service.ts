@@ -250,7 +250,10 @@ export class SubscriptionsService {
       updatedAt: subscriptionModel.updated_at,
       plan: this.toPlanModel(subscription.plan),
       payments: [...subscription.payments]
-        .sort((left, right) => right.created_at.getTime() - left.created_at.getTime())
+        .sort(
+          (left, right) =>
+            right.created_at.getTime() - left.created_at.getTime(),
+        )
         .map((payment) => this.toPaymentModel(payment)),
     };
   }
@@ -642,7 +645,10 @@ export class SubscriptionsService {
     const toCancelById = new Map<string, SubscriptionModel>();
     for (const sub of [...toCancelActive, ...recentlyCanceled]) {
       const subscription = this.toSubscriptionModel(sub);
-      if (subscription.stripe_subscription_id === subscriptionToKeep.stripe_subscription_id) {
+      if (
+        subscription.stripe_subscription_id ===
+        subscriptionToKeep.stripe_subscription_id
+      ) {
         continue;
       }
       toCancelById.set(subscription.id, subscription);

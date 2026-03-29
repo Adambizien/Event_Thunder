@@ -130,7 +130,10 @@ export class ProxyController {
       return true;
     }
 
-    if (/^\/api\/events\/categories\/[^/]+$/.test(path) && method === 'DELETE') {
+    if (
+      /^\/api\/events\/categories\/[^/]+$/.test(path) &&
+      method === 'DELETE'
+    ) {
       return true;
     }
 

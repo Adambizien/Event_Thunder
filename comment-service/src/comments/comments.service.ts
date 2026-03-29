@@ -61,7 +61,14 @@ export class CommentsService {
 
     this.profanityFilterPromise = import('bad-words')
       .then((module) => {
-        const FilterCtor = (module as { Filter: new (options?: { emptyList?: boolean; placeHolder?: string }) => ProfanityFilter }).Filter;
+        const FilterCtor = (
+          module as {
+            Filter: new (options?: {
+              emptyList?: boolean;
+              placeHolder?: string;
+            }) => ProfanityFilter;
+          }
+        ).Filter;
         const filter = new FilterCtor({
           placeHolder: '*',
         });
@@ -90,7 +97,9 @@ export class CommentsService {
             blocked.forEach((word) => {
               const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
               const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
-              output = output.replace(regex, (match) => '*'.repeat(match.length));
+              output = output.replace(regex, (match) =>
+                '*'.repeat(match.length),
+              );
             });
             return output;
           },
@@ -155,7 +164,9 @@ export class CommentsService {
     }
   }
 
-  private async buildUsersMap(userIds: string[]): Promise<Map<string, UserSummary>> {
+  private async buildUsersMap(
+    userIds: string[],
+  ): Promise<Map<string, UserSummary>> {
     const uniqueUserIds = Array.from(new Set(userIds));
     const users = await Promise.all(
       uniqueUserIds.map((userId) => this.fetchUserById(userId)),
@@ -176,7 +187,10 @@ export class CommentsService {
     return map;
   }
 
-  private resolveUser(userId: string, usersMap: Map<string, UserSummary>): UserSummary {
+  private resolveUser(
+    userId: string,
+    usersMap: Map<string, UserSummary>,
+  ): UserSummary {
     return usersMap.get(userId) || { id: userId };
   }
 
@@ -294,7 +308,10 @@ export class CommentsService {
     return this.serializeComment(comment, usersMap, userId);
   }
 
-  async toggleLike(commentId: string, userId: string): Promise<ToggleLikeResponse> {
+  async toggleLike(
+    commentId: string,
+    userId: string,
+  ): Promise<ToggleLikeResponse> {
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
       select: { id: true },

@@ -129,7 +129,9 @@ export class EventsService {
     const startDate = dto.start_date
       ? new Date(dto.start_date)
       : existingEvent.start_date;
-    const endDate = dto.end_date ? new Date(dto.end_date) : existingEvent.end_date;
+    const endDate = dto.end_date
+      ? new Date(dto.end_date)
+      : existingEvent.end_date;
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       throw new BadRequestException('Dates invalides');
@@ -153,8 +155,7 @@ export class EventsService {
             },
           }
         : undefined,
-      image_url:
-        dto.image_url === undefined ? undefined : dto.image_url.trim(),
+      image_url: dto.image_url === undefined ? undefined : dto.image_url.trim(),
       status: dto.status,
       start_date: startDate,
       end_date: endDate,
