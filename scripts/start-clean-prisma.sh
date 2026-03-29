@@ -36,6 +36,7 @@ USER_DATABASE="$(read_env_var USER_DATABASE)"
 BILLING_DATABASE="$(read_env_var BILLING_DATABASE)"
 EVENT_DATABASE="$(read_env_var EVENT_DATABASE)"
 COMMENT_DATABASE="$(read_env_var COMMENT_DATABASE)"
+TICKETING_DATABASE="$(read_env_var TICKETING_DATABASE)"
 
 required_vars=(POSTGRES_PORT USER_DATABASE BILLING_DATABASE EVENT_DATABASE COMMENT_DATABASE)
 for var_name in "${required_vars[@]}"; do
@@ -45,6 +46,11 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
+if [ -z "${TICKETING_DATABASE:-}" ]; then
+  TICKETING_DATABASE="$EVENT_DATABASE"
+  echo "[INFO] TICKETING_DATABASE non définie dans .env, fallback vers EVENT_DATABASE=$EVENT_DATABASE"
+fi
+
 DB_USER="$(cat secrets/postgres_user.txt)"
 DB_PASS="$(cat secrets/postgres_password.txt)"
 
@@ -53,10 +59,10 @@ if [ -z "$DB_USER" ] || [ -z "$DB_PASS" ]; then
   exit 1
 fi
 
-echo "[1/7] Démarrage de postgres et rabbitmq..."
+echo "[1/8] Démarrage de postgres et rabbitmq..."
 docker compose up -d postgres rabbitmq
 
-echo "[2/7] Attente de Postgres (health=healthy)..."
+echo "[2/8] Attente de Postgres (health=healthy)..."
 for _ in {1..60}; do
   status="$(docker compose ps --format json postgres 2>/dev/null | grep -o '"Health":"[^"]*"' | head -n1 | cut -d '"' -f4 || true)"
   if [ "$status" = "healthy" ]; then
@@ -72,23 +78,27 @@ if [ "$status" != "healthy" ]; then
   exit 1
 fi
 
-echo "[3/6] Migration Prisma user-service..."
+echo "[3/8] Migration Prisma user-service..."
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${USER_DATABASE}?schema=public" \
   npm --prefix user-service run prisma:migrate:deploy
 
-echo "[4/6] Migration Prisma subscription-service..."
+echo "[4/8] Migration Prisma subscription-service..."
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${BILLING_DATABASE}?schema=public" \
   npm --prefix subscription-service run prisma:migrate:deploy
 
-echo "[5/6] Migration Prisma event-service..."
+echo "[5/8] Migration Prisma event-service..."
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${EVENT_DATABASE}?schema=public" \
   npm --prefix event-service run prisma:migrate:deploy
 
-echo "[6/6] Migration Prisma comment-service..."
+echo "[6/8] Migration Prisma comment-service..."
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${COMMENT_DATABASE}?schema=public" \
   npm --prefix comment-service run prisma:migrate:deploy
 
-echo "[7/7] Build + démarrage de toute la stack..."
+echo "[7/8] Migration Prisma ticketing-service..."
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${TICKETING_DATABASE}?schema=public" \
+  npm --prefix ticketing-service run prisma:migrate:deploy
+
+echo "[8/8] Build + démarrage de toute la stack..."
 docker compose up -d --build
 
 echo ""
