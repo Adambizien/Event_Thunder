@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { authService } from '../services/AuthServices';
 import Logo from './Logo';
 import type { User } from '../types/AuthTypes';
@@ -40,6 +40,14 @@ const Header = ({ user, onLogout }: HeaderProps) => {
         : 'text-white hover:text-white hover:bg-white/10'
     }`;
 
+  const handleNavLinkClickCapture = (event: ReactMouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('a')) {
+      setIsProfileMenuOpen(false);
+      setIsMobileMenuOpen(false);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!profileMenuRef.current) return;
@@ -62,11 +70,6 @@ const Header = ({ user, onLogout }: HeaderProps) => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, []);
-
-  useEffect(() => {
-    setIsProfileMenuOpen(false);
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
 
   return (
     <header className="relative z-[100] bg-thunder-dark border-b-2 border-thunder-gold shadow-lg">
@@ -95,7 +98,10 @@ const Header = ({ user, onLogout }: HeaderProps) => {
         </button>
 
         {/* Navigation */}
-        <nav className="hidden md:flex items-center gap-3 md:gap-6">
+        <nav
+          className="hidden md:flex items-center gap-3 md:gap-6"
+          onClickCapture={handleNavLinkClickCapture}
+        >
           {!user ? (
             <>
               <Link
@@ -238,7 +244,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
 
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-white/15 px-4 pb-4">
-          <nav className="pt-3 flex flex-col gap-2">
+          <nav className="pt-3 flex flex-col gap-2" onClickCapture={handleNavLinkClickCapture}>
             {!user ? (
               <>
                 <Link to="/" className={navItemClass(isActive('/'))}>Accueil</Link>

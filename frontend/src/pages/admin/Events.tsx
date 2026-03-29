@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import Modal from '../../components/Modal';
@@ -58,6 +58,8 @@ const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const COMMENT_PREVIEW_LENGTH = 220;
+type StatusFilter = EventStatus | 'all';
+type CommentFilter = 'all' | 'with-comments' | 'without-comments';
 
 const AdminEvents = () => {
   const [categories, setCategories] = useState<EventCategory[]>([]);
@@ -86,11 +88,13 @@ const AdminEvents = () => {
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [commentFilter, setCommentFilter] = useState<CommentFilter>('all');
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
       const [loadedCategories, loadedEvents] = await Promise.all([
@@ -108,8 +112,8 @@ const AdminEvents = () => {
       setCategories(loadedCategories);
       setEvents(loadedEvents);
       setCommentCounts(Object.fromEntries(countEntries));
-      if (!categoryId && loadedCategories.length > 0) {
-        setCategoryId(loadedCategories[0].id);
+      if (loadedCategories.length > 0) {
+        setCategoryId((prev) => prev || loadedCategories[0].id);
       }
       setError(null);
     } catch (err) {
@@ -119,11 +123,11 @@ const AdminEvents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchInitialData();
-  }, []);
+  }, [fetchInitialData]);
 
   const resetForm = () => {
     setTitle('');
@@ -283,7 +287,19 @@ const AdminEvents = () => {
         .toLowerCase()
         .split(' ')
         .filter(Boolean);
-      return searchWords.every((word) => haystack.includes(word));
+
+      const matchesSearch = searchWords.every((word) => haystack.includes(word));
+      const matchesStatus = statusFilter === 'all' ? true : event.status === statusFilter;
+
+      const eventCommentCount = commentCounts[event.id] || 0;
+      const matchesCommentFilter =
+        commentFilter === 'all'
+          ? true
+          : commentFilter === 'with-comments'
+            ? eventCommentCount > 0
+            : eventCommentCount === 0;
+
+      return matchesSearch && matchesStatus && matchesCommentFilter;
     })
     .sort((first, second) => {
       const firstTime = new Date(first.start_date).getTime();
@@ -398,8 +414,8 @@ const AdminEvents = () => {
       )}
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Rechercher</label>
             <input
               type="text"
@@ -408,6 +424,34 @@ const AdminEvents = () => {
               className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               placeholder="Titre, catégorie, lieu, statut..."
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Statut</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="published">Publié</option>
+              <option value="draft">Brouillon</option>
+              <option value="canceled">Annulé</option>
+              <option value="completed">Terminé</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Commentaires</label>
+            <select
+              value={commentFilter}
+              onChange={(e) => setCommentFilter(e.target.value as CommentFilter)}
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            >
+              <option value="all">Tous</option>
+              <option value="with-comments">Avec commentaires</option>
+              <option value="without-comments">Sans commentaire</option>
+            </select>
           </div>
 
           <div>
