@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import { commentService } from '../../services/CommentService';
 import { eventService } from '../../services/EventService';
+import { ticketService } from '../../services/TicketService';
 import type { User } from '../../types/AuthTypes';
 import type { CommentItem, LikedUser } from '../../types/CommentTypes';
 import type { EventItem } from '../../types/EventTypes';
+import type { TicketTypeItem } from '../../types/TicketTypes';
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -63,7 +65,12 @@ const formatDisplayName = (user: { id: string; firstName?: string; lastName?: st
 
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<EventItem | null>(null);
+  const [ticketTypes, setTicketTypes] = useState<TicketTypeItem[]>([]);
+  const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [commentsError, setCommentsError] = useState<string | null>(null);
@@ -106,13 +113,18 @@ const EventDetails = () => {
         setLoading(true);
         setCommentsLoading(true);
 
-        const [data, loadedComments] = await Promise.all([
+        const [eventData, commentsData, loadedTicketTypes] = await Promise.all([
           eventService.fetchEventById(id),
           commentService.fetchByEvent(id),
+          ticketService.getEventTicketTypes(id),
         ]);
 
-        setEvent(data);
-        setComments(loadedComments);
+        setEvent(eventData);
+        setComments(commentsData);
+        setTicketTypes(loadedTicketTypes);
+        setTicketQuantities(
+          Object.fromEntries(loadedTicketTypes.map((ticketType) => [ticketType.id, 0])),
+        );
         setError(null);
         setCommentsError(null);
       } catch (err) {
@@ -129,6 +141,8 @@ const EventDetails = () => {
 
         setEvent(null);
         setComments([]);
+        setTicketTypes([]);
+        setTicketQuantities({});
       } finally {
         setLoading(false);
         setCommentsLoading(false);
@@ -166,6 +180,64 @@ const EventDetails = () => {
       setCommentsError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const updateTicketQuantity = (ticketTypeId: string, quantity: number) => {
+    setTicketQuantities((prev) => ({
+      ...prev,
+      [ticketTypeId]: Math.max(0, Math.min(20, quantity)),
+    }));
+  };
+
+  const handleBuyTickets = async () => {
+    if (!id || !event) {
+      return;
+    }
+
+    if (!isAuthenticated || !currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const selectedItems = ticketTypes
+      .map((ticketType) => ({
+        ticket_type_id: ticketType.id,
+        quantity: ticketQuantities[ticketType.id] ?? 0,
+      }))
+      .filter((item) => item.quantity > 0);
+
+    if (selectedItems.length === 0) {
+      setPurchaseError('Sélectionnez au moins un ticket');
+      return;
+    }
+
+    try {
+      setPurchasing(true);
+      setPurchaseError(null);
+
+      const customerName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`
+        .trim() ||
+        currentUser.email;
+
+      const result = await ticketService.createCheckoutSession({
+        event_id: id,
+        items: selectedItems,
+        customer_email: currentUser.email,
+        customer_name: customerName,
+        success_url: `${window.location.origin}/my-tickets?checkout=success&eventId=${encodeURIComponent(id)}`,
+        cancel_url: `${window.location.origin}/events/${id}?checkout=cancel`,
+      });
+
+      if (!result.url) {
+        throw new Error('URL de paiement indisponible');
+      }
+
+      window.location.href = result.url;
+    } catch (err) {
+      setPurchaseError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setPurchasing(false);
     }
   };
 
@@ -339,6 +411,85 @@ const EventDetails = () => {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg">
               <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Etat de l'evenement</p>
               <p className="text-white font-semibold">{banner.text}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg space-y-4">
+              <h3 className="text-lg font-semibold text-white">Billetterie</h3>
+
+              {ticketTypes.length === 0 ? (
+                <p className="text-sm text-gray-300">Aucun ticket disponible pour cet événement.</p>
+              ) : (
+                <div className="space-y-3">
+                  {ticketTypes.map((ticketType) => {
+                    const remaining =
+                      ticketType.max_quantity !== null && ticketType.max_quantity !== undefined
+                        ? Math.max(0, ticketType.max_quantity - ticketType.sold_quantity)
+                        : null;
+                    const quantity = ticketQuantities[ticketType.id] ?? 0;
+
+                    return (
+                      <div
+                        key={ticketType.id}
+                        className="rounded-xl border border-white/10 bg-black/20 p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-white">{ticketType.name}</p>
+                            {ticketType.description && (
+                              <p className="text-xs text-gray-400">{ticketType.description}</p>
+                            )}
+                          </div>
+                          <p className="font-semibold text-thunder-gold">
+                            {new Intl.NumberFormat('fr-FR', {
+                              style: 'currency',
+                              currency: ticketType.currency,
+                            }).format(Number(ticketType.price))}
+                          </p>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <p className="text-xs text-gray-400">
+                            {remaining === null ? 'Stock illimité' : `Restant: ${remaining}`}
+                          </p>
+                          {remaining !== null && remaining <= 0 ? (
+                            <p className="text-xs font-semibold text-red-300">
+                              Ce ticket n'est plus disponible
+                            </p>
+                          ) : (
+                            <input
+                              type="number"
+                              min="0"
+                              max={remaining === null ? 20 : Math.min(20, remaining)}
+                              value={quantity}
+                              onChange={(e) => updateTicketQuantity(ticketType.id, Number(e.target.value))}
+                              className="w-24 bg-white/10 border border-white/20 rounded px-3 py-1.5 text-white focus:border-thunder-gold focus:outline-none"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {purchaseError && (
+                <div className="rounded-lg border border-red-500/50 bg-red-500/20 p-3 text-sm text-red-200">
+                  {purchaseError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleBuyTickets()}
+                disabled={
+                  purchasing ||
+                  ticketTypes.length === 0 ||
+                  event.status !== 'published'
+                }
+                className="w-full bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-2.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {purchasing ? 'Redirection vers Stripe...' : 'Acheter mes tickets'}
+              </button>
             </div>
           </aside>
         </section>

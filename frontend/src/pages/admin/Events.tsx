@@ -5,9 +5,11 @@ import Modal from '../../components/Modal';
 import { commentService } from '../../services/CommentService';
 import { eventCategoryService } from '../../services/EventCategoryService';
 import { eventService } from '../../services/EventService';
+import { ticketService } from '../../services/TicketService';
 import type { CommentItem } from '../../types/CommentTypes';
 import type { EventCategory } from '../../types/EventCategoryTypes';
 import type { CreateEventPayload, EventItem, EventStatus } from '../../types/EventTypes';
+import type { SoldEventTicketItem, TicketCurrency, UpsertTicketTypeInput } from '../../types/TicketTypes';
 
 const statusOptions: EventStatus[] = [
   'draft',
@@ -61,15 +63,41 @@ const COMMENT_PREVIEW_LENGTH = 220;
 type StatusFilter = EventStatus | 'all';
 type CommentFilter = 'all' | 'with-comments' | 'without-comments';
 
+type TicketTypeFormItem = {
+  id?: string;
+  name: string;
+  description: string;
+  price: string;
+  currency: TicketCurrency;
+  maxQuantity: string;
+  soldQuantity: number;
+  isActive: boolean;
+};
+
+const buildDefaultTicketType = (): TicketTypeFormItem => ({
+  name: '',
+  description: '',
+  price: '',
+  currency: 'EUR',
+  maxQuantity: '',
+  soldQuantity: 0,
+  isActive: true,
+});
+
 const AdminEvents = () => {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [hasSoldTicketsByEvent, setHasSoldTicketsByEvent] = useState<Record<string, boolean>>({});
   const [selectedEventForComments, setSelectedEventForComments] = useState<EventItem | null>(null);
   const [eventComments, setEventComments] = useState<CommentItem[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [selectedEventForSoldTickets, setSelectedEventForSoldTickets] = useState<EventItem | null>(null);
+  const [soldTickets, setSoldTickets] = useState<SoldEventTicketItem[]>([]);
+  const [loadingSoldTickets, setLoadingSoldTickets] = useState(false);
+  const [soldTicketsError, setSoldTicketsError] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -80,6 +108,9 @@ const AdminEvents = () => {
   const [endDate, setEndDate] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [status, setStatus] = useState<EventStatus>('draft');
+  const [ticketTypes, setTicketTypes] = useState<TicketTypeFormItem[]>([
+    buildDefaultTicketType(),
+  ]);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -109,9 +140,20 @@ const AdminEvents = () => {
         }),
       );
 
+      const soldStatusEntries = await Promise.all(
+        loadedEvents.map(async (event) => {
+          const ticketTypes = await ticketService.getEventTicketTypes(event.id, {
+            includeInactive: true,
+          });
+          const hasSoldTickets = ticketTypes.some((ticketType) => ticketType.sold_quantity > 0);
+          return [event.id, hasSoldTickets] as const;
+        }),
+      );
+
       setCategories(loadedCategories);
       setEvents(loadedEvents);
       setCommentCounts(Object.fromEntries(countEntries));
+      setHasSoldTicketsByEvent(Object.fromEntries(soldStatusEntries));
       if (loadedCategories.length > 0) {
         setCategoryId((prev) => prev || loadedCategories[0].id);
       }
@@ -120,6 +162,7 @@ const AdminEvents = () => {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       setCategories([]);
       setEvents([]);
+      setHasSoldTicketsByEvent({});
     } finally {
       setLoading(false);
     }
@@ -138,6 +181,7 @@ const AdminEvents = () => {
     setEndDate('');
     setImageUrl('');
     setStatus('draft');
+    setTicketTypes([buildDefaultTicketType()]);
     setEditingEventId(null);
     setFormError(null);
     setShowForm(false);
@@ -152,12 +196,13 @@ const AdminEvents = () => {
     setEndDate('');
     setImageUrl('');
     setStatus('draft');
+    setTicketTypes([buildDefaultTicketType()]);
     setEditingEventId(null);
     setFormError(null);
     setShowForm(true);
   };
 
-  const handleEdit = (event: EventItem) => {
+  const handleEdit = async (event: EventItem) => {
     setTitle(event.title);
     setDescription(event.description);
     setCategoryId(event.category_id);
@@ -167,18 +212,107 @@ const AdminEvents = () => {
     setEndDate(toInputDateTimeValue(event.end_date));
     setImageUrl(event.image_url || '');
     setStatus(event.status);
-    setEditingEventId(event.id);
-    setFormError(null);
-    setShowForm(true);
+
+    try {
+      const existingTicketTypes = await ticketService.getEventTicketTypes(event.id, {
+        includeInactive: true,
+      });
+      if (existingTicketTypes.length > 0) {
+        setTicketTypes(
+          existingTicketTypes.map((ticketType) => ({
+            id: ticketType.id,
+            name: ticketType.name,
+            description: ticketType.description || '',
+            price: String(ticketType.price),
+            currency: ticketType.currency,
+            maxQuantity:
+              ticketType.max_quantity !== null && ticketType.max_quantity !== undefined
+                ? String(ticketType.max_quantity)
+                : '',
+            soldQuantity: ticketType.sold_quantity,
+            isActive: ticketType.is_active,
+          })),
+        );
+      } else {
+        setTicketTypes([buildDefaultTicketType()]);
+      }
+      setEditingEventId(event.id);
+      setFormError(null);
+      setShowForm(true);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erreur inconnue');
+    }
+  };
+
+  const addTicketTypeRow = () => {
+    setTicketTypes((prev) => [...prev, buildDefaultTicketType()]);
+  };
+
+  const removeTicketTypeRow = (index: number) => {
+    setTicketTypes((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+
+      const currentRow = prev[index];
+      if (currentRow?.id && currentRow.soldQuantity > 0) {
+        setFormError('Suppression impossible: ce ticket a deja des achats associes');
+        return prev;
+      }
+
+      setFormError(null);
+      return prev.filter((_, rowIndex) => rowIndex !== index);
+    });
+  };
+
+  const updateTicketTypeRow = (
+    index: number,
+    patch: Partial<TicketTypeFormItem>,
+  ) => {
+    setTicketTypes((prev) =>
+      prev.map((row, rowIndex) =>
+        rowIndex === index
+          ? {
+              ...row,
+              ...patch,
+            }
+          : row,
+      ),
+    );
   };
 
   const handleDelete = async (id: string) => {
+    try {
+      const existingTicketTypes = await ticketService.getEventTicketTypes(id, {
+        includeInactive: true,
+      });
+
+      const hasSoldTickets = existingTicketTypes.some(
+        (ticketType) => ticketType.sold_quantity > 0,
+      );
+
+      if (hasSoldTickets) {
+        setSuccess(null);
+        setError('Suppression impossible: des tickets ont deja ete vendus pour cet evenement');
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      return;
+    }
+
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
 
     try {
       setDeletingEventId(id);
+      await ticketService.upsertEventTicketTypes(id, []);
       await eventService.deleteEvent(id);
       setEvents((prev) => prev.filter((event) => event.id !== id));
+      setHasSoldTicketsByEvent((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setCommentCounts((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -255,8 +389,40 @@ const AdminEvents = () => {
       setFormError(null);
       setSuccess(null);
 
+      const normalizedTicketTypes: UpsertTicketTypeInput[] = ticketTypes
+        .map((row) => ({
+          id: row.id,
+          name: row.name.trim(),
+          description: row.description.trim(),
+          price: Number(row.price),
+          currency: row.currency,
+          max_quantity: row.maxQuantity.trim() ? Number(row.maxQuantity) : undefined,
+          is_active: row.isActive,
+        }))
+        .filter((row) => row.name.length > 0);
+
+      if (normalizedTicketTypes.length === 0) {
+        setFormError('Ajoutez au moins un type de ticket');
+        return;
+      }
+
+      for (const ticketType of normalizedTicketTypes) {
+        if (!Number.isFinite(ticketType.price) || ticketType.price <= 0) {
+          setFormError(`Prix invalide pour le ticket \"${ticketType.name}\"`);
+          return;
+        }
+        if (
+          ticketType.max_quantity !== undefined &&
+          (!Number.isInteger(ticketType.max_quantity) || ticketType.max_quantity <= 0)
+        ) {
+          setFormError(`Stock max invalide pour le ticket \"${ticketType.name}\"`);
+          return;
+        }
+      }
+
       if (editingEventId) {
         const updatedEvent = await eventService.updateEvent(editingEventId, payload);
+        await ticketService.upsertEventTicketTypes(updatedEvent.id, normalizedTicketTypes);
         setEvents((prev) =>
           prev.map((event) =>
             event.id === editingEventId ? updatedEvent : event,
@@ -265,10 +431,15 @@ const AdminEvents = () => {
         setSuccess("L'événement a été modifié avec succès");
       } else {
         const createdEvent = await eventService.createEvent(payload);
+        await ticketService.upsertEventTicketTypes(createdEvent.id, normalizedTicketTypes);
         setEvents((prev) => [createdEvent, ...prev]);
         setCommentCounts((prev) => ({
           ...prev,
           [createdEvent.id]: 0,
+        }));
+        setHasSoldTicketsByEvent((prev) => ({
+          ...prev,
+          [createdEvent.id]: false,
         }));
         setSuccess("L'événement a été créé avec succès");
       }
@@ -333,6 +504,29 @@ const AdminEvents = () => {
       setEventComments([]);
     } finally {
       setLoadingComments(false);
+    }
+  };
+
+  const closeSoldTicketsModal = () => {
+    setSelectedEventForSoldTickets(null);
+    setSoldTickets([]);
+    setLoadingSoldTickets(false);
+    setSoldTicketsError(null);
+  };
+
+  const openSoldTicketsModal = async (event: EventItem) => {
+    try {
+      setSelectedEventForSoldTickets(event);
+      setLoadingSoldTickets(true);
+      setSoldTicketsError(null);
+      const response = await ticketService.getEventSoldTickets(event.id);
+      setSoldTickets(response.tickets);
+      setError(null);
+    } catch (err) {
+      setSoldTickets([]);
+      setSoldTicketsError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setLoadingSoldTickets(false);
     }
   };
 
@@ -594,6 +788,129 @@ const AdminEvents = () => {
             />
           </div>
 
+          <div className="md:col-span-2 rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Billetterie</p>
+                <p className="text-xs text-gray-400">Définissez les types de tickets vendus pour cet événement</p>
+              </div>
+              <button
+                type="button"
+                onClick={addTicketTypeRow}
+                className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-lg text-sm"
+              >
+                Ajouter un ticket
+              </button>
+            </div>
+
+            {ticketTypes.map((ticketType, index) => (
+              <div key={ticketType.id || index} className="rounded-lg border border-white/10 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+                    <span>Actif</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={ticketType.isActive}
+                      onClick={() => updateTicketTypeRow(index, { isActive: !ticketType.isActive })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                        ticketType.isActive
+                          ? 'bg-emerald-500/85 border-emerald-400'
+                          : 'bg-gray-500/35 border-gray-400/50'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                          ticketType.isActive ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeTicketTypeRow(index)}
+                    disabled={ticketTypes.length <= 1 || (Boolean(ticketType.id) && ticketType.soldQuantity > 0)}
+                    title={
+                      Boolean(ticketType.id) && ticketType.soldQuantity > 0
+                        ? 'Suppression impossible: ce ticket a deja des achats'
+                        : undefined
+                    }
+                    className="ml-auto bg-red-500/25 hover:bg-red-500/30 border border-red-500/40 text-red-200 px-3 py-2 rounded text-xs disabled:opacity-50"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+
+                {Boolean(ticketType.id) && ticketType.soldQuantity > 0 && (
+                  <p className="text-xs text-amber-300">
+                    Ce ticket ne peut pas etre supprime car des achats existent deja.
+                  </p>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-400 mb-1">Nom</label>
+                  <input
+                    type="text"
+                    value={ticketType.name}
+                    onChange={(e) => updateTicketTypeRow(index, { name: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                    placeholder="Ex: Early Bird"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Prix</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={ticketType.price}
+                    onChange={(e) => updateTicketTypeRow(index, { price: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                    placeholder="25"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Devise</label>
+                  <select
+                    value={ticketType.currency}
+                    onChange={(e) => updateTicketTypeRow(index, { currency: e.target.value as TicketCurrency })}
+                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                  >
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Stock max</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={ticketType.maxQuantity}
+                    onChange={(e) => updateTicketTypeRow(index, { maxQuantity: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                    placeholder="Optionnel"
+                  />
+                </div>
+                </div>
+
+                <div className="md:col-span-6">
+                  <label className="block text-xs text-gray-400 mb-1">Description (optionnel)</label>
+                  <input
+                    type="text"
+                    value={ticketType.description}
+                    onChange={(e) => updateTicketTypeRow(index, { description: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                    placeholder="Avantages ou informations du ticket"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="md:col-span-2 flex gap-4 pt-4">
             <button
               type="submit"
@@ -687,6 +1004,61 @@ const AdminEvents = () => {
         )}
       </Modal>
 
+      <Modal
+        isOpen={Boolean(selectedEventForSoldTickets)}
+        onClose={closeSoldTicketsModal}
+        title={
+          selectedEventForSoldTickets
+            ? `Tickets vendus - ${selectedEventForSoldTickets.title}`
+            : 'Tickets vendus'
+        }
+        size="lg"
+      >
+        {loadingSoldTickets ? (
+          <div className="text-gray-300 text-center py-6">
+            <span className="spinner mr-2 align-middle"></span>
+            Chargement des tickets vendus...
+          </div>
+        ) : soldTicketsError ? (
+          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-200">
+            {soldTicketsError}
+          </div>
+        ) : soldTickets.length === 0 ? (
+          <p className="text-gray-300">Aucun ticket vendu pour cet événement.</p>
+        ) : (
+          <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+            {soldTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="rounded-lg border border-white/10 bg-white/5 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{ticket.ticket_type.name}</p>
+                    <p className="text-xs text-gray-400">Ticket #{ticket.ticket_number}</p>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Achat: {toLocalInputDateTime(ticket.created_at)}
+                  </p>
+                </div>
+
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <p className="text-gray-200">
+                    <span className="text-gray-400">Acheteur:</span> {ticket.ticket_purchase.user_id}
+                  </p>
+                  <p className="text-gray-200">
+                    <span className="text-gray-400">Nom:</span> {ticket.attendee_firstname} {ticket.attendee_lastname}
+                  </p>
+                  <p className="text-gray-200 md:col-span-2">
+                    <span className="text-gray-400">Email:</span> {ticket.attendee_email || '-'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
       <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl backdrop-blur-lg">
         {filteredEvents.length === 0 ? (
           <div className="text-center py-12">
@@ -741,19 +1113,28 @@ const AdminEvents = () => {
                           Voir
                         </Link>
                         <button
-                          onClick={() => handleEdit(event)}
+                          onClick={() => void handleEdit(event)}
                           className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
                           disabled={deletingEventId === event.id}
                         >
                           Modifier
                         </button>
-                        <button
-                          onClick={() => handleDelete(event.id)}
-                          className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
-                          disabled={deletingEventId === event.id}
-                        >
-                          {deletingEventId === event.id ? 'Suppression...' : 'Supprimer'}
-                        </button>
+                        {hasSoldTicketsByEvent[event.id] ? (
+                          <button
+                            onClick={() => void openSoldTicketsModal(event)}
+                            className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 px-4 py-2 rounded transition-colors"
+                          >
+                            Tickets
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleDelete(event.id)}
+                            className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
+                            disabled={deletingEventId === event.id}
+                          >
+                            {deletingEventId === event.id ? 'Suppression...' : 'Supprimer'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

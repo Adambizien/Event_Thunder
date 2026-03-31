@@ -31,6 +31,7 @@ import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
 import SubscriptionHistory from './pages/sub/SubscriptionHistory';
+import MyTickets from './pages/profile/MyTickets';
 
 
 function AppContent() {
@@ -176,6 +177,14 @@ function AppContent() {
           element={
             <ProtectedRoute user={user}>
               <SubscriptionHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-tickets"
+          element={
+            <ProtectedRoute user={user}>
+              <MyTickets />
             </ProtectedRoute>
           }
         />

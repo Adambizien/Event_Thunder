@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
+import { CreateTicketCheckoutDto } from './dto/create-ticket-checkout.dto';
 import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
 import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
 import { readSecret } from '../utils/secret.util';
@@ -58,6 +59,51 @@ export class BillingService {
           userId: dto.userId,
           planId: dto.planId,
         },
+      },
+    });
+
+    return {
+      sessionId: session.id,
+      url: session.url,
+    };
+  }
+
+  async createTicketCheckoutSession(
+    dto: CreateTicketCheckoutDto,
+  ): Promise<{ sessionId: string; url: string | null }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      dto.items.map((item) => ({
+        quantity: item.quantity,
+        price_data: {
+          currency: item.currency.toLowerCase(),
+          unit_amount: Math.round(item.unitAmount * 100),
+          product_data: {
+            name: item.name,
+            description: item.description,
+            metadata: {
+              ticketTypeId: item.ticketTypeId,
+              eventId: dto.eventId,
+            },
+          },
+        },
+      }));
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: lineItems,
+      success_url: dto.successUrl,
+      cancel_url: dto.cancelUrl,
+      client_reference_id: dto.userId,
+      customer_email: dto.customerEmail,
+      metadata: {
+        userId: dto.userId,
+        eventId: dto.eventId,
+        customerName: dto.customerName,
+        ticketItems: JSON.stringify(dto.items),
       },
     });
 
@@ -208,7 +254,7 @@ export class BillingService {
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     switch (event.type) {
       case 'checkout.session.completed':
-        this.onCheckoutSessionCompleted(event.data.object);
+        await this.onCheckoutSessionCompleted(event.data.object);
         break;
       case 'customer.subscription.created':
         await this.onSubscriptionCreated(event.data.object);
@@ -280,8 +326,55 @@ export class BillingService {
     );
   }
 
-  private onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-    if (session.mode !== 'subscription' || !session.subscription) return;
+  private async onCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    if (session.mode === 'subscription') {
+      if (!session.subscription) return;
+      return;
+    }
+
+    if (session.mode !== 'payment') {
+      return;
+    }
+
+    const stripePaymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+
+    const rawItems = session.metadata?.ticketItems;
+    if (!rawItems || !stripePaymentIntentId) {
+      return;
+    }
+
+    let parsedItems: Array<{
+      ticketTypeId?: string;
+      name?: string;
+      description?: string;
+      quantity?: number;
+      unitAmount?: number;
+      currency?: string;
+    }> = [];
+
+    try {
+      parsedItems = JSON.parse(rawItems) as typeof parsedItems;
+    } catch {
+      this.logger.warn('Metadata ticketItems Stripe invalide');
+      return;
+    }
+
+    await this.rabbitmqPublisher.publishWithRetry('billing.ticket.payment.succeeded', {
+      userId: session.metadata?.userId ?? session.client_reference_id,
+      eventId: session.metadata?.eventId,
+      customerName: session.metadata?.customerName,
+      customerEmail: session.customer_details?.email ?? session.customer_email,
+      stripePaymentIntentId,
+      stripeCheckoutSessionId: session.id,
+      currency: (session.currency ?? 'eur').toUpperCase(),
+      amountTotal: (session.amount_total ?? 0) / 100,
+      items: parsedItems,
+    });
   }
 
   private async onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {

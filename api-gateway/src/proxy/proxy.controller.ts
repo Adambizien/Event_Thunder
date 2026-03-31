@@ -65,6 +65,10 @@ export class ProxyController {
       return true;
     }
 
+    if (/^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) && method === 'GET') {
+      return true;
+    }
+
     return (
       path === '/api/auth/login' ||
       path === '/api/auth/register' ||
@@ -150,6 +154,14 @@ export class ProxyController {
     }
 
     if (/^\/api\/comments\/[^/]+$/.test(path) && method === 'DELETE') {
+      return true;
+    }
+
+    if (/^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) && method === 'PUT') {
+      return true;
+    }
+
+    if (/^\/api\/ticketing\/events\/[^/]+\/sold-tickets$/.test(path) && method === 'GET') {
       return true;
     }
 

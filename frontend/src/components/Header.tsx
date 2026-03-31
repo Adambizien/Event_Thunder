@@ -28,6 +28,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
   const isEventsActive =
     location.pathname === '/events' || location.pathname.startsWith('/events/');
   const isSubscriptionHistoryActive = location.pathname === '/subscription-history';
+  const isMyTicketsActive = location.pathname === '/my-tickets';
   const isAdminActive =
     isActive('/admin') ||
     isActive('/admin/plans') ||
@@ -214,6 +215,16 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                       Mes abonnements
                     </Link>
 
+                    <Link
+                      to="/my-tickets"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className={`block px-4 py-3 text-sm transition-colors ${
+                        isMyTicketsActive ? 'bg-thunder-gold text-black' : 'text-white hover:bg-white/10'
+                      }`}
+                    >
+                      Mes tickets
+                    </Link>
+
                     {user.role === 'Admin' && (
                       <Link
                         to="/admin"
@@ -264,6 +275,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                   <p className="px-4 pb-2 text-xs uppercase tracking-wide text-gray-300">Compte</p>
                   <Link to="/profile" className={navItemClass(isActive('/profile'))}>Mon profil</Link>
                   <Link to="/subscription-history" className={navItemClass(isSubscriptionHistoryActive)}>Mes abonnements</Link>
+                  <Link to="/my-tickets" className={navItemClass(isMyTicketsActive)}>Mes tickets</Link>
                   {user.role === 'Admin' && (
                     <Link to="/admin" className={navItemClass(isAdminActive)}>Interface Admin</Link>
                   )}

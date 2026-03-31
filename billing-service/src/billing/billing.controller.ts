@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
+import { CreateTicketCheckoutDto } from './dto/create-ticket-checkout.dto';
 import { ArchivePlanPriceDto } from './dto/archive-plan-price.dto';
 import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
 import { AuthGuard } from '../auth/auth.guard';
@@ -77,6 +78,54 @@ export class BillingController {
     }
 
     return this.billingService.createSubscriptionCheckoutSession(dto);
+  }
+
+  @Post('tickets/checkout-session')
+  @UseGuards(AuthGuard)
+  async createTicketCheckoutSession(
+    @Body() dto: CreateTicketCheckoutDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    this.ensureNonEmptyString(dto.userId, 'userId');
+    this.ensureNonEmptyString(dto.eventId, 'eventId');
+    this.ensureUrl(dto.successUrl, 'successUrl');
+    this.ensureUrl(dto.cancelUrl, 'cancelUrl');
+    this.ensureNonEmptyString(dto.customerEmail, 'customerEmail');
+    this.ensureNonEmptyString(dto.customerName, 'customerName');
+
+    if (!Array.isArray(dto.items) || dto.items.length === 0) {
+      throw new BadRequestException('Champ invalide: items');
+    }
+
+    for (const item of dto.items) {
+      this.ensureNonEmptyString(item.ticketTypeId, 'items.ticketTypeId');
+      this.ensureNonEmptyString(item.name, 'items.name');
+      this.ensureNonEmptyString(item.currency, 'items.currency');
+
+      if (
+        typeof item.quantity !== 'number' ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity <= 0
+      ) {
+        throw new BadRequestException('Champ invalide: items.quantity');
+      }
+
+      if (
+        typeof item.unitAmount !== 'number' ||
+        Number.isNaN(item.unitAmount) ||
+        item.unitAmount <= 0
+      ) {
+        throw new BadRequestException('Champ invalide: items.unitAmount');
+      }
+    }
+
+    const requestUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'Admin';
+    if (!isAdmin && requestUserId && requestUserId !== dto.userId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    return this.billingService.createTicketCheckoutSession(dto);
   }
 
   @Post('subscriptions/cancel')

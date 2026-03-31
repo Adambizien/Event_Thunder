@@ -34,6 +34,7 @@ services:
       SUBSCRIPTION_SERVICE_URL: ${SUBSCRIPTION_SERVICE_URL}
       EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
       COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL}
+      TICKETING_SERVICE_URL: ${TICKETING_SERVICE_URL}
     ports:
       - "${API_GATEWAY_PORT}:3000"
     depends_on:
@@ -43,6 +44,7 @@ services:
       - subscription-service
       - event-service
       - comment-service
+      - ticketing-service
 
   # Auth Service
   auth-service:
@@ -135,13 +137,38 @@ services:
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
       DB_HOST: ${POSTGRES_HOST}
       DB_PORT: 5432
-      DB_NAME: ${BILLING_DATABASE}
+      DB_NAME: ${SUBSCRIPTION_DATABASE}
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       RABBITMQ_EXCHANGE: billing.events
       RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.billing.events
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Ticketing Service
+  ticketing-service:
+    build: ./ticketing-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${TICKETING_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_TICKETING_QUEUE: ticketing-service.billing.events
       NODE_ENV: ${NODE_ENV}
     secrets:
       - postgres_user

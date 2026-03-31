@@ -33,12 +33,12 @@ read_env_var() {
 
 POSTGRES_PORT="$(read_env_var POSTGRES_PORT)"
 USER_DATABASE="$(read_env_var USER_DATABASE)"
-BILLING_DATABASE="$(read_env_var BILLING_DATABASE)"
+SUBSCRIPTION_DATABASE="$(read_env_var SUBSCRIPTION_DATABASE)"
+TICKETING_DATABASE="$(read_env_var TICKETING_DATABASE)"
 EVENT_DATABASE="$(read_env_var EVENT_DATABASE)"
 COMMENT_DATABASE="$(read_env_var COMMENT_DATABASE)"
-TICKETING_DATABASE="$(read_env_var TICKETING_DATABASE)"
 
-required_vars=(POSTGRES_PORT USER_DATABASE BILLING_DATABASE EVENT_DATABASE COMMENT_DATABASE)
+required_vars=(POSTGRES_PORT USER_DATABASE SUBSCRIPTION_DATABASE TICKETING_DATABASE EVENT_DATABASE COMMENT_DATABASE)
 for var_name in "${required_vars[@]}"; do
   if [ -z "${!var_name:-}" ]; then
     echo "[ERROR] Variable $var_name manquante dans .env"
@@ -46,10 +46,6 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
-if [ -z "${TICKETING_DATABASE:-}" ]; then
-  TICKETING_DATABASE="$EVENT_DATABASE"
-  echo "[INFO] TICKETING_DATABASE non définie dans .env, fallback vers EVENT_DATABASE=$EVENT_DATABASE"
-fi
 
 DB_USER="$(cat secrets/postgres_user.txt)"
 DB_PASS="$(cat secrets/postgres_password.txt)"
@@ -83,7 +79,7 @@ DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${US
   npm --prefix user-service run prisma:migrate:deploy
 
 echo "[4/8] Migration Prisma subscription-service..."
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${BILLING_DATABASE}?schema=public" \
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${SUBSCRIPTION_DATABASE}?schema=public" \
   npm --prefix subscription-service run prisma:migrate:deploy
 
 echo "[5/8] Migration Prisma event-service..."

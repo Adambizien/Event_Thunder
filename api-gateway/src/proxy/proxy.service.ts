@@ -50,6 +50,9 @@ export class ProxyService {
     if (originalUrl.startsWith('/api/comments')) {
       return process.env.COMMENT_SERVICE_URL || 'http://comment-service:3000';
     }
+    if (originalUrl.startsWith('/api/ticketing')) {
+      return process.env.TICKETING_SERVICE_URL || 'http://ticketing-service:3000';
+    }
     return null;
   }
 
@@ -59,7 +62,8 @@ export class ProxyService {
       throw new Error('Aucun service cible pour ce chemin');
     }
 
-    const url = `${target}${req.originalUrl}`;
+    const pathOnly = req.path || req.originalUrl.split('?')[0];
+    const url = `${target}${pathOnly}`;
 
     const reqWithRaw = req as GatewayRequest & { rawBody?: Buffer };
     const bodyData = reqWithRaw.rawBody || req.body;
