@@ -43,6 +43,9 @@ type BillingTicketSucceededPayload = {
   stripeCheckoutSessionId?: string;
   customerEmail?: string;
   customerName?: string;
+  attendeeFirstname?: string;
+  attendeeLastname?: string;
+  attendeeEmail?: string;
   amountTotal?: number;
   currency?: string;
   items?: Array<{
@@ -230,6 +233,14 @@ export class TicketsService {
       'http://billing-service:3000';
 
     try {
+      const attendees = Array.isArray(dto.attendees)
+        ? dto.attendees.map(a => ({
+            ticketTypeId: a.ticket_type_id,
+            firstname: a.firstname,
+            lastname: a.lastname,
+            email: a.email,
+          }))
+        : [];
       const { data } = await firstValueFrom(
         this.httpService.post<BillingCheckoutResponse>(
           `${billingBaseUrl}/api/billing/tickets/checkout-session`,
@@ -240,6 +251,7 @@ export class TicketsService {
             cancelUrl: dto.cancel_url,
             customerEmail: dto.customer_email,
             customerName: dto.customer_name,
+            attendees,
             items: billingItems,
           },
           {
@@ -353,6 +365,11 @@ export class TicketsService {
 
     const currency = this.toTicketCurrency(payload.currency);
     const amountTotal = Number(payload.amountTotal ?? 0);
+    const fallbackName = (payload.customerName || '').trim();
+    const fallbackNameParts = fallbackName.split(/\s+/).filter(Boolean);
+    const attendees: Array<{ ticketTypeId: string; firstname: string; lastname: string; email: string }> = Array.isArray((payload as any).attendees)
+      ? (payload as any).attendees
+      : [];
 
     await this.prisma.$transaction(async (tx) => {
       const purchase = await tx.ticketPurchase.create({
@@ -366,6 +383,7 @@ export class TicketsService {
         },
       });
 
+      let attendeeIdx = 0;
       for (const rawItem of payload.items ?? []) {
         const ticketTypeId = rawItem.ticketTypeId;
         const quantity = Number(rawItem.quantity ?? 0);
@@ -415,12 +433,18 @@ export class TicketsService {
         const ticketRows: Prisma.TicketCreateManyInput[] = [];
         for (let i = 0; i < quantity; i += 1) {
           const ticketNumber = this.generateTicketNumber(payload.eventId!);
+          let attendee = attendees[attendeeIdx] || {
+            ticketTypeId,
+            firstname: fallbackNameParts[0] || 'A_Renseigner',
+            lastname: fallbackNameParts.slice(1).join(' ') || 'A_Renseigner',
+            email: payload.customerEmail || null,
+          };
           ticketRows.push({
             ticket_purchase_id: purchase.id,
             ticket_type_id: ticketType.id,
-            attendee_firstname: 'A_Renseigner',
-            attendee_lastname: 'A_Renseigner',
-            attendee_email: payload.customerEmail ?? null,
+            attendee_firstname: attendee.firstname,
+            attendee_lastname: attendee.lastname,
+            attendee_email: attendee.email,
             ticket_number: ticketNumber,
             qr_code: Buffer.from(
               JSON.stringify({
@@ -431,6 +455,7 @@ export class TicketsService {
             ).toString('base64'),
             used: false,
           });
+          attendeeIdx++;
         }
 
         if (ticketRows.length > 0) {

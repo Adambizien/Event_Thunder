@@ -89,6 +89,8 @@ const AdminEvents = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [hasSoldTicketsByEvent, setHasSoldTicketsByEvent] = useState<Record<string, boolean>>({});
+  const [ticketTypeCountByEvent, setTicketTypeCountByEvent] = useState<Record<string, number>>({});
+  const [soldTicketCountByEvent, setSoldTicketCountByEvent] = useState<Record<string, number>>({});
   const [selectedEventForComments, setSelectedEventForComments] = useState<EventItem | null>(null);
   const [eventComments, setEventComments] = useState<CommentItem[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -140,20 +142,47 @@ const AdminEvents = () => {
         }),
       );
 
-      const soldStatusEntries = await Promise.all(
+      const ticketStatsEntries = await Promise.all(
         loadedEvents.map(async (event) => {
           const ticketTypes = await ticketService.getEventTicketTypes(event.id, {
             includeInactive: true,
           });
           const hasSoldTickets = ticketTypes.some((ticketType) => ticketType.sold_quantity > 0);
-          return [event.id, hasSoldTickets] as const;
+          const soldTicketsCount = ticketTypes.reduce(
+            (sum, ticketType) => sum + ticketType.sold_quantity,
+            0,
+          );
+
+          return [
+            event.id,
+            {
+              hasSoldTickets,
+              ticketTypesCount: ticketTypes.length,
+              soldTicketsCount,
+            },
+          ] as const;
         }),
       );
+
+      const soldStatusEntries = ticketStatsEntries.map(([eventId, stats]) => [
+        eventId,
+        stats.hasSoldTickets,
+      ] as const);
+      const ticketTypeCountEntries = ticketStatsEntries.map(([eventId, stats]) => [
+        eventId,
+        stats.ticketTypesCount,
+      ] as const);
+      const soldTicketCountEntries = ticketStatsEntries.map(([eventId, stats]) => [
+        eventId,
+        stats.soldTicketsCount,
+      ] as const);
 
       setCategories(loadedCategories);
       setEvents(loadedEvents);
       setCommentCounts(Object.fromEntries(countEntries));
       setHasSoldTicketsByEvent(Object.fromEntries(soldStatusEntries));
+      setTicketTypeCountByEvent(Object.fromEntries(ticketTypeCountEntries));
+      setSoldTicketCountByEvent(Object.fromEntries(soldTicketCountEntries));
       if (loadedCategories.length > 0) {
         setCategoryId((prev) => prev || loadedCategories[0].id);
       }
@@ -163,6 +192,8 @@ const AdminEvents = () => {
       setCategories([]);
       setEvents([]);
       setHasSoldTicketsByEvent({});
+      setTicketTypeCountByEvent({});
+      setSoldTicketCountByEvent({});
     } finally {
       setLoading(false);
     }
@@ -313,6 +344,16 @@ const AdminEvents = () => {
         delete next[id];
         return next;
       });
+      setTicketTypeCountByEvent((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setSoldTicketCountByEvent((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setCommentCounts((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -423,11 +464,29 @@ const AdminEvents = () => {
       if (editingEventId) {
         const updatedEvent = await eventService.updateEvent(editingEventId, payload);
         await ticketService.upsertEventTicketTypes(updatedEvent.id, normalizedTicketTypes);
+        const updatedTicketTypes = await ticketService.getEventTicketTypes(updatedEvent.id, {
+          includeInactive: true,
+        });
         setEvents((prev) =>
           prev.map((event) =>
             event.id === editingEventId ? updatedEvent : event,
           ),
         );
+        setHasSoldTicketsByEvent((prev) => ({
+          ...prev,
+          [updatedEvent.id]: updatedTicketTypes.some((ticketType) => ticketType.sold_quantity > 0),
+        }));
+        setTicketTypeCountByEvent((prev) => ({
+          ...prev,
+          [updatedEvent.id]: updatedTicketTypes.length,
+        }));
+        setSoldTicketCountByEvent((prev) => ({
+          ...prev,
+          [updatedEvent.id]: updatedTicketTypes.reduce(
+            (sum, ticketType) => sum + ticketType.sold_quantity,
+            0,
+          ),
+        }));
         setSuccess("L'événement a été modifié avec succès");
       } else {
         const createdEvent = await eventService.createEvent(payload);
@@ -440,6 +499,14 @@ const AdminEvents = () => {
         setHasSoldTicketsByEvent((prev) => ({
           ...prev,
           [createdEvent.id]: false,
+        }));
+        setTicketTypeCountByEvent((prev) => ({
+          ...prev,
+          [createdEvent.id]: normalizedTicketTypes.length,
+        }));
+        setSoldTicketCountByEvent((prev) => ({
+          ...prev,
+          [createdEvent.id]: 0,
         }));
         setSuccess("L'événement a été créé avec succès");
       }
@@ -1078,6 +1145,8 @@ const AdminEvents = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Lieu</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Debut</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Fin</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Types de ticket</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Tickets vendus</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Statut</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Commentaires</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
@@ -1096,6 +1165,8 @@ const AdminEvents = () => {
                     <td className="px-6 py-4 text-gray-300">{event.location}</td>
                     <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.start_date)}</td>
                     <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
+                    <td className="px-6 py-4 text-gray-300">{ticketTypeCountByEvent[event.id] || 0}</td>
+                    <td className="px-6 py-4 text-gray-300">{soldTicketCountByEvent[event.id] || 0}</td>
                     <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
                     <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
                     <td className="px-6 py-4">

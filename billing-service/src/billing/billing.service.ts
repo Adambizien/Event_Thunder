@@ -103,6 +103,7 @@ export class BillingService {
         userId: dto.userId,
         eventId: dto.eventId,
         customerName: dto.customerName,
+        attendees: JSON.stringify(dto.attendees ?? []),
         ticketItems: JSON.stringify(dto.items),
       },
     });
@@ -364,11 +365,20 @@ export class BillingService {
       return;
     }
 
+    let attendees: Array<{ ticketTypeId: string; firstname: string; lastname: string; email: string }> = [];
+    if (session.metadata?.attendees) {
+      try {
+        attendees = JSON.parse(session.metadata.attendees);
+      } catch {
+        this.logger.warn('Metadata attendees Stripe invalide');
+      }
+    }
     await this.rabbitmqPublisher.publishWithRetry('billing.ticket.payment.succeeded', {
       userId: session.metadata?.userId ?? session.client_reference_id,
       eventId: session.metadata?.eventId,
       customerName: session.metadata?.customerName,
       customerEmail: session.customer_details?.email ?? session.customer_email,
+      attendees,
       stripePaymentIntentId,
       stripeCheckoutSessionId: session.id,
       currency: (session.currency ?? 'eur').toUpperCase(),

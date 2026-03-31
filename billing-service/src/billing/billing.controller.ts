@@ -93,6 +93,27 @@ export class BillingController {
     this.ensureNonEmptyString(dto.customerEmail, 'customerEmail');
     this.ensureNonEmptyString(dto.customerName, 'customerName');
 
+    if (!Array.isArray(dto.attendees) || dto.attendees.length === 0) {
+      throw new BadRequestException('Champ invalide: attendees');
+    }
+    for (const [idx, attendee] of dto.attendees.entries()) {
+      if (!attendee || typeof attendee !== 'object') {
+        throw new BadRequestException(`Champ invalide: attendees[${idx}]`);
+      }
+      if (!attendee.firstname || typeof attendee.firstname !== 'string' || !attendee.firstname.trim()) {
+        throw new BadRequestException(`Champ invalide: attendees[${idx}].firstname`);
+      }
+      if (!attendee.lastname || typeof attendee.lastname !== 'string' || !attendee.lastname.trim()) {
+        throw new BadRequestException(`Champ invalide: attendees[${idx}].lastname`);
+      }
+      if (!attendee.email || typeof attendee.email !== 'string' || !attendee.email.includes('@')) {
+        throw new BadRequestException(`Champ invalide: attendees[${idx}].email`);
+      }
+      if (!attendee.ticketTypeId || typeof attendee.ticketTypeId !== 'string') {
+        throw new BadRequestException(`Champ invalide: attendees[${idx}].ticketTypeId`);
+      }
+    }
+
     if (!Array.isArray(dto.items) || dto.items.length === 0) {
       throw new BadRequestException('Champ invalide: items');
     }

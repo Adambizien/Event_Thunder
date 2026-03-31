@@ -69,6 +69,13 @@ const EventDetails = () => {
   const [event, setEvent] = useState<EventItem | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketTypeItem[]>([]);
   const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
+  const [useAccountIdentity, setUseAccountIdentity] = useState(true);
+  const [attendees, setAttendees] = useState<{
+    ticket_type_id: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+  }[]>([]);
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -99,6 +106,22 @@ const EventDetails = () => {
       setCurrentUser(null);
     }
   }, []);
+
+  useEffect(() => {
+    const newAttendees: typeof attendees = [];
+    ticketTypes.forEach((ticketType) => {
+      const quantity = ticketQuantities[ticketType.id] ?? 0;
+      for (let i = 0; i < quantity; i++) {
+        newAttendees.push({
+          ticket_type_id: ticketType.id,
+          firstname: useAccountIdentity && currentUser ? (currentUser.firstName || '').trim() : '',
+          lastname: useAccountIdentity && currentUser ? (currentUser.lastName || '').trim() : '',
+          email: useAccountIdentity && currentUser ? currentUser.email || '' : '',
+        });
+      }
+    });
+    setAttendees(newAttendees);
+  }, [ticketQuantities, ticketTypes, useAccountIdentity, currentUser]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -212,19 +235,33 @@ const EventDetails = () => {
       return;
     }
 
+    if (attendees.length !== selectedItems.reduce((sum, item) => sum + item.quantity, 0)) {
+      setPurchaseError('Veuillez remplir les informations pour chaque ticket.');
+      return;
+    }
+    for (const attendee of attendees) {
+      if (!attendee.firstname.trim() || !attendee.lastname.trim()) {
+        setPurchaseError('Veuillez renseigner le prénom et le nom pour chaque ticket.');
+        return;
+      }
+      if (!attendee.email.trim() || !attendee.email.includes('@')) {
+        setPurchaseError('Veuillez renseigner un email valide pour chaque ticket.');
+        return;
+      }
+    }
+
     try {
       setPurchasing(true);
       setPurchaseError(null);
 
-      const customerName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`
-        .trim() ||
-        currentUser.email;
+      const customerName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email;
 
       const result = await ticketService.createCheckoutSession({
         event_id: id,
         items: selectedItems,
         customer_email: currentUser.email,
         customer_name: customerName,
+        attendees,
         success_url: `${window.location.origin}/my-tickets?checkout=success&eventId=${encodeURIComponent(id)}`,
         cancel_url: `${window.location.origin}/events/${id}?checkout=cancel`,
       });
@@ -415,6 +452,74 @@ const EventDetails = () => {
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg space-y-4">
               <h3 className="text-lg font-semibold text-white">Billetterie</h3>
+
+              <div className="rounded-xl border border-white/10 bg-black/20 p-3 space-y-3">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-200">
+                  <input
+                    type="checkbox"
+                    checked={useAccountIdentity}
+                    onChange={(e) => setUseAccountIdentity(e.target.checked)}
+                    className="accent-thunder-gold"
+                  />
+                  Utiliser les informations du compte connecté pour tous les tickets
+                </label>
+                {attendees.length === 0 ? (
+                  <p className="text-gray-400 text-sm">Aucun ticket sélectionné.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {attendees.map((att, idx) => {
+                      const ticketType = ticketTypes.find(t => t.id === att.ticket_type_id);
+                      return (
+                        <div key={idx} className="border border-white/10 rounded-lg p-3 bg-black/10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs text-gray-400">Ticket</span>
+                            <span className="text-xs font-semibold text-thunder-gold">{ticketType?.name || att.ticket_type_id}</span>
+                            <span className="text-xs text-gray-400">#{idx + 1}</span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <input
+                              type="text"
+                              value={att.firstname}
+                              onChange={e => {
+                                const next = [...attendees];
+                                next[idx] = { ...next[idx], firstname: e.target.value };
+                                setAttendees(next);
+                              }}
+                              disabled={useAccountIdentity}
+                              placeholder="Prénom du participant"
+                              className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
+                            />
+                            <input
+                              type="text"
+                              value={att.lastname}
+                              onChange={e => {
+                                const next = [...attendees];
+                                next[idx] = { ...next[idx], lastname: e.target.value };
+                                setAttendees(next);
+                              }}
+                              disabled={useAccountIdentity}
+                              placeholder="Nom du participant"
+                              className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
+                            />
+                            <input
+                              type="email"
+                              value={att.email}
+                              onChange={e => {
+                                const next = [...attendees];
+                                next[idx] = { ...next[idx], email: e.target.value };
+                                setAttendees(next);
+                              }}
+                              disabled={useAccountIdentity}
+                              placeholder="Email du participant"
+                              className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               {ticketTypes.length === 0 ? (
                 <p className="text-sm text-gray-300">Aucun ticket disponible pour cet événement.</p>

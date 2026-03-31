@@ -3,6 +3,7 @@ import {
   IsArray,
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUrl,
   IsUUID,
@@ -19,6 +20,22 @@ export class CheckoutTicketItemDto {
   @Min(1)
   @Max(20)
   quantity!: number;
+}
+
+export class TicketAttendeeDto {
+  @IsUUID()
+  ticket_type_id!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  firstname!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastname!: string;
+
+  @IsEmail()
+  email!: string;
 }
 
 export class CreateTicketCheckoutDto {
@@ -42,4 +59,9 @@ export class CreateTicketCheckoutDto {
 
   @IsEmail()
   customer_email!: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @Type(() => TicketAttendeeDto)
+  attendees!: TicketAttendeeDto[];
 }

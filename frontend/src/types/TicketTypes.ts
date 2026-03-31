@@ -24,6 +24,14 @@ export type UpsertTicketTypeInput = {
   is_active?: boolean;
 };
 
+
+export type TicketAttendee = {
+  ticket_type_id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+};
+
 export type CreateTicketCheckoutPayload = {
   event_id: string;
   items: Array<{
@@ -34,6 +42,7 @@ export type CreateTicketCheckoutPayload = {
   cancel_url: string;
   customer_name: string;
   customer_email: string;
+  attendees: TicketAttendee[];
 };
 
 export type CreateTicketCheckoutResponse = {

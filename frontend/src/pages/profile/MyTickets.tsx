@@ -123,6 +123,11 @@ const MyTickets = () => {
                         >
                           <p className="text-xs text-gray-400">Numéro de ticket</p>
                           <p className="font-mono text-thunder-gold text-sm">{ticket.ticket_number}</p>
+                          <div className="mt-1 text-xs text-gray-300">
+                            <span className="block">Nom : <span className="font-semibold text-white">{ticket.attendee_lastname}</span></span>
+                            <span className="block">Prénom : <span className="font-semibold text-white">{ticket.attendee_firstname}</span></span>
+                            <span className="block">Email : <span className="font-semibold text-white">{ticket.attendee_email || '-'}</span></span>
+                          </div>
                           <p className="mt-1 text-xs text-gray-400">
                             Statut: {ticket.used ? 'Utilisé' : 'Valide'}
                           </p>
