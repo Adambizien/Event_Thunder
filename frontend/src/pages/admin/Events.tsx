@@ -408,7 +408,6 @@ const AdminEvents = () => {
           creatorId = parsedUser.id;
         }
       } catch {
-        // Ignore invalid localStorage payload
       }
     }
 

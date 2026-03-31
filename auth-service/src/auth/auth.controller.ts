@@ -39,7 +39,6 @@ export class AuthController {
     return this.authService.generateGoogleAuthUrl();
   }
 
-  // Route GET pour le callback Google
   @Get('google/callback')
   async googleAuthCallback(
     @Query('code') code: string,
@@ -237,7 +236,6 @@ export class AuthController {
       .replaceAll("'", '&#39;');
   }
 
-  // Route POST pour le callback Google
   @Post('google/callback')
   googleAuth(@Body() googleAuthDto: GoogleAuthDto) {
     return this.authService.googleAuth(googleAuthDto);

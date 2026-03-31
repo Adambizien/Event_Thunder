@@ -35,7 +35,6 @@ const writeRouteGuard = (key: string, value: string) => {
   try {
     sessionStorage.setItem(key, value);
   } catch {
-    // Ignore storage errors.
   }
 };
 
@@ -43,7 +42,6 @@ const clearRouteGuard = (key: string) => {
   try {
     sessionStorage.removeItem(key);
   } catch {
-    // Ignore storage errors.
   }
 };
 
@@ -130,7 +128,6 @@ const Subscription = () => {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       } catch {
-        // Ignore polling errors and keep the current state.
       } finally {
         if (!cancelled) {
           setIsResolvingSubscriptionState(false);

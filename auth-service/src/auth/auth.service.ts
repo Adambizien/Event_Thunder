@@ -155,7 +155,6 @@ export class AuthService {
 
       if (isNewUser) {
         this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
-          // Silent fail for welcome email
         });
       }
 
@@ -197,7 +196,6 @@ export class AuthService {
       const token = this.generateToken(user.id);
 
       this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
-        // Silent fail for welcome email
       });
 
       return {

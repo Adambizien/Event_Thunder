@@ -55,7 +55,6 @@ function AppContent() {
           setUser(userData);
           window.history.replaceState({}, '', '/');
         } catch {
-          // Erreur
         }
       } else {
         const savedToken = localStorage.getItem('token');

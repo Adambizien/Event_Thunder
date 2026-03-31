@@ -29,7 +29,6 @@ export const authService = {
     try {
       await api.post('/api/auth/logout');
     } catch {
-      // Ignore logout API errors and always clear local session
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

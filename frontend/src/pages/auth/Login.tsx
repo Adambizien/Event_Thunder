@@ -142,7 +142,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 id="password"
                 name="password"
                 value={formData.password}
-                onChange={() => {}} // No validation needed for login
+                onChange={() => {}}
                 onValueChange={(password) => {
                   setFormData({
                     ...formData,
