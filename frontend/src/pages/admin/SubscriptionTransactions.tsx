@@ -784,7 +784,7 @@ const AdminSubscriptionTransactions = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="font-medium text-white">{formatDateTime(payment.effectiveDate)}</div>
-                        <div className="text-xs text-gray-500">Souscription #{payment.subscription.id.slice(0, 8)}</div>
+                        <div className="text-xs text-gray-400">Souscription #{payment.subscription.id.slice(0, 8)}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-medium text-white">{fullName || 'Utilisateur inconnu'}</div>
@@ -814,7 +814,7 @@ const AdminSubscriptionTransactions = () => {
                         <div className="max-w-[180px] truncate text-xs text-gray-400">
                           {payment.stripeInvoiceId || 'Aucune'}
                         </div>
-                        <div className="max-w-[180px] truncate text-xs text-gray-500">
+                        <div className="max-w-[180px] truncate text-xs text-gray-400">
                           {payment.subscription.stripeSubscriptionId}
                         </div>
                       </td>

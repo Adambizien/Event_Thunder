@@ -80,6 +80,12 @@ export type Ticket = {
 export type TicketPurchase = {
   id: string;
   user_id: string;
+  buyer?: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+  } | null;
   stripe_payment_intent_id: string;
   status: string;
   total_amount: number;
@@ -115,6 +121,7 @@ export type SoldEventTicketItem = {
   ticket_type: {
     id: string;
     name: string;
+    price: number | string;
     currency: TicketCurrency;
   };
   ticket_purchase: {
@@ -123,6 +130,14 @@ export type SoldEventTicketItem = {
     stripe_payment_intent_id: string;
     created_at: string;
     status: string;
+    total_amount: number | string;
+    currency: TicketCurrency;
+    buyer?: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      email: string | null;
+    } | null;
   };
 };
 

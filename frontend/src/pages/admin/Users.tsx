@@ -285,7 +285,7 @@ const AdminUsers = () => {
                           <p className="font-medium text-white">
                             {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Sans nom'}
                           </p>
-                          <p className="text-xs text-gray-500">{user.id}</p>
+                          <p className="text-xs text-gray-400">{user.id}</p>
                         </div>
                       </div>
                     </td>

@@ -26,12 +26,33 @@ const statusLabels: Record<EventStatus, string> = {
   completed: 'Terminé',
 };
 
+const ticketPurchaseStatusLabels: Record<string, string> = {
+  pending: 'En attente',
+  paid: 'Payé',
+  succeeded: 'Payé',
+  completed: 'Payé',
+  failed: 'Échoué',
+  canceled: 'Annulé',
+  refunded: 'Remboursé',
+};
+
+const toTicketPurchaseStatusLabel = (status: string) =>
+  ticketPurchaseStatusLabels[status.toLowerCase()] ?? status;
+
 const toLocalInputDateTime = (iso: string) => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return '-';
   }
   return date.toLocaleString('fr-FR');
+};
+
+const formatCurrency = (amount: number, currency: string) => {
+  const normalized = currency === 'USD' ? 'USD' : 'EUR';
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: normalized,
+  }).format(amount);
 };
 
 const toIsoDateString = (value: string): string | null => {
@@ -640,6 +661,9 @@ const AdminEvents = () => {
       {
         purchase: SoldEventTicketItem['ticket_purchase'];
         createdAt: string;
+        buyerFirstname: string;
+        buyerLastname: string;
+        buyerEmail: string | null;
         tickets: SoldEventTicketItem[];
       }
     >();
@@ -656,6 +680,12 @@ const AdminEvents = () => {
       grouped.set(purchaseId, {
         purchase: ticket.ticket_purchase,
         createdAt: ticket.created_at,
+        buyerFirstname:
+          ticket.ticket_purchase.buyer?.firstName ?? ticket.attendee_firstname,
+        buyerLastname:
+          ticket.ticket_purchase.buyer?.lastName ?? ticket.attendee_lastname,
+        buyerEmail:
+          ticket.ticket_purchase.buyer?.email ?? ticket.attendee_email ?? null,
         tickets: [ticket],
       });
     }
@@ -1264,11 +1294,55 @@ const AdminEvents = () => {
               </p>
             ) : (
               <div className="space-y-6 max-h-[56vh] overflow-y-auto pr-1">
-                {groupedSoldTicketPurchases.map((purchaseGroup) => (
-                  <section
-                    key={purchaseGroup.purchase.id}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
-                  >
+                {groupedSoldTicketPurchases.map((purchaseGroup) => {
+                  const amountDetailsByType = purchaseGroup.tickets.reduce(
+                    (acc, ticket) => {
+                      const key = ticket.ticket_type.id;
+                      const existing = acc.get(key);
+                      const unitPrice = Number(ticket.ticket_type.price ?? 0);
+                      const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+
+                      if (existing) {
+                        existing.quantity += 1;
+                        return acc;
+                      }
+
+                      acc.set(key, {
+                        ticketTypeName: ticket.ticket_type.name,
+                        unitPrice: safeUnitPrice,
+                        quantity: 1,
+                        currency: ticket.ticket_type.currency,
+                      });
+                      return acc;
+                    },
+                    new Map<
+                      string,
+                      {
+                        ticketTypeName: string;
+                        unitPrice: number;
+                        quantity: number;
+                        currency: TicketCurrency;
+                      }
+                    >(),
+                  );
+
+                  const amountDetails = Array.from(amountDetailsByType.values());
+                  const fallbackTotalAmount = amountDetails.reduce(
+                    (sum, detail) => sum + detail.unitPrice * detail.quantity,
+                    0,
+                  );
+                  const rawTotalAmount = Number(purchaseGroup.purchase.total_amount ?? fallbackTotalAmount);
+                  const totalAmount = Number.isFinite(rawTotalAmount)
+                    ? rawTotalAmount
+                    : fallbackTotalAmount;
+                  const totalCurrency =
+                    purchaseGroup.purchase.currency ?? amountDetails[0]?.currency ?? 'EUR';
+
+                  return (
+                    <section
+                      key={purchaseGroup.purchase.id}
+                      className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
+                    >
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
                       <div>
                         <p className="text-sm text-gray-400">Achat</p>
@@ -1296,14 +1370,14 @@ const AdminEvents = () => {
                         </button>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-400">Tickets</p>
-                        <p className="text-thunder-gold font-semibold">
-                          {purchaseGroup.tickets.length}
-                        </p>
-                      </div>
-                      <div className="text-right">
                         <p className="text-sm text-gray-400">Achat le</p>
                         <p className="text-white">{toLocalInputDateTime(purchaseGroup.createdAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-400">Prix total</p>
+                        <p className="text-thunder-gold font-semibold">
+                          {formatCurrency(totalAmount, totalCurrency)}
+                        </p>
                       </div>
                     </div>
 
@@ -1316,13 +1390,46 @@ const AdminEvents = () => {
                             {purchaseGroup.purchase.user_id}
                           </p>
                           <p>
-                            <span className="text-gray-400">Statut:</span>{' '}
-                            {purchaseGroup.purchase.status}
+                            <span className="text-gray-400">Nom:</span>{' '}
+                            {purchaseGroup.buyerLastname || '-'}
                           </p>
                           <p>
-                            <span className="text-gray-400">Stripe PI:</span>{' '}
-                            {purchaseGroup.purchase.stripe_payment_intent_id}
+                            <span className="text-gray-400">Prenom:</span>{' '}
+                            {purchaseGroup.buyerFirstname || '-'}
                           </p>
+                          <p>
+                            <span className="text-gray-400">Email:</span>{' '}
+                            {purchaseGroup.buyerEmail || '-'}
+                          </p>
+                          <p>
+                            <span className="text-gray-400">Statut:</span>{' '}
+                            {toTicketPurchaseStatusLabel(purchaseGroup.purchase.status)}
+                          </p>
+                          <p>
+                            <span className="text-gray-400">Nombre de tickets:</span>{' '}
+                            {purchaseGroup.tickets.length}
+                          </p>
+                          <div>
+                            <p className="text-gray-400">Montant detaille:</p>
+                            <ul className="mt-1 space-y-1">
+                              {amountDetails.map((detail) => (
+                                <li
+                                  key={`${purchaseGroup.purchase.id}-${detail.ticketTypeName}`}
+                                  className="flex items-center justify-between gap-3"
+                                >
+                                  <span>
+                                    {detail.ticketTypeName} x{detail.quantity}
+                                  </span>
+                                  <span>
+                                    {formatCurrency(
+                                      detail.unitPrice * detail.quantity,
+                                      detail.currency,
+                                    )}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       </div>
 
@@ -1369,7 +1476,8 @@ const AdminEvents = () => {
                       </div>
                     </div>
                   </section>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1408,7 +1516,7 @@ const AdminEvents = () => {
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium text-white">{event.title}</p>
-                        <p className="text-xs text-gray-500">{event.id}</p>
+                        <p className="text-xs text-gray-400">{event.id}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-300">{event.category?.name || '-'}</td>

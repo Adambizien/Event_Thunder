@@ -17,6 +17,21 @@ const formatCurrency = (amount: number, currency: string) => {
   }).format(amount);
 };
 
+const ticketPurchaseStatusLabels: Record<string, string> = {
+  pending: 'En attente',
+  paid: 'Payé',
+  succeeded: 'Payé',
+  completed: 'Payé',
+  failed: 'Échoué',
+  canceled: 'Annulé',
+  refunded: 'Remboursé',
+};
+
+const toTicketPurchaseStatusLabel = (status?: string | null) => {
+  if (!status) return '-';
+  return ticketPurchaseStatusLabels[status.toLowerCase()] ?? status;
+};
+
 const MyTickets = () => {
   const [purchases, setPurchases] = useState<TicketPurchase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +151,24 @@ const MyTickets = () => {
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <h3 className="text-white font-semibold mb-2">Détails de l'achat</h3>
+                    <div className="space-y-2 text-sm text-gray-200 mb-4">
+                      <p>
+                        <span className="text-gray-400">Nom:</span> {purchase.buyer?.lastName || '-'}
+                      </p>
+                      <p>
+                        <span className="text-gray-400">Prénom:</span> {purchase.buyer?.firstName || '-'}
+                      </p>
+                      <p>
+                        <span className="text-gray-400">Email:</span> {purchase.buyer?.email || '-'}
+                      </p>
+                      <p>
+                        <span className="text-gray-400">Statut:</span> {toTicketPurchaseStatusLabel(purchase.status)}
+                      </p>
+                      <p>
+                        <span className="text-gray-400">Nombre de tickets:</span> {purchase.tickets.length}
+                      </p>
+                    </div>
                     <h3 className="text-white font-semibold mb-2">Lignes d'achat</h3>
                     <ul className="space-y-2 text-sm text-gray-200">
                       {purchase.items.map((item) => (

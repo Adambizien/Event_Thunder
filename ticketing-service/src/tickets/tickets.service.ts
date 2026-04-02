@@ -274,7 +274,7 @@ export class TicketsService {
     }
   }
 
-  async getMyTickets(userId: string) {
+  async getMyTickets(userId: string, authorization: string) {
     const purchases = await this.prisma.ticketPurchase.findMany({
       where: { user_id: userId },
       include: {
@@ -290,12 +290,20 @@ export class TicketsService {
       orderBy: { created_at: 'desc' },
     });
 
+    const buyerByUserId = await this.fetchBuyersByUserIds([userId], authorization);
+    const buyer = buyerByUserId.get(userId) ?? null;
+
+    const enrichedPurchases = purchases.map((purchase) => ({
+      ...purchase,
+      buyer,
+    }));
+
     return {
-      purchases,
+      purchases: enrichedPurchases,
     };
   }
 
-  async getEventSoldTickets(eventId: string) {
+  async getEventSoldTickets(eventId: string, authorization: string) {
     const tickets = await this.prisma.ticket.findMany({
       where: {
         ticket_type: {
@@ -307,6 +315,7 @@ export class TicketsService {
           select: {
             id: true,
             name: true,
+            price: true,
             currency: true,
           },
         },
@@ -317,6 +326,8 @@ export class TicketsService {
             stripe_payment_intent_id: true,
             created_at: true,
             status: true,
+            total_amount: true,
+            currency: true,
           },
         },
       },
@@ -325,11 +336,87 @@ export class TicketsService {
       },
     });
 
+    const uniqueUserIds = [...new Set(tickets.map((ticket) => ticket.ticket_purchase.user_id))];
+    const buyerByUserId = await this.fetchBuyersByUserIds(uniqueUserIds, authorization);
+
+    const enrichedTickets = tickets.map((ticket) => {
+      const buyer = buyerByUserId.get(ticket.ticket_purchase.user_id) ?? null;
+
+      return {
+        ...ticket,
+        ticket_purchase: {
+          ...ticket.ticket_purchase,
+          buyer,
+        },
+      };
+    });
+
     return {
       event_id: eventId,
-      count: tickets.length,
-      tickets,
+      count: enrichedTickets.length,
+      tickets: enrichedTickets,
     };
+  }
+
+  private async fetchBuyersByUserIds(
+    userIds: string[],
+    authorization: string,
+  ): Promise<
+    Map<string, { id: string; firstName: string | null; lastName: string | null; email: string | null }>
+  > {
+    const buyers = new Map<
+      string,
+      { id: string; firstName: string | null; lastName: string | null; email: string | null }
+    >();
+
+    if (userIds.length === 0) {
+      return buyers;
+    }
+
+    const userBaseUrl =
+      this.configService.get<string>('USER_SERVICE_URL') ??
+      'http://user-service:3000';
+
+    await Promise.all(
+      userIds.map(async (userId) => {
+        try {
+          const { data } = await firstValueFrom(
+            this.httpService.get<{
+              user?: {
+                id?: string;
+                firstName?: string | null;
+                lastName?: string | null;
+                email?: string | null;
+              };
+            }>(`${userBaseUrl}/api/users/${encodeURIComponent(userId)}`, {
+              headers: {
+                Authorization: authorization,
+              },
+            }),
+          );
+
+          const user = data?.user;
+          if (!user || !user.id) {
+            return;
+          }
+
+          buyers.set(userId, {
+            id: user.id,
+            firstName: user.firstName ?? null,
+            lastName: user.lastName ?? null,
+            email: user.email ?? null,
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Impossible de recuperer le profil acheteur ${userId}: ${
+              error instanceof Error ? error.message : 'erreur inconnue'
+            }`,
+          );
+        }
+      }),
+    );
+
+    return buyers;
   }
 
   async getTicketPaymentInvoiceLinks(

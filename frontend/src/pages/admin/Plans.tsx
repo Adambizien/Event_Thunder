@@ -400,7 +400,7 @@ const AdminPlans = () => {
                       <span className="text-gray-400">Description:</span> {plan.description}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500">Stripe: {plan.stripePriceId}</p>
+                  <p className="text-xs text-gray-400">Stripe: {plan.stripePriceId}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
