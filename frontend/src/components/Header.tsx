@@ -145,12 +145,6 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 Accueil
               </Link>
               <Link
-                to="/dashboard"
-                className={navItemClass(isActive('/dashboard'))}
-              >
-                Tableau de bord
-              </Link>
-              <Link
                 to="/subscription"
                 className={navItemClass(isActive('/subscription'))}
               >
@@ -267,7 +261,6 @@ const Header = ({ user, onLogout }: HeaderProps) => {
             ) : (
               <>
                 <Link to="/" className={navItemClass(isActive('/'))}>Accueil</Link>
-                <Link to="/dashboard" className={navItemClass(isActive('/dashboard'))}>Tableau de bord</Link>
                 <Link to="/subscription" className={navItemClass(isActive('/subscription'))}>Plans d’abonnement</Link>
                 <Link to="/events" className={navItemClass(isEventsActive)}>Événements</Link>
 

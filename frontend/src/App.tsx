@@ -9,7 +9,6 @@ import {
 } from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import Dashboard from './components/Dashboard';
 import Profile from './pages/profile/Profile';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -124,7 +123,7 @@ function AppContent() {
       navigate('/subscription', { replace: true });
       return;
     }
-    navigate('/dashboard', { replace: true });
+    navigate('/', { replace: true });
   }, [loading, user, location.pathname, location.search, navigate]);
 
   if (loading) {
@@ -153,19 +152,11 @@ function AppContent() {
         />
         <Route 
           path="/forgot-password" 
-          element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+          element={user ? <Navigate to="/" replace /> : <ForgotPassword />}
         />
         <Route 
           path="/reset-password" 
-          element={user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute user={user}>
-              <Dashboard user={user!} />
-            </ProtectedRoute>
-          }
+          element={user ? <Navigate to="/" replace /> : <ResetPassword />}
         />
         <Route
           path="/subscription/*"

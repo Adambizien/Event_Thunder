@@ -73,7 +73,7 @@ const Register = ({ onRegister }: RegisterProps) => {
       if (redirect === 'subscription') {
         navigate('/subscription');
       } else {
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (err: unknown) {
       setError(getErrorMessage(err));
