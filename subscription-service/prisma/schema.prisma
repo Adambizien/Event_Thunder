@@ -17,11 +17,6 @@ enum PlanCurrency {
   USD
 }
 
-enum PlanLimitPeriod {
-  weekly
-  monthly
-}
-
 enum SubscriptionStatus {
   active
   canceled
@@ -46,8 +41,6 @@ model Plan {
   stripe_price_id String         @unique @db.VarChar
   max_events      Int            @default(0)
   max_posts       Int            @default(0)
-  max_events_period PlanLimitPeriod @default(monthly)
-  max_posts_period  PlanLimitPeriod @default(monthly)
   display_order   Int            @default(0)
   description     String?        @db.Text
   created_at      DateTime       @default(now()) @db.Timestamp(6)

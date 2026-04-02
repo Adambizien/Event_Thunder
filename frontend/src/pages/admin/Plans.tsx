@@ -20,8 +20,6 @@ const AdminPlans = () => {
     currency: 'EUR',
     maxEvents: '0',
     maxPosts: '0',
-    maxEventsPeriod: 'monthly',
-    maxPostsPeriod: 'monthly',
     displayOrder: '0',
     description: '',
   });
@@ -70,8 +68,6 @@ const AdminPlans = () => {
         currency: 'EUR',
         maxEvents: '0',
         maxPosts: '0',
-        maxEventsPeriod: 'monthly',
-        maxPostsPeriod: 'monthly',
         displayOrder: '0',
         description: '',
       });
@@ -94,8 +90,6 @@ const AdminPlans = () => {
       currency: (plan.currency || 'EUR') as 'EUR' | 'USD',
       maxEvents: plan.maxEvents.toString(),
       maxPosts: plan.maxPosts.toString(),
-      maxEventsPeriod: plan.maxEventsPeriod,
-      maxPostsPeriod: plan.maxPostsPeriod,
       displayOrder: plan.displayOrder?.toString() ?? '0',
       description: plan.description ?? '',
     });
@@ -126,8 +120,6 @@ const AdminPlans = () => {
       currency: 'EUR',
       maxEvents: '0',
       maxPosts: '0',
-      maxEventsPeriod: 'monthly',
-      maxPostsPeriod: 'monthly',
       displayOrder: '0',
       description: '',
     });
@@ -256,25 +248,6 @@ const AdminPlans = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Période événements
-              </label>
-              <select
-                value={formData.maxEventsPeriod}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    maxEventsPeriod: e.target.value as 'weekly' | 'monthly',
-                  })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              >
-                <option value="weekly">Par semaine</option>
-                <option value="monthly">Par mois</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Posts max (-1 = illimité)
               </label>
               <input
@@ -284,25 +257,6 @@ const AdminPlans = () => {
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
                 placeholder="10"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Période posts
-              </label>
-              <select
-                value={formData.maxPostsPeriod}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    maxPostsPeriod: e.target.value as 'weekly' | 'monthly',
-                  })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              >
-                <option value="weekly">Par semaine</option>
-                <option value="monthly">Par mois</option>
-              </select>
             </div>
 
             <div>
@@ -386,13 +340,11 @@ const AdminPlans = () => {
                   </p>
                   <p>
                     <span className="text-gray-400">Événements:</span>{' '}
-                    {plan.maxEvents === -1 ? 'Illimité' : plan.maxEvents}/
-                    {plan.maxEventsPeriod === 'weekly' ? 'semaine' : 'mois'}
+                    {plan.maxEvents === -1 ? 'Illimité' : plan.maxEvents}
                   </p>
                   <p>
                     <span className="text-gray-400">Posts:</span>{' '}
-                    {plan.maxPosts === -1 ? 'Illimité' : plan.maxPosts}/
-                    {plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}
+                    {plan.maxPosts === -1 ? 'Illimité' : plan.maxPosts}
                   </p>
                   <p><span className="text-gray-400">Ordre:</span> {plan.displayOrder ?? 0}</p>
                   {plan.description && (

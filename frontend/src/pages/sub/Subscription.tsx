@@ -14,8 +14,6 @@ interface Plan {
   description?: string;
   maxEvents: number;
   maxPosts: number;
-  maxEventsPeriod: 'weekly' | 'monthly';
-  maxPostsPeriod: 'weekly' | 'monthly';
   displayOrder: number;
 }
 
@@ -508,12 +506,12 @@ const Subscription = () => {
           .map((plan) => {
           const maxEventsLabel =
             plan.maxEvents === -1
-              ? `Illimité / ${plan.maxEventsPeriod === 'weekly' ? 'semaine' : 'mois'}`
-              : `${plan.maxEvents} / ${plan.maxEventsPeriod === 'weekly' ? 'semaine' : 'mois'}`;
+              ? 'Illimité'
+              : `${plan.maxEvents}`;
           const maxPostsLabel =
             plan.maxPosts === -1
-              ? `Illimité / ${plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}`
-              : `${plan.maxPosts} / ${plan.maxPostsPeriod === 'weekly' ? 'semaine' : 'mois'}`;
+              ? 'Illimité'
+              : `${plan.maxPosts}`;
 
           const userSub = activeUserSubscription?.planId === plan.id
             ? activeUserSubscription

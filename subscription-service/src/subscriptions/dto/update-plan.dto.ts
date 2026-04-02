@@ -1,4 +1,4 @@
-import { PlanCurrency, PlanInterval, PlanLimitPeriod } from '@prisma/client';
+import { PlanCurrency, PlanInterval } from '@prisma/client';
 
 export class UpdatePlanDto {
   name?: string;
@@ -7,8 +7,6 @@ export class UpdatePlanDto {
   currency?: PlanCurrency;
   maxEvents?: number;
   maxPosts?: number;
-  maxEventsPeriod?: PlanLimitPeriod;
-  maxPostsPeriod?: PlanLimitPeriod;
   displayOrder?: number;
   description?: string | null;
 }

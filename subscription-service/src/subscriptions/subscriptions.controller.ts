@@ -20,7 +20,7 @@ import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { FinalizePlanChangeDto } from './dto/finalize-plan-change.dto';
-import { PlanCurrency, PlanInterval, PlanLimitPeriod } from '@prisma/client';
+import { PlanCurrency, PlanInterval } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -94,24 +94,6 @@ export class SubscriptionsController {
         dto.maxPosts < -1
       ) {
         throw new BadRequestException('Champ invalide: maxPosts');
-      }
-    }
-
-    if ('maxEventsPeriod' in dto && dto.maxEventsPeriod !== undefined) {
-      if (
-        dto.maxEventsPeriod !== PlanLimitPeriod.weekly &&
-        dto.maxEventsPeriod !== PlanLimitPeriod.monthly
-      ) {
-        throw new BadRequestException('Champ invalide: maxEventsPeriod');
-      }
-    }
-
-    if ('maxPostsPeriod' in dto && dto.maxPostsPeriod !== undefined) {
-      if (
-        dto.maxPostsPeriod !== PlanLimitPeriod.weekly &&
-        dto.maxPostsPeriod !== PlanLimitPeriod.monthly
-      ) {
-        throw new BadRequestException('Champ invalide: maxPostsPeriod');
       }
     }
 
