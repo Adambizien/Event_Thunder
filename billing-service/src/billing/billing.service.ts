@@ -97,6 +97,9 @@ export class BillingService {
       line_items: lineItems,
       success_url: dto.successUrl,
       cancel_url: dto.cancelUrl,
+      invoice_creation: {
+        enabled: true,
+      },
       client_reference_id: dto.userId,
       customer_email: dto.customerEmail,
       metadata: {
@@ -151,6 +154,49 @@ export class BillingService {
     return {
       hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
       invoicePdfUrl: invoice.invoice_pdf ?? null,
+    };
+  }
+
+  async getTicketPaymentLinks(stripePaymentIntentId: string): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+    receiptUrl: string | null;
+  }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(
+      stripePaymentIntentId,
+      {
+        expand: ['latest_charge', 'latest_charge.invoice'],
+      },
+    );
+
+    const latestCharge =
+      typeof paymentIntent.latest_charge === 'string' || !paymentIntent.latest_charge
+        ? null
+        : paymentIntent.latest_charge;
+
+    const receiptUrl = latestCharge?.receipt_url ?? null;
+
+    const chargeInvoice = (
+      latestCharge as Stripe.Charge & {
+        invoice?: string | Stripe.Invoice | null;
+      } | null
+    )?.invoice;
+    let invoice: Stripe.Invoice | null = null;
+
+    if (typeof chargeInvoice === 'string' && chargeInvoice) {
+      invoice = await this.stripe.invoices.retrieve(chargeInvoice);
+    } else if (chargeInvoice && typeof chargeInvoice !== 'string') {
+      invoice = chargeInvoice;
+    }
+
+    return {
+      hostedInvoiceUrl: invoice?.hosted_invoice_url ?? null,
+      invoicePdfUrl: invoice?.invoice_pdf ?? null,
+      receiptUrl,
     };
   }
 

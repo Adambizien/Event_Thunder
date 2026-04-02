@@ -21,6 +21,7 @@ const MyTickets = () => {
   const [purchases, setPurchases] = useState<TicketPurchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -44,6 +45,32 @@ const MyTickets = () => {
     () => purchases.reduce((sum, purchase) => sum + purchase.tickets.length, 0),
     [purchases],
   );
+
+  const handleOpenInvoice = async (stripePaymentIntentId: string) => {
+    if (!stripePaymentIntentId) {
+      setError('Facture Stripe indisponible pour cette transaction.');
+      return;
+    }
+
+    try {
+      setOpeningInvoiceId(stripePaymentIntentId);
+      setError(null);
+      const { hostedInvoiceUrl, invoicePdfUrl, receiptUrl } =
+        await ticketService.getPaymentInvoiceLinks(stripePaymentIntentId);
+      const invoiceUrl = hostedInvoiceUrl ?? invoicePdfUrl ?? receiptUrl;
+
+      if (!invoiceUrl) {
+        setError('Facture Stripe indisponible pour cette transaction.');
+        return;
+      }
+
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      setError('Impossible d’ouvrir la facture Stripe.');
+    } finally {
+      setOpeningInvoiceId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-10">
@@ -83,6 +110,17 @@ const MyTickets = () => {
                   <div>
                     <p className="text-sm text-gray-400">Achat</p>
                     <p className="text-white font-semibold">{purchase.id}</p>
+                    <p className="mt-1 text-xs text-gray-400">Stripe: {purchase.stripe_payment_intent_id}</p>
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenInvoice(purchase.stripe_payment_intent_id)}
+                      disabled={openingInvoiceId === purchase.stripe_payment_intent_id}
+                      className="mt-2 inline-flex items-center rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {openingInvoiceId === purchase.stripe_payment_intent_id
+                        ? 'Ouverture...'
+                        : 'Voir la facture'}
+                    </button>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-400">Montant</p>

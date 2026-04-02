@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import Modal from '../../components/Modal';
 import { commentService } from '../../services/CommentService';
@@ -85,6 +86,7 @@ const buildDefaultTicketType = (): TicketTypeFormItem => ({
 });
 
 const AdminEvents = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
@@ -98,8 +100,10 @@ const AdminEvents = () => {
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [selectedEventForSoldTickets, setSelectedEventForSoldTickets] = useState<EventItem | null>(null);
   const [soldTickets, setSoldTickets] = useState<SoldEventTicketItem[]>([]);
+  const [soldTicketsSearchTerm, setSoldTicketsSearchTerm] = useState('');
   const [loadingSoldTickets, setLoadingSoldTickets] = useState(false);
   const [soldTicketsError, setSoldTicketsError] = useState<string | null>(null);
+  const [openingSoldTicketInvoiceId, setOpeningSoldTicketInvoiceId] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -126,6 +130,29 @@ const AdminEvents = () => {
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [openActionMenuEventId, setOpenActionMenuEventId] = useState<string | null>(null);
+  const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const closeActionMenu = () => {
+    setOpenActionMenuEventId(null);
+    setActionMenuPosition(null);
+  };
+
+  const openActionMenu = (eventId: string, trigger: HTMLElement) => {
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = 256;
+    const viewportPadding = 12;
+    const left = Math.min(
+      Math.max(viewportPadding, rect.right - menuWidth),
+      window.innerWidth - menuWidth - viewportPadding,
+    );
+
+    setActionMenuPosition({
+      top: rect.bottom + 8,
+      left,
+    });
+    setOpenActionMenuEventId(eventId);
+  };
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -202,6 +229,40 @@ const AdminEvents = () => {
   useEffect(() => {
     void fetchInitialData();
   }, [fetchInitialData]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        !target.closest('[data-action-menu-root="true"]') &&
+        !target.closest('[data-action-menu-floating="true"]')
+      ) {
+        closeActionMenu();
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeActionMenu();
+      }
+    };
+
+    const handleScroll = () => {
+      closeActionMenu();
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
 
   const resetForm = () => {
     setTitle('');
@@ -313,6 +374,9 @@ const AdminEvents = () => {
   };
 
   const handleDelete = async (id: string) => {
+    setOpenActionMenuEventId(null);
+    setActionMenuPosition(null);
+
     try {
       const existingTicketTypes = await ticketService.getEventTicketTypes(id, {
         includeInactive: true,
@@ -545,6 +609,31 @@ const AdminEvents = () => {
       return sortOrder === 'asc' ? compared : -compared;
     });
 
+  const activeActionEvent =
+    openActionMenuEventId !== null
+      ? filteredEvents.find((event) => event.id === openActionMenuEventId) || null
+      : null;
+
+  const filteredSoldTickets = soldTickets.filter((ticket) => {
+    const query = soldTicketsSearchTerm.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    const haystack = [
+      ticket.ticket_type.name,
+      ticket.ticket_number,
+      ticket.ticket_purchase.user_id,
+      ticket.attendee_firstname,
+      ticket.attendee_lastname,
+      ticket.attendee_email || '',
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(query);
+  });
+
   const closeCommentsModal = () => {
     setSelectedEventForComments(null);
     setEventComments([]);
@@ -555,6 +644,7 @@ const AdminEvents = () => {
 
   const openCommentsModal = async (event: EventItem) => {
     try {
+      closeActionMenu();
       setSelectedEventForComments(event);
       setLoadingComments(true);
       const comments = await commentService.fetchByEvent(event.id);
@@ -576,14 +666,19 @@ const AdminEvents = () => {
   const closeSoldTicketsModal = () => {
     setSelectedEventForSoldTickets(null);
     setSoldTickets([]);
+    setSoldTicketsSearchTerm('');
     setLoadingSoldTickets(false);
+    setOpeningSoldTicketInvoiceId(null);
     setSoldTicketsError(null);
   };
 
   const openSoldTicketsModal = async (event: EventItem) => {
     try {
+      closeActionMenu();
       setSelectedEventForSoldTickets(event);
       setLoadingSoldTickets(true);
+      setSoldTicketsSearchTerm('');
+      setOpeningSoldTicketInvoiceId(null);
       setSoldTicketsError(null);
       const response = await ticketService.getEventSoldTickets(event.id);
       setSoldTickets(response.tickets);
@@ -593,6 +688,32 @@ const AdminEvents = () => {
       setSoldTicketsError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setLoadingSoldTickets(false);
+    }
+  };
+
+  const handleOpenSoldTicketInvoice = async (stripePaymentIntentId: string) => {
+    if (!stripePaymentIntentId) {
+      setSoldTicketsError('Facture Stripe indisponible pour cette transaction.');
+      return;
+    }
+
+    try {
+      setOpeningSoldTicketInvoiceId(stripePaymentIntentId);
+      setSoldTicketsError(null);
+      const { hostedInvoiceUrl, invoicePdfUrl, receiptUrl } =
+        await ticketService.getPaymentInvoiceLinks(stripePaymentIntentId);
+      const invoiceUrl = hostedInvoiceUrl ?? invoicePdfUrl ?? receiptUrl;
+
+      if (!invoiceUrl) {
+        setSoldTicketsError('Facture Stripe indisponible pour cette transaction.');
+        return;
+      }
+
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      setSoldTicketsError('Impossible d’ouvrir la facture Stripe.');
+    } finally {
+      setOpeningSoldTicketInvoiceId(null);
     }
   };
 
@@ -1092,8 +1213,25 @@ const AdminEvents = () => {
         ) : soldTickets.length === 0 ? (
           <p className="text-gray-300">Aucun ticket vendu pour cet événement.</p>
         ) : (
-          <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-            {soldTickets.map((ticket) => (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Rechercher un ticket vendu</label>
+              <input
+                type="text"
+                value={soldTicketsSearchTerm}
+                onChange={(e) => setSoldTicketsSearchTerm(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
+                placeholder="Nom ticket, numero, acheteur, nom, email..."
+              />
+            </div>
+
+            {filteredSoldTickets.length === 0 ? (
+              <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
+                Aucun ticket ne correspond a votre recherche.
+              </p>
+            ) : (
+              <div className="space-y-3 max-h-[56vh] overflow-y-auto pr-1">
+                {filteredSoldTickets.map((ticket) => (
               <div
                 key={ticket.id}
                 className="rounded-lg border border-white/10 bg-white/5 p-3"
@@ -1113,14 +1251,31 @@ const AdminEvents = () => {
                     <span className="text-gray-400">Acheteur:</span> {ticket.ticket_purchase.user_id}
                   </p>
                   <p className="text-gray-200">
+                    <span className="text-gray-400">Stripe:</span> {ticket.ticket_purchase.stripe_payment_intent_id}
+                  </p>
+                  <p className="text-gray-200">
                     <span className="text-gray-400">Nom:</span> {ticket.attendee_firstname} {ticket.attendee_lastname}
                   </p>
                   <p className="text-gray-200 md:col-span-2">
                     <span className="text-gray-400">Email:</span> {ticket.attendee_email || '-'}
                   </p>
+                  <p className="text-gray-200 md:col-span-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenSoldTicketInvoice(ticket.ticket_purchase.stripe_payment_intent_id)}
+                      disabled={openingSoldTicketInvoiceId === ticket.ticket_purchase.stripe_payment_intent_id}
+                      className="rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {openingSoldTicketInvoiceId === ticket.ticket_purchase.stripe_payment_intent_id
+                        ? 'Ouverture...'
+                        : 'Voir la facture'}
+                    </button>
+                  </p>
                 </div>
               </div>
-            ))}
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -1169,42 +1324,38 @@ const AdminEvents = () => {
                     <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
                     <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      <div className="relative inline-flex" data-action-menu-root="true">
                         <button
-                          onClick={() => openCommentsModal(event)}
-                          className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
-                        >
-                          Commentaires
-                        </button>
-                        <Link
-                          to={`/events/${event.id}`}
-                          className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
-                        >
-                          Voir
-                        </Link>
-                        <button
-                          onClick={() => void handleEdit(event)}
-                          className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
+                          type="button"
+                          onClick={(clickEvent: ReactMouseEvent<HTMLButtonElement>) => {
+                            if (openActionMenuEventId === event.id) {
+                              closeActionMenu();
+                              return;
+                            }
+                            openActionMenu(event.id, clickEvent.currentTarget);
+                          }}
                           disabled={deletingEventId === event.id}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 bg-white/10 border border-white/20 hover:bg-white/20 transition-colors text-white disabled:opacity-50"
+                          aria-expanded={openActionMenuEventId === event.id}
+                          aria-haspopup="menu"
                         >
-                          Modifier
+                          {deletingEventId === event.id ? 'Suppression...' : 'Actions'}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className={`h-4 w-4 transition-transform ${
+                              openActionMenuEventId === event.id ? 'rotate-180' : ''
+                            }`}
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
                         </button>
-                        {hasSoldTicketsByEvent[event.id] ? (
-                          <button
-                            onClick={() => void openSoldTicketsModal(event)}
-                            className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 px-4 py-2 rounded transition-colors"
-                          >
-                            Tickets
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleDelete(event.id)}
-                            className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
-                            disabled={deletingEventId === event.id}
-                          >
-                            {deletingEventId === event.id ? 'Suppression...' : 'Supprimer'}
-                          </button>
-                        )}
+
                       </div>
                     </td>
                   </tr>
@@ -1214,6 +1365,70 @@ const AdminEvents = () => {
           </div>
         )}
       </div>
+
+      {activeActionEvent &&
+        actionMenuPosition &&
+        createPortal(
+          <div
+            data-action-menu-floating="true"
+            className="fixed z-[130] w-64 rounded-xl border border-white/30 shadow-2xl overflow-hidden"
+            style={{
+              top: actionMenuPosition.top,
+              left: actionMenuPosition.left,
+              backgroundColor: '#1f5664',
+              opacity: 1,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => void openCommentsModal(activeActionEvent)}
+              className="block w-full px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+            >
+              Commentaires
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeActionMenu();
+                navigate(`/events/${activeActionEvent.id}`);
+              }}
+              className="block w-full px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+            >
+              Voir
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeActionMenu();
+                void handleEdit(activeActionEvent);
+              }}
+              className="block w-full px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+            >
+              Modifier
+            </button>
+
+            
+              {hasSoldTicketsByEvent[activeActionEvent.id] ? (
+                <button
+                  type="button"
+                  onClick={() => void openSoldTicketsModal(activeActionEvent)}
+                  className="block w-full px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+                >
+                  Tickets
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(activeActionEvent.id)}
+                  className="w-full text-left px-2 py-2 rounded-lg text-sm bg-red-500/35 hover:bg-red-500/45 text-red-100 transition-colors"
+                >
+                  Supprimer
+                </button>
+              )}
+            
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

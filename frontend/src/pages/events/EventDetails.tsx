@@ -476,31 +476,33 @@ const EventDetails = () => {
                             <span className="text-xs font-semibold text-thunder-gold">{ticketType?.name || att.ticket_type_id}</span>
                             <span className="text-xs text-gray-400">#{idx + 1}</span>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <input
-                              type="text"
-                              value={att.firstname}
-                              onChange={e => {
-                                const next = [...attendees];
-                                next[idx] = { ...next[idx], firstname: e.target.value };
-                                setAttendees(next);
-                              }}
-                              disabled={useAccountIdentity}
-                              placeholder="Prénom du participant"
-                              className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
-                            />
-                            <input
-                              type="text"
-                              value={att.lastname}
-                              onChange={e => {
-                                const next = [...attendees];
-                                next[idx] = { ...next[idx], lastname: e.target.value };
-                                setAttendees(next);
-                              }}
-                              disabled={useAccountIdentity}
-                              placeholder="Nom du participant"
-                              className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
-                            />
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-row gap-2">
+                              <input
+                                type="text"
+                                value={att.firstname}
+                                onChange={e => {
+                                  const next = [...attendees];
+                                  next[idx] = { ...next[idx], firstname: e.target.value };
+                                  setAttendees(next);
+                                }}
+                                disabled={useAccountIdentity}
+                                placeholder="Prénom du participant"
+                                className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
+                              />
+                              <input
+                                type="text"
+                                value={att.lastname}
+                                onChange={e => {
+                                  const next = [...attendees];
+                                  next[idx] = { ...next[idx], lastname: e.target.value };
+                                  setAttendees(next);
+                                }}
+                                disabled={useAccountIdentity}
+                                placeholder="Nom du participant"
+                                className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none disabled:opacity-60"
+                              />
+                            </div>
                             <input
                               type="email"
                               value={att.email}

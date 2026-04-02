@@ -4,6 +4,7 @@ import type {
   CreateTicketCheckoutResponse,
   EventSoldTicketsResponse,
   MyTicketsResponse,
+  TicketInvoiceLinksResponse,
   TicketTypeItem,
   UpsertTicketTypeInput,
 } from '../types/TicketTypes';
@@ -51,5 +52,14 @@ export const ticketService = {
   async getEventSoldTickets(eventId: string): Promise<EventSoldTicketsResponse> {
     const response = await api.get(`/api/ticketing/events/${eventId}/sold-tickets`);
     return response.data as EventSoldTicketsResponse;
+  },
+
+  async getPaymentInvoiceLinks(
+    stripePaymentIntentId: string,
+  ): Promise<TicketInvoiceLinksResponse> {
+    const response = await api.get(
+      `/api/ticketing/payments/${encodeURIComponent(stripePaymentIntentId)}/invoice-links`,
+    );
+    return response.data as TicketInvoiceLinksResponse;
   },
 };

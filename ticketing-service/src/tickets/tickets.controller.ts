@@ -89,4 +89,32 @@ export class TicketsController {
 
     return this.ticketsService.getMyTickets(userId);
   }
+
+  @Get('payments/:stripePaymentIntentId/invoice-links')
+  getTicketPaymentInvoiceLinks(
+    @Param('stripePaymentIntentId') stripePaymentIntentId: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-role') userRole?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    if (!userId) {
+      throw new ForbiddenException('Utilisateur non authentifié');
+    }
+    this.ensureUuid(userId, 'userId');
+
+    if (!stripePaymentIntentId || stripePaymentIntentId.trim().length === 0) {
+      throw new BadRequestException('Champ invalide: stripePaymentIntentId');
+    }
+
+    if (!authorization || authorization.trim().length === 0) {
+      throw new ForbiddenException('En-tête Authorization manquant');
+    }
+
+    return this.ticketsService.getTicketPaymentInvoiceLinks(
+      stripePaymentIntentId,
+      userId,
+      userRole === 'Admin',
+      authorization,
+    );
+  }
 }

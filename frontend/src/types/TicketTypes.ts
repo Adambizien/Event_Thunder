@@ -99,6 +99,12 @@ export type MyTicketsResponse = {
   purchases: TicketPurchase[];
 };
 
+export type TicketInvoiceLinksResponse = {
+  hostedInvoiceUrl: string | null;
+  invoicePdfUrl: string | null;
+  receiptUrl: string | null;
+};
+
 export type SoldEventTicketItem = {
   id: string;
   ticket_number: string;
@@ -114,6 +120,7 @@ export type SoldEventTicketItem = {
   ticket_purchase: {
     id: string;
     user_id: string;
+    stripe_payment_intent_id: string;
     created_at: string;
     status: string;
   };

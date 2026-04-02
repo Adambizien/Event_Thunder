@@ -174,6 +174,15 @@ export class BillingController {
     return this.billingService.getInvoiceLinks(stripeInvoiceId);
   }
 
+  @Get('tickets/payments/:stripePaymentIntentId/invoice-links')
+  @UseGuards(AuthGuard)
+  async getTicketPaymentLinks(
+    @Param('stripePaymentIntentId') stripePaymentIntentId: string,
+  ) {
+    this.ensureNonEmptyString(stripePaymentIntentId, 'stripePaymentIntentId');
+    return this.billingService.getTicketPaymentLinks(stripePaymentIntentId);
+  }
+
   @Post('plans/sync-price')
   @UseGuards(AuthGuard, AdminGuard)
   async syncPlanPrice(@Body() dto: SyncPlanPriceDto) {

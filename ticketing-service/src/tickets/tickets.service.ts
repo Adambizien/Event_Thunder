@@ -314,6 +314,7 @@ export class TicketsService {
           select: {
             id: true,
             user_id: true,
+            stripe_payment_intent_id: true,
             created_at: true,
             status: true,
           },
@@ -329,6 +330,60 @@ export class TicketsService {
       count: tickets.length,
       tickets,
     };
+  }
+
+  async getTicketPaymentInvoiceLinks(
+    stripePaymentIntentId: string,
+    userId: string,
+    isAdmin: boolean,
+    authorization: string,
+  ) {
+    const purchase = await this.prisma.ticketPurchase.findFirst({
+      where: isAdmin
+        ? { stripe_payment_intent_id: stripePaymentIntentId }
+        : {
+            stripe_payment_intent_id: stripePaymentIntentId,
+            user_id: userId,
+          },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!purchase) {
+      throw new NotFoundException('Paiement ticket introuvable');
+    }
+
+    const billingBaseUrl =
+      this.configService.get<string>('BILLING_SERVICE_URL') ??
+      'http://billing-service:3000';
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<{
+          hostedInvoiceUrl: string | null;
+          invoicePdfUrl: string | null;
+          receiptUrl: string | null;
+        }>(
+          `${billingBaseUrl}/api/billing/tickets/payments/${encodeURIComponent(stripePaymentIntentId)}/invoice-links`,
+          {
+            headers: {
+              Authorization: authorization,
+            },
+          },
+        ),
+      );
+
+      return data;
+    } catch (error) {
+      this.logger.error(
+        'Impossible de recuperer la facture ticket Stripe',
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException(
+        'Recuperation de facture impossible',
+      );
+    }
   }
 
   async handleBillingEvent(routingKey: string, payload: Record<string, unknown>) {
