@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
@@ -634,6 +634,39 @@ const AdminEvents = () => {
     return haystack.includes(query);
   });
 
+  const groupedSoldTicketPurchases = useMemo(() => {
+    const grouped = new Map<
+      string,
+      {
+        purchase: SoldEventTicketItem['ticket_purchase'];
+        createdAt: string;
+        tickets: SoldEventTicketItem[];
+      }
+    >();
+
+    for (const ticket of filteredSoldTickets) {
+      const purchaseId = ticket.ticket_purchase.id;
+      const existing = grouped.get(purchaseId);
+
+      if (existing) {
+        existing.tickets.push(ticket);
+        continue;
+      }
+
+      grouped.set(purchaseId, {
+        purchase: ticket.ticket_purchase,
+        createdAt: ticket.created_at,
+        tickets: [ticket],
+      });
+    }
+
+    return Array.from(grouped.values()).sort(
+      (first, second) =>
+        new Date(second.createdAt).getTime() -
+        new Date(first.createdAt).getTime(),
+    );
+  }, [filteredSoldTickets]);
+
   const closeCommentsModal = () => {
     setSelectedEventForComments(null);
     setEventComments([]);
@@ -1225,54 +1258,117 @@ const AdminEvents = () => {
               />
             </div>
 
-            {filteredSoldTickets.length === 0 ? (
+            {groupedSoldTicketPurchases.length === 0 ? (
               <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                 Aucun ticket ne correspond a votre recherche.
               </p>
             ) : (
-              <div className="space-y-3 max-h-[56vh] overflow-y-auto pr-1">
-                {filteredSoldTickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="rounded-lg border border-white/10 bg-white/5 p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{ticket.ticket_type.name}</p>
-                    <p className="text-xs text-gray-400">Ticket #{ticket.ticket_number}</p>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Achat: {toLocalInputDateTime(ticket.created_at)}
-                  </p>
-                </div>
+              <div className="space-y-6 max-h-[56vh] overflow-y-auto pr-1">
+                {groupedSoldTicketPurchases.map((purchaseGroup) => (
+                  <section
+                    key={purchaseGroup.purchase.id}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                      <div>
+                        <p className="text-sm text-gray-400">Achat</p>
+                        <p className="text-white font-semibold">{purchaseGroup.purchase.id}</p>
+                        <p className="mt-1 text-xs text-gray-400">
+                          Stripe: {purchaseGroup.purchase.stripe_payment_intent_id}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleOpenSoldTicketInvoice(
+                              purchaseGroup.purchase.stripe_payment_intent_id,
+                            )
+                          }
+                          disabled={
+                            openingSoldTicketInvoiceId ===
+                            purchaseGroup.purchase.stripe_payment_intent_id
+                          }
+                          className="mt-2 inline-flex items-center rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {openingSoldTicketInvoiceId ===
+                          purchaseGroup.purchase.stripe_payment_intent_id
+                            ? 'Ouverture...'
+                            : 'Voir la facture'}
+                        </button>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-400">Tickets</p>
+                        <p className="text-thunder-gold font-semibold">
+                          {purchaseGroup.tickets.length}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-400">Achat le</p>
+                        <p className="text-white">{toLocalInputDateTime(purchaseGroup.createdAt)}</p>
+                      </div>
+                    </div>
 
-                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <p className="text-gray-200">
-                    <span className="text-gray-400">Acheteur:</span> {ticket.ticket_purchase.user_id}
-                  </p>
-                  <p className="text-gray-200">
-                    <span className="text-gray-400">Stripe:</span> {ticket.ticket_purchase.stripe_payment_intent_id}
-                  </p>
-                  <p className="text-gray-200">
-                    <span className="text-gray-400">Nom:</span> {ticket.attendee_firstname} {ticket.attendee_lastname}
-                  </p>
-                  <p className="text-gray-200 md:col-span-2">
-                    <span className="text-gray-400">Email:</span> {ticket.attendee_email || '-'}
-                  </p>
-                  <p className="text-gray-200 md:col-span-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleOpenSoldTicketInvoice(ticket.ticket_purchase.stripe_payment_intent_id)}
-                      disabled={openingSoldTicketInvoiceId === ticket.ticket_purchase.stripe_payment_intent_id}
-                      className="rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {openingSoldTicketInvoiceId === ticket.ticket_purchase.stripe_payment_intent_id
-                        ? 'Ouverture...'
-                        : 'Voir la facture'}
-                    </button>
-                  </p>
-                </div>
-              </div>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                        <h3 className="text-white font-semibold mb-2">Details de l'achat</h3>
+                        <div className="space-y-2 text-sm text-gray-200">
+                          <p>
+                            <span className="text-gray-400">Acheteur:</span>{' '}
+                            {purchaseGroup.purchase.user_id}
+                          </p>
+                          <p>
+                            <span className="text-gray-400">Statut:</span>{' '}
+                            {purchaseGroup.purchase.status}
+                          </p>
+                          <p>
+                            <span className="text-gray-400">Stripe PI:</span>{' '}
+                            {purchaseGroup.purchase.stripe_payment_intent_id}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                        <h3 className="text-white font-semibold mb-2">Billets generes</h3>
+                        <div className="space-y-2">
+                          {purchaseGroup.tickets.map((ticket) => (
+                            <div
+                              key={ticket.id}
+                              className="rounded-lg border border-white/10 bg-white/5 p-3"
+                            >
+                              <p className="text-xs text-gray-400">Numero de ticket</p>
+                              <p className="font-mono text-thunder-gold text-sm">{ticket.ticket_number}</p>
+                              <div className="mt-1 text-xs text-gray-300">
+                                <span className="block">
+                                  Nom :{' '}
+                                  <span className="font-semibold text-white">
+                                    {ticket.attendee_lastname}
+                                  </span>
+                                </span>
+                                <span className="block">
+                                  Prenom :{' '}
+                                  <span className="font-semibold text-white">
+                                    {ticket.attendee_firstname}
+                                  </span>
+                                </span>
+                                <span className="block">
+                                  Email :{' '}
+                                  <span className="font-semibold text-white">
+                                    {ticket.attendee_email || '-'}
+                                  </span>
+                                </span>
+                                <span className="block">
+                                  Type :{' '}
+                                  <span className="font-semibold text-white">
+                                    {ticket.ticket_type.name}
+                                  </span>
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-gray-400">Statut: Valide</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
                 ))}
               </div>
             )}
