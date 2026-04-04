@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMous
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
-import Modal from '../../components/Modal';
+import EventCommentsModal from '../../components/EventCommentsModal';
+import EventFormModal from '../../components/EventFormModal';
+import EventSoldTicketsModal from '../../components/EventSoldTicketsModal';
+import { type TicketPurchaseCardData } from '../../components/TicketPurchaseCards';
+import UniformTable from '../../components/UniformTable';
 import { commentService } from '../../services/CommentService';
 import { eventCategoryService } from '../../services/EventCategoryService';
 import { eventService } from '../../services/EventService';
@@ -11,13 +15,6 @@ import type { CommentItem } from '../../types/CommentTypes';
 import type { EventCategory } from '../../types/EventCategoryTypes';
 import type { CreateEventPayload, EventItem, EventStatus } from '../../types/EventTypes';
 import type { SoldEventTicketItem, TicketCurrency, UpsertTicketTypeInput } from '../../types/TicketTypes';
-
-const statusOptions: EventStatus[] = [
-  'draft',
-  'published',
-  'canceled',
-  'completed',
-];
 
 const statusLabels: Record<EventStatus, string> = {
   draft: 'Brouillon',
@@ -47,14 +44,6 @@ const toLocalInputDateTime = (iso: string) => {
   return date.toLocaleString('fr-FR');
 };
 
-const formatCurrency = (amount: number, currency: string) => {
-  const normalized = currency === 'USD' ? 'USD' : 'EUR';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: normalized,
-  }).format(amount);
-};
-
 const toIsoDateString = (value: string): string | null => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -81,7 +70,6 @@ const toInputDateTimeValue = (iso: string): string => {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const COMMENT_PREVIEW_LENGTH = 220;
 type StatusFilter = EventStatus | 'all';
 type CommentFilter = 'all' | 'with-comments' | 'without-comments';
 
@@ -493,6 +481,7 @@ const AdminEvents = () => {
           creatorId = parsedUser.id;
         }
       } catch {
+        // --- IGNORE ---
       }
     }
 
@@ -533,14 +522,14 @@ const AdminEvents = () => {
 
       for (const ticketType of normalizedTicketTypes) {
         if (!Number.isFinite(ticketType.price) || ticketType.price <= 0) {
-          setFormError(`Prix invalide pour le ticket \"${ticketType.name}\"`);
+          setFormError(`Prix invalide pour le ticket "${ticketType.name}"`);
           return;
         }
         if (
           ticketType.max_quantity !== undefined &&
           (!Number.isInteger(ticketType.max_quantity) || ticketType.max_quantity <= 0)
         ) {
-          setFormError(`Stock max invalide pour le ticket \"${ticketType.name}\"`);
+          setFormError(`Stock max invalide pour le ticket "${ticketType.name}"`);
           return;
         }
       }
@@ -696,6 +685,85 @@ const AdminEvents = () => {
         new Date(first.createdAt).getTime(),
     );
   }, [filteredSoldTickets]);
+
+  const soldTicketPurchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
+    return groupedSoldTicketPurchases.map((purchaseGroup) => {
+      const amountDetailsByType = purchaseGroup.tickets.reduce(
+        (acc, ticket) => {
+          const key = ticket.ticket_type.id;
+          const existing = acc.get(key);
+          const unitPrice = Number(ticket.ticket_type.price ?? 0);
+          const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+
+          if (existing) {
+            existing.quantity += 1;
+            return acc;
+          }
+
+          acc.set(key, {
+            ticketTypeName: ticket.ticket_type.name,
+            unitPrice: safeUnitPrice,
+            quantity: 1,
+            currency: ticket.ticket_type.currency,
+          });
+          return acc;
+        },
+        new Map<
+          string,
+          {
+            ticketTypeName: string;
+            unitPrice: number;
+            quantity: number;
+            currency: TicketCurrency;
+          }
+        >(),
+      );
+
+      const amountDetails = Array.from(amountDetailsByType.values());
+      const fallbackTotalAmount = amountDetails.reduce(
+        (sum, detail) => sum + detail.unitPrice * detail.quantity,
+        0,
+      );
+      const rawTotalAmount = Number(
+        purchaseGroup.purchase.total_amount ?? fallbackTotalAmount,
+      );
+      const totalAmount = Number.isFinite(rawTotalAmount)
+        ? rawTotalAmount
+        : fallbackTotalAmount;
+      const totalCurrency =
+        purchaseGroup.purchase.currency ?? amountDetails[0]?.currency ?? 'EUR';
+
+      return {
+        id: purchaseGroup.purchase.id,
+        stripePaymentIntentId: purchaseGroup.purchase.stripe_payment_intent_id,
+        createdAt: purchaseGroup.createdAt,
+        totalAmount,
+        currency: totalCurrency,
+        buyerId: purchaseGroup.purchase.user_id,
+        buyerLastname: purchaseGroup.buyerLastname,
+        buyerFirstname: purchaseGroup.buyerFirstname,
+        buyerEmail: purchaseGroup.buyerEmail,
+        statusLabel: toTicketPurchaseStatusLabel(purchaseGroup.purchase.status),
+        ticketCount: purchaseGroup.tickets.length,
+        lineItems: amountDetails.map((detail) => ({
+          id: `${purchaseGroup.purchase.id}-${detail.ticketTypeName}`,
+          label: detail.ticketTypeName,
+          quantity: detail.quantity,
+          amount: detail.unitPrice * detail.quantity,
+          currency: detail.currency,
+        })),
+        tickets: purchaseGroup.tickets.map((ticket) => ({
+          id: ticket.id,
+          ticketNumber: ticket.ticket_number,
+          attendeeLastname: ticket.attendee_lastname,
+          attendeeFirstname: ticket.attendee_firstname,
+          attendeeEmail: ticket.attendee_email,
+          ticketTypeName: ticket.ticket_type.name,
+          statusLabel: 'Valide',
+        })),
+      };
+    });
+  }, [groupedSoldTicketPurchases]);
 
   const closeCommentsModal = () => {
     setSelectedEventForComments(null);
@@ -912,577 +980,65 @@ const AdminEvents = () => {
         </div>
       </div>
 
-      <Modal
+      <EventFormModal
         isOpen={showForm}
+        isEditing={Boolean(editingEventId)}
+        formError={formError}
+        submitting={submitting}
+        categories={categories}
+        title={title}
+        description={description}
+        categoryId={categoryId}
+        location={location}
+        address={address}
+        startDate={startDate}
+        endDate={endDate}
+        imageUrl={imageUrl}
+        status={status}
+        ticketTypes={ticketTypes}
         onClose={resetForm}
-        title={editingEventId ? "Modifier l'événement" : 'Créer un nouvel événement'}
-        size="lg"
-      >
-        {formError && (
-          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300 mb-4">
-            {formError}
-          </div>
-        )}
+        onSubmit={handleSubmit}
+        onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
+        onCategoryChange={setCategoryId}
+        onLocationChange={setLocation}
+        onAddressChange={setAddress}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onImageUrlChange={setImageUrl}
+        onStatusChange={setStatus}
+        onAddTicketType={addTicketTypeRow}
+        onRemoveTicketType={removeTicketTypeRow}
+        onUpdateTicketType={updateTicketTypeRow}
+      />
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Titre</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="Ex: Conference Tech 2026"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={4}
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="Decrivez votre evenement"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Categorie</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              required
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-            >
-              {categories.length === 0 && <option value="">Aucune categorie</option>}
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Statut</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as EventStatus)}
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-            >
-              {statusOptions.map((statusValue) => (
-                <option key={statusValue} value={statusValue}>
-                  {statusLabels[statusValue]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Lieu</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="Ex: Paris Expo"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Adresse</label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="Ex: 1 Place de la Porte de Versailles, Paris"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Date de debut</label>
-            <input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Date de fin</label>
-            <input
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              required
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">URL image (optionnel)</label>
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div className="md:col-span-2 rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-white">Billetterie</p>
-                <p className="text-xs text-gray-400">Définissez les types de tickets vendus pour cet événement</p>
-              </div>
-              <button
-                type="button"
-                onClick={addTicketTypeRow}
-                className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                Ajouter un ticket
-              </button>
-            </div>
-
-            {ticketTypes.map((ticketType, index) => (
-              <div key={ticketType.id || index} className="rounded-lg border border-white/10 p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
-                    <span>Actif</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={ticketType.isActive}
-                      onClick={() => updateTicketTypeRow(index, { isActive: !ticketType.isActive })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                        ticketType.isActive
-                          ? 'bg-emerald-500/85 border-emerald-400'
-                          : 'bg-gray-500/35 border-gray-400/50'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                          ticketType.isActive ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => removeTicketTypeRow(index)}
-                    disabled={ticketTypes.length <= 1 || (Boolean(ticketType.id) && ticketType.soldQuantity > 0)}
-                    title={
-                      Boolean(ticketType.id) && ticketType.soldQuantity > 0
-                        ? 'Suppression impossible: ce ticket a deja des achats'
-                        : undefined
-                    }
-                    className="ml-auto bg-red-500/25 hover:bg-red-500/30 border border-red-500/40 text-red-200 px-3 py-2 rounded text-xs disabled:opacity-50"
-                  >
-                    Supprimer
-                  </button>
-                </div>
-
-                {Boolean(ticketType.id) && ticketType.soldQuantity > 0 && (
-                  <p className="text-xs text-amber-300">
-                    Ce ticket ne peut pas etre supprime car des achats existent deja.
-                  </p>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-gray-400 mb-1">Nom</label>
-                  <input
-                    type="text"
-                    value={ticketType.name}
-                    onChange={(e) => updateTicketTypeRow(index, { name: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                    placeholder="Ex: Early Bird"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Prix</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={ticketType.price}
-                    onChange={(e) => updateTicketTypeRow(index, { price: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                    placeholder="25"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Devise</label>
-                  <select
-                    value={ticketType.currency}
-                    onChange={(e) => updateTicketTypeRow(index, { currency: e.target.value as TicketCurrency })}
-                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                  >
-                    <option value="EUR">EUR</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Stock max</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={ticketType.maxQuantity}
-                    onChange={(e) => updateTicketTypeRow(index, { maxQuantity: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                    placeholder="Optionnel"
-                  />
-                </div>
-                </div>
-
-                <div className="md:col-span-6">
-                  <label className="block text-xs text-gray-400 mb-1">Description (optionnel)</label>
-                  <input
-                    type="text"
-                    value={ticketType.description}
-                    onChange={(e) => updateTicketTypeRow(index, { description: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                    placeholder="Avantages ou informations du ticket"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="md:col-span-2 flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={submitting || categories.length === 0}
-              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
-            >
-              {submitting
-                ? 'Sauvegarde...'
-                : editingEventId
-                ? "Modifier l'événement"
-                : "Créer l'événement"}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
+      <EventCommentsModal
         isOpen={Boolean(selectedEventForComments)}
+        eventTitle={selectedEventForComments?.title ?? ''}
+        loadingComments={loadingComments}
+        eventComments={eventComments}
+        expandedComments={expandedComments}
+        deletingCommentId={deletingCommentId}
         onClose={closeCommentsModal}
-        title={
-          selectedEventForComments
-            ? `Commentaires - ${selectedEventForComments.title}`
-            : 'Commentaires'
-        }
-        size="lg"
-      >
-        {loadingComments ? (
-          <div className="text-gray-300 text-center py-6">
-            <span className="spinner mr-2 align-middle"></span>
-            Chargement des commentaires...
-          </div>
-        ) : eventComments.length === 0 ? (
-          <p className="text-gray-300">Aucun commentaire pour cet événement.</p>
-        ) : (
-          <div className="space-y-4">
-            {eventComments.map((comment) => {
-              const isLongComment = comment.content.length > COMMENT_PREVIEW_LENGTH;
-              const isExpanded = Boolean(expandedComments[comment.id]);
-              const visibleComment =
-                isLongComment && !isExpanded
-                  ? `${comment.content.slice(0, COMMENT_PREVIEW_LENGTH)}...`
-                  : comment.content;
+        onDeleteComment={handleDeleteComment}
+        onToggleExpanded={toggleExpandedComment}
+      />
 
-              return (
-                <div
-                  key={comment.id}
-                  className="rounded-xl border border-white/10 bg-white/5 p-4"
-                >
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        {comment.authorDisplayName}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {toLocalInputDateTime(comment.createdAt)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteComment(comment.id)}
-                      disabled={deletingCommentId === comment.id}
-                      className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
-                    >
-                      {deletingCommentId === comment.id ? 'Suppression...' : 'Supprimer'}
-                    </button>
-                  </div>
-
-                  <p className="text-gray-200 whitespace-pre-line leading-6">
-                    {visibleComment}
-                  </p>
-
-                  {isLongComment && (
-                    <button
-                      type="button"
-                      onClick={() => toggleExpandedComment(comment.id)}
-                      className="mt-2 text-sm font-semibold text-thunder-gold underline underline-offset-2 decoration-thunder-gold hover:text-thunder-gold-light"
-                    >
-                      {isExpanded ? 'Voir moins' : 'Voir plus'}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Modal>
-
-      <Modal
+      <EventSoldTicketsModal
         isOpen={Boolean(selectedEventForSoldTickets)}
+        eventTitle={selectedEventForSoldTickets?.title ?? ''}
+        loadingSoldTickets={loadingSoldTickets}
+        soldTicketsError={soldTicketsError}
+        soldTicketsSearchTerm={soldTicketsSearchTerm}
+        hasSearchResults={groupedSoldTicketPurchases.length > 0}
+        soldTicketPurchaseCards={soldTicketPurchaseCards}
+        openingSoldTicketInvoiceId={openingSoldTicketInvoiceId}
         onClose={closeSoldTicketsModal}
-        title={
-          selectedEventForSoldTickets
-            ? `Tickets vendus - ${selectedEventForSoldTickets.title}`
-            : 'Tickets vendus'
-        }
-        size="lg"
-      >
-        {loadingSoldTickets ? (
-          <div className="text-gray-300 text-center py-6">
-            <span className="spinner mr-2 align-middle"></span>
-            Chargement des tickets vendus...
-          </div>
-        ) : soldTicketsError ? (
-          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-200">
-            {soldTicketsError}
-          </div>
-        ) : soldTickets.length === 0 ? (
-          <p className="text-gray-300">Aucun ticket vendu pour cet événement.</p>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Rechercher un ticket vendu</label>
-              <input
-                type="text"
-                value={soldTicketsSearchTerm}
-                onChange={(e) => setSoldTicketsSearchTerm(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="Nom ticket, numero, acheteur, nom, email..."
-              />
-            </div>
-
-            {groupedSoldTicketPurchases.length === 0 ? (
-              <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
-                Aucun ticket ne correspond a votre recherche.
-              </p>
-            ) : (
-              <div className="space-y-6 max-h-[56vh] overflow-y-auto pr-1">
-                {groupedSoldTicketPurchases.map((purchaseGroup) => {
-                  const amountDetailsByType = purchaseGroup.tickets.reduce(
-                    (acc, ticket) => {
-                      const key = ticket.ticket_type.id;
-                      const existing = acc.get(key);
-                      const unitPrice = Number(ticket.ticket_type.price ?? 0);
-                      const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
-
-                      if (existing) {
-                        existing.quantity += 1;
-                        return acc;
-                      }
-
-                      acc.set(key, {
-                        ticketTypeName: ticket.ticket_type.name,
-                        unitPrice: safeUnitPrice,
-                        quantity: 1,
-                        currency: ticket.ticket_type.currency,
-                      });
-                      return acc;
-                    },
-                    new Map<
-                      string,
-                      {
-                        ticketTypeName: string;
-                        unitPrice: number;
-                        quantity: number;
-                        currency: TicketCurrency;
-                      }
-                    >(),
-                  );
-
-                  const amountDetails = Array.from(amountDetailsByType.values());
-                  const fallbackTotalAmount = amountDetails.reduce(
-                    (sum, detail) => sum + detail.unitPrice * detail.quantity,
-                    0,
-                  );
-                  const rawTotalAmount = Number(purchaseGroup.purchase.total_amount ?? fallbackTotalAmount);
-                  const totalAmount = Number.isFinite(rawTotalAmount)
-                    ? rawTotalAmount
-                    : fallbackTotalAmount;
-                  const totalCurrency =
-                    purchaseGroup.purchase.currency ?? amountDetails[0]?.currency ?? 'EUR';
-
-                  return (
-                    <section
-                      key={purchaseGroup.purchase.id}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
-                    >
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-                      <div>
-                        <p className="text-sm text-gray-400">Achat</p>
-                        <p className="text-white font-semibold">{purchaseGroup.purchase.id}</p>
-                        <p className="mt-1 text-xs text-gray-400">
-                          Stripe: {purchaseGroup.purchase.stripe_payment_intent_id}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void handleOpenSoldTicketInvoice(
-                              purchaseGroup.purchase.stripe_payment_intent_id,
-                            )
-                          }
-                          disabled={
-                            openingSoldTicketInvoiceId ===
-                            purchaseGroup.purchase.stripe_payment_intent_id
-                          }
-                          className="mt-2 inline-flex items-center rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {openingSoldTicketInvoiceId ===
-                          purchaseGroup.purchase.stripe_payment_intent_id
-                            ? 'Ouverture...'
-                            : 'Voir la facture'}
-                        </button>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-400">Achat le</p>
-                        <p className="text-white">{toLocalInputDateTime(purchaseGroup.createdAt)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-400">Prix total</p>
-                        <p className="text-thunder-gold font-semibold">
-                          {formatCurrency(totalAmount, totalCurrency)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                        <h3 className="text-white font-semibold mb-2">Details de l'achat</h3>
-                        <div className="space-y-2 text-sm text-gray-200">
-                          <p>
-                            <span className="text-gray-400">Acheteur:</span>{' '}
-                            {purchaseGroup.purchase.user_id}
-                          </p>
-                          <p>
-                            <span className="text-gray-400">Nom:</span>{' '}
-                            {purchaseGroup.buyerLastname || '-'}
-                          </p>
-                          <p>
-                            <span className="text-gray-400">Prenom:</span>{' '}
-                            {purchaseGroup.buyerFirstname || '-'}
-                          </p>
-                          <p>
-                            <span className="text-gray-400">Email:</span>{' '}
-                            {purchaseGroup.buyerEmail || '-'}
-                          </p>
-                          <p>
-                            <span className="text-gray-400">Statut:</span>{' '}
-                            {toTicketPurchaseStatusLabel(purchaseGroup.purchase.status)}
-                          </p>
-                          <p>
-                            <span className="text-gray-400">Nombre de tickets:</span>{' '}
-                            {purchaseGroup.tickets.length}
-                          </p>
-                          <div>
-                            <p className="text-gray-400">Montant detaille:</p>
-                            <ul className="mt-1 space-y-1">
-                              {amountDetails.map((detail) => (
-                                <li
-                                  key={`${purchaseGroup.purchase.id}-${detail.ticketTypeName}`}
-                                  className="flex items-center justify-between gap-3"
-                                >
-                                  <span>
-                                    {detail.ticketTypeName} x{detail.quantity}
-                                  </span>
-                                  <span>
-                                    {formatCurrency(
-                                      detail.unitPrice * detail.quantity,
-                                      detail.currency,
-                                    )}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                        <h3 className="text-white font-semibold mb-2">Billets generes</h3>
-                        <div className="space-y-2">
-                          {purchaseGroup.tickets.map((ticket) => (
-                            <div
-                              key={ticket.id}
-                              className="rounded-lg border border-white/10 bg-white/5 p-3"
-                            >
-                              <p className="text-xs text-gray-400">Numero de ticket</p>
-                              <p className="font-mono text-thunder-gold text-sm">{ticket.ticket_number}</p>
-                              <div className="mt-1 text-xs text-gray-300">
-                                <span className="block">
-                                  Nom :{' '}
-                                  <span className="font-semibold text-white">
-                                    {ticket.attendee_lastname}
-                                  </span>
-                                </span>
-                                <span className="block">
-                                  Prenom :{' '}
-                                  <span className="font-semibold text-white">
-                                    {ticket.attendee_firstname}
-                                  </span>
-                                </span>
-                                <span className="block">
-                                  Email :{' '}
-                                  <span className="font-semibold text-white">
-                                    {ticket.attendee_email || '-'}
-                                  </span>
-                                </span>
-                                <span className="block">
-                                  Type :{' '}
-                                  <span className="font-semibold text-white">
-                                    {ticket.ticket_type.name}
-                                  </span>
-                                </span>
-                              </div>
-                              <p className="mt-1 text-xs text-gray-400">Statut: Valide</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+        onSearchTermChange={setSoldTicketsSearchTerm}
+        onOpenInvoice={(stripePaymentIntentId) => {
+          void handleOpenSoldTicketInvoice(stripePaymentIntentId);
+        }}
+      />
 
       <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl backdrop-blur-lg">
         {filteredEvents.length === 0 ? (
@@ -1494,79 +1050,74 @@ const AdminEvents = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Titre</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Categorie</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Lieu</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Debut</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Fin</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Types de ticket</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Tickets vendus</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Statut</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Commentaires</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEvents.map((event) => (
-                  <tr key={event.id} className="border-b border-white/10 transition-colors hover:bg-white/5">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-white">{event.title}</p>
-                        <p className="text-xs text-gray-400">{event.id}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">{event.category?.name || '-'}</td>
-                    <td className="px-6 py-4 text-gray-300">{event.location}</td>
-                    <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.start_date)}</td>
-                    <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
-                    <td className="px-6 py-4 text-gray-300">{ticketTypeCountByEvent[event.id] || 0}</td>
-                    <td className="px-6 py-4 text-gray-300">{soldTicketCountByEvent[event.id] || 0}</td>
-                    <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
-                    <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
-                    <td className="px-6 py-4">
-                      <div className="relative inline-flex" data-action-menu-root="true">
-                        <button
-                          type="button"
-                          onClick={(clickEvent: ReactMouseEvent<HTMLButtonElement>) => {
-                            if (openActionMenuEventId === event.id) {
-                              closeActionMenu();
-                              return;
-                            }
-                            openActionMenu(event.id, clickEvent.currentTarget);
-                          }}
-                          disabled={deletingEventId === event.id}
-                          className="flex items-center gap-2 rounded-lg px-3 py-2 bg-white/10 border border-white/20 hover:bg-white/20 transition-colors text-white disabled:opacity-50"
-                          aria-expanded={openActionMenuEventId === event.id}
-                          aria-haspopup="menu"
-                        >
-                          {deletingEventId === event.id ? 'Suppression...' : 'Actions'}
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            className={`h-4 w-4 transition-transform ${
-                              openActionMenuEventId === event.id ? 'rotate-180' : ''
-                            }`}
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
+          <UniformTable
+            headers={[
+              'Titre',
+              'Categorie',
+              'Lieu',
+              'Debut',
+              'Fin',
+              'Types de ticket',
+              'Tickets vendus',
+              'Statut',
+              'Commentaires',
+              'Actions',
+            ]}
+          >
+            {filteredEvents.map((event) => (
+              <tr key={event.id} className="border-b border-white/10 transition-colors hover:bg-white/5">
+                <td className="px-6 py-4">
+                  <div>
+                    <p className="font-medium text-white">{event.title}</p>
+                    <p className="text-xs text-gray-400">{event.id}</p>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-gray-300">{event.category?.name || '-'}</td>
+                <td className="px-6 py-4 text-gray-300">{event.location}</td>
+                <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.start_date)}</td>
+                <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
+                <td className="px-6 py-4 text-gray-300">{ticketTypeCountByEvent[event.id] || 0}</td>
+                <td className="px-6 py-4 text-gray-300">{soldTicketCountByEvent[event.id] || 0}</td>
+                <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
+                <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
+                <td className="px-6 py-4">
+                  <div className="relative inline-flex" data-action-menu-root="true">
+                    <button
+                      type="button"
+                      onClick={(clickEvent: ReactMouseEvent<HTMLButtonElement>) => {
+                        if (openActionMenuEventId === event.id) {
+                          closeActionMenu();
+                          return;
+                        }
+                        openActionMenu(event.id, clickEvent.currentTarget);
+                      }}
+                      disabled={deletingEventId === event.id}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 bg-white/10 border border-white/20 hover:bg-white/20 transition-colors text-white disabled:opacity-50"
+                      aria-expanded={openActionMenuEventId === event.id}
+                      aria-haspopup="menu"
+                    >
+                      {deletingEventId === event.id ? 'Suppression...' : 'Actions'}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className={`h-4 w-4 transition-transform ${
+                          openActionMenuEventId === event.id ? 'rotate-180' : ''
+                        }`}
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
 
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </UniformTable>
         )}
       </div>
 

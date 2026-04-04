@@ -21,6 +21,7 @@ import Home from './pages/Home';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminPlans from './pages/admin/Plans';
 import AdminSubscriptionTransactions from './pages/admin/SubscriptionTransactions';
+import AdminTicketTransactions from './pages/admin/TicketTransactions';
 import AdminUsers from './pages/admin/Users';
 import AdminEventCategories from './pages/admin/EventCategories';
 import AdminEvents from './pages/admin/Events';
@@ -54,6 +55,8 @@ function AppContent() {
           setUser(userData);
           window.history.replaceState({}, '', '/');
         } catch {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       } else {
         const savedToken = localStorage.getItem('token');
@@ -199,6 +202,7 @@ function AppContent() {
           <Route path="events" element={<AdminEvents />} />
           <Route path="event-categories" element={<AdminEventCategories />} />
           <Route path="subscription-transactions" element={<AdminSubscriptionTransactions />} />
+          <Route path="ticket-transactions" element={<AdminTicketTransactions />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>
       </Routes>

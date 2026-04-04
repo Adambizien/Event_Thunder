@@ -32,7 +32,10 @@ export class TicketsController {
     @Query('include_inactive') includeInactive?: string,
   ) {
     this.ensureUuid(eventId, 'eventId');
-    return this.ticketsService.getEventTicketTypes(eventId, includeInactive === 'true');
+    return this.ticketsService.getEventTicketTypes(
+      eventId,
+      includeInactive === 'true',
+    );
   }
 
   @Get('events/:eventId/sold-tickets')
@@ -82,7 +85,11 @@ export class TicketsController {
       throw new ForbiddenException('En-tête Authorization manquant');
     }
 
-    return this.ticketsService.createCheckoutSession(userId, dto, authorization);
+    return this.ticketsService.createCheckoutSession(
+      userId,
+      dto,
+      authorization,
+    );
   }
 
   @Get('me/tickets')
@@ -100,6 +107,22 @@ export class TicketsController {
     }
 
     return this.ticketsService.getMyTickets(userId, authorization);
+  }
+
+  @Get('admin/tickets')
+  getAdminTickets(
+    @Headers('x-user-role') userRole?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    if (userRole !== 'Admin') {
+      throw new ForbiddenException('Accès administrateur requis');
+    }
+
+    if (!authorization || authorization.trim().length === 0) {
+      throw new ForbiddenException('En-tête Authorization manquant');
+    }
+
+    return this.ticketsService.getAdminTickets(authorization);
   }
 
   @Get('payments/:stripePaymentIntentId/invoice-links')

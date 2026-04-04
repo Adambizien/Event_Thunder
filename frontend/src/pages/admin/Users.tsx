@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import Modal from '../../components/Modal';
-import UserTransactionsModal from '../../components/UserTransactionsModal';
+import UserRoleModal from '../../components/UserRoleModal';
+import UserSubscriptionDetailsModal from '../../components/UserSubscriptionDetailsModal';
+import UniformTable from '../../components/UniformTable';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import type { User } from '../../types/AuthTypes';
 import { userService } from '../../services/UserService';
@@ -25,16 +26,54 @@ const AdminUsers = () => {
   const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
   const [showTransactionsModal, setShowTransactionsModal] = useState(false);
   const [transactionsUser, setTransactionsUser] = useState<User | null>(null);
+  const [transactionsSubscriptions, setTransactionsSubscriptions] = useState<SubscriptionType[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
+  const [cancelingSubscriptionId, setCancelingSubscriptionId] = useState<string | null>(null);
+  const [transactionsActionMessage, setTransactionsActionMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const openTransactionsModal = (user: User) => {
     setTransactionsUser(user);
+    setTransactionsError(null);
+    setTransactionsActionMessage(null);
     setShowTransactionsModal(true);
   };
 
   const closeTransactionsModal = () => {
     setShowTransactionsModal(false);
     setTransactionsUser(null);
+    setTransactionsSubscriptions([]);
+    setTransactionsError(null);
+    setTransactionsActionMessage(null);
+    setOpeningInvoiceId(null);
+    setCancelingSubscriptionId(null);
   };
+
+  useEffect(() => {
+    if (!showTransactionsModal || !transactionsUser?.id) {
+      return;
+    }
+
+    const fetchSubscriptions = async () => {
+      try {
+        setTransactionsLoading(true);
+        setTransactionsError(null);
+        const data = await subscriptionService.getUserSubscriptions(transactionsUser.id);
+        setTransactionsSubscriptions(Array.isArray(data) ? data : []);
+      } catch {
+        setTransactionsError("Impossible de charger les transactions de l'utilisateur.");
+        setTransactionsSubscriptions([]);
+      } finally {
+        setTransactionsLoading(false);
+      }
+    };
+
+    void fetchSubscriptions();
+  }, [showTransactionsModal, transactionsUser?.id]);
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
     setNewRole(user.role === 'Admin' ? 'Admin' : 'User');
@@ -120,6 +159,87 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    }
+  };
+
+  const handleOpenInvoice = async (stripeInvoiceId: string) => {
+    if (!stripeInvoiceId) {
+      setTransactionsError('Facture Stripe indisponible pour cette transaction.');
+      return;
+    }
+
+    try {
+      setOpeningInvoiceId(stripeInvoiceId);
+      setTransactionsError(null);
+      const { hostedInvoiceUrl, invoicePdfUrl } =
+        await subscriptionService.getInvoiceLinks(stripeInvoiceId, transactionsUser?.id);
+      const invoiceUrl = hostedInvoiceUrl ?? invoicePdfUrl;
+
+      if (!invoiceUrl) {
+        setTransactionsError('Facture Stripe indisponible pour cette transaction.');
+        return;
+      }
+
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      setTransactionsError('Impossible d’ouvrir la facture Stripe.');
+    } finally {
+      setOpeningInvoiceId(null);
+    }
+  };
+
+  const handleCancelSubscription = async (stripeSubscriptionId: string) => {
+    if (!transactionsUser?.id) {
+      setTransactionsError('Utilisateur invalide.');
+      return;
+    }
+
+    const confirmed = window.confirm('Voulez-vous vraiment annuler cet abonnement ?');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCancelingSubscriptionId(stripeSubscriptionId);
+      setTransactionsError(null);
+      setTransactionsActionMessage(null);
+
+      await subscriptionService.cancelSubscription({
+        userId: transactionsUser.id,
+        stripeSubscriptionId,
+      });
+
+      try {
+        const data = await subscriptionService.getUserSubscriptions(transactionsUser.id);
+        setTransactionsSubscriptions(Array.isArray(data) ? data : []);
+      } catch {
+        const nowIso = new Date().toISOString();
+        setTransactionsSubscriptions((prev) =>
+          prev.map((subscription) =>
+            subscription.stripeSubscriptionId === stripeSubscriptionId
+              ? {
+                  ...subscription,
+                  status: 'canceled',
+                  canceledAt: nowIso,
+                  endedAt: nowIso,
+                }
+              : subscription,
+          ),
+        );
+      }
+
+      setTransactionsActionMessage({
+        type: 'success',
+        text: "L'abonnement a bien été annulé.",
+      });
+    } catch {
+      setTransactionsError("Erreur lors de l'annulation de l'abonnement.");
+      setTransactionsActionMessage({
+        type: 'error',
+        text: "L'annulation de l'abonnement a échoué.",
+      });
+    } finally {
+      setCancelingSubscriptionId(null);
     }
   };
 
@@ -244,184 +364,135 @@ const AdminUsers = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Utilisateur
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Téléphone
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Rôle
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Plan
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-white/10 hover:bg-white/5 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-thunder-gold/20 rounded-full flex items-center justify-center">
-                          <span className="text-thunder-gold font-semibold">
-                            {(user.firstName?.[0] || '').toUpperCase()}
-                          </span>
+          <UniformTable
+            headers={['Utilisateur', 'Email', 'Téléphone', 'Rôle', 'Plan', 'Actions']}
+          >
+            {filteredUsers.map((user) => (
+              <tr
+                key={user.id}
+                className="border-b border-white/10 hover:bg-white/5 transition-colors"
+              >
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-thunder-gold/20 rounded-full flex items-center justify-center">
+                      <span className="text-thunder-gold font-semibold">
+                        {(user.firstName?.[0] || '').toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">
+                        {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Sans nom'}
+                      </p>
+                      <p className="text-xs text-gray-400">{user.id}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-gray-300">
+                    {user.email}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-gray-300">
+                    {user.phoneNumber || '-'}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    {user.role === 'Admin' && (
+                      <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Admin
+                      </span>
+                    )}
+                    {user.role === 'User' && (
+                      <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Utilisateur
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-gray-300">
+                  {subsLoading ? (
+                      <span className="text-gray-500">Chargement...</span>
+                    ) : activeSubscriptionsByUser[user.id] ? (
+                      <div className="flex flex-col space-y-2">
+                        <div className="inline-flex bg-green-900/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium self-start">
+                          Abonné
                         </div>
-                        <div>
-                          <p className="font-medium text-white">
-                            {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Sans nom'}
-                          </p>
-                          <p className="text-xs text-gray-400">{user.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-gray-300">
-                        {user.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-gray-300">
-                        {user.phoneNumber || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {user.role === 'Admin' && (
-                          <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            Admin
-                          </span>
-                        )}
-                        {user.role === 'User' && (
-                          <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            Utilisateur
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {subsLoading ? (
-                          <span className="text-gray-500">Chargement...</span>
-                        ) : activeSubscriptionsByUser[user.id] ? (
-                          <div className="flex flex-col space-y-2">
-                            <div className="inline-flex bg-green-900/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium self-start">
-                              Abonné
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => openTransactionsModal(user)}
-                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
-                            >
-                              Voir les détails
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col space-y-2">
-                            <div className="inline-flex bg-red-500/30 text-red-300 px-3 py-1 rounded-full text-sm font-medium self-start border border-red-500/50">
-                              Non abonné
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => openTransactionsModal(user)}
-                              className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
-                            >
-                              Voir les détails
-                            </button>
-                          </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
                         <button
-                          onClick={() => openRoleModal(user)}
-                          className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm border border-white/20"
-                          title="Modifier le rôle"
+                          type="button"
+                          onClick={() => openTransactionsModal(user)}
+                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
                         >
-                          Modifier le rôle
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="px-3 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-sm transition-colors"
-                          title="Supprimer l'utilisateur"
-                        >
-                          Supprimer le compte
+                          Voir les détails
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    ) : (
+                      <div className="flex flex-col space-y-2">
+                        <div className="inline-flex bg-red-500/30 text-red-300 px-3 py-1 rounded-full text-sm font-medium self-start border border-red-500/50">
+                          Non abonné
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openTransactionsModal(user)}
+                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
+                        >
+                          Voir les détails
+                        </button>
+                      </div>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openRoleModal(user)}
+                      className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm border border-white/20"
+                      title="Modifier le rôle"
+                    >
+                      Modifier le rôle
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user.id)}
+                      className="px-3 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-sm transition-colors"
+                      title="Supprimer l'utilisateur"
+                    >
+                      Supprimer le compte
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </UniformTable>
         )}
       </div>
 
-      <Modal
+      <UserRoleModal
         isOpen={showRoleModal}
+        selectedUser={selectedUser}
+        newRole={newRole}
+        roleLoading={roleLoading}
+        roleError={roleError}
         onClose={closeRoleModal}
-        title={
-          selectedUser
-            ? `Modifier le rôle de ${selectedUser.firstName || selectedUser.email}`
-            : 'Modifier le rôle'
-        }
-        size="sm"
-      >
-        <form onSubmit={handleRoleChange} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Rôle</label>
-            <select
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value as 'User' | 'Admin')}
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              disabled={roleLoading}
-            >
-              <option value="User">Utilisateur</option>
-              <option value="Admin">Admin</option>
-            </select>
-          </div>
-          {roleError && (
-            <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300 mb-2">
-              {roleError}
-            </div>
-          )}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={closeRoleModal}
-              className="px-4 py-2 rounded bg-white/15 hover:bg-white/25 border border-white/30 text-white"
-              disabled={roleLoading}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded bg-white/15 hover:bg-white/25 border border-white/30 text-white disabled:opacity-60"
-              disabled={roleLoading}
-            >
-              {roleLoading ? 'Modification...' : 'Valider'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={handleRoleChange}
+        onRoleChange={setNewRole}
+      />
 
-      <UserTransactionsModal
+      <UserSubscriptionDetailsModal
         isOpen={showTransactionsModal}
-        onClose={closeTransactionsModal}
         user={transactionsUser}
+        subscriptions={transactionsSubscriptions}
+        loading={transactionsLoading}
+        error={transactionsError}
+        actionMessage={transactionsActionMessage}
+        openingInvoiceId={openingInvoiceId}
+        cancelingSubscriptionId={cancelingSubscriptionId}
+        onClose={closeTransactionsModal}
+        onOpenInvoice={(stripeInvoiceId) => {
+          void handleOpenInvoice(stripeInvoiceId);
+        }}
+        onCancelSubscription={(stripeSubscriptionId) => {
+          void handleCancelSubscription(stripeSubscriptionId);
+        }}
       />
     </div>
   );

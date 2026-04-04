@@ -51,7 +51,9 @@ export class ProxyService {
       return process.env.COMMENT_SERVICE_URL || 'http://comment-service:3000';
     }
     if (originalUrl.startsWith('/api/ticketing')) {
-      return process.env.TICKETING_SERVICE_URL || 'http://ticketing-service:3000';
+      return (
+        process.env.TICKETING_SERVICE_URL || 'http://ticketing-service:3000'
+      );
     }
     return null;
   }

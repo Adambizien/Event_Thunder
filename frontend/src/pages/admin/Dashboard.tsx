@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { userService } from '../../services/UserService';
 import { planService } from '../../services/PlanService';
 import { eventService } from '../../services/EventService';
+import { subscriptionService } from '../../services/SubscriptionService';
 import AdminPageHeader from '../../components/AdminPageHeader';
 
 interface Stats {
@@ -36,16 +37,19 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const [users, plans, events] = await Promise.all([
+      const [users, plans, events, subscriptions] = await Promise.all([
         userService.fetchUsers(),
         planService.fetchPlans(),
         eventService.fetchEvents(),
+        subscriptionService.getAdminSubscriptionsOverview(),
       ]);
 
       setStats({
         totalUsers: users.length,
         totalPlans: plans.length,
-        activeSubscriptions: users.filter((user) => Boolean(user.planId)).length,
+        activeSubscriptions: subscriptions.filter(
+          (subscription) => subscription.status === 'active',
+        ).length,
         publishedEvents: events.filter((event) => event.status === 'published').length,
         draftEvents: events.filter((event) => event.status === 'draft').length,
         completedEvents: events.filter((event) => event.status === 'completed').length,

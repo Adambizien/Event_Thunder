@@ -1,29 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import TicketPurchaseCards, {
+  type TicketPurchaseCardData,
+} from '../../components/TicketPurchaseCards';
 import { ticketService } from '../../services/TicketService';
 import type { TicketPurchase } from '../../types/TicketTypes';
-
-const formatDate = (value?: string | null) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString('fr-FR');
-};
-
-const formatCurrency = (amount: number, currency: string) => {
-  const normalized = currency === 'USD' ? 'USD' : 'EUR';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: normalized,
-  }).format(amount);
-};
 
 const ticketPurchaseStatusLabels: Record<string, string> = {
   pending: 'En attente',
   paid: 'Payé',
-  succeeded: 'Payé',
-  completed: 'Payé',
   failed: 'Échoué',
-  canceled: 'Annulé',
+  cancelled: 'Annulé',
   refunded: 'Remboursé',
 };
 
@@ -60,6 +46,36 @@ const MyTickets = () => {
     () => purchases.reduce((sum, purchase) => sum + purchase.tickets.length, 0),
     [purchases],
   );
+
+  const purchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
+    return purchases.map((purchase) => ({
+      id: purchase.id,
+      stripePaymentIntentId: purchase.stripe_payment_intent_id,
+      createdAt: purchase.paid_at ?? purchase.created_at,
+      totalAmount: Number(purchase.total_amount ?? 0),
+      currency: purchase.currency,
+      buyerLastname: purchase.buyer?.lastName ?? undefined,
+      buyerFirstname: purchase.buyer?.firstName ?? undefined,
+      buyerEmail: purchase.buyer?.email ?? null,
+      statusLabel: toTicketPurchaseStatusLabel(purchase.status),
+      ticketCount: purchase.tickets.length,
+      lineItems: purchase.items.map((item) => ({
+        id: item.id,
+        label: item.ticket_type_label || item.ticket_type?.name || 'Ticket',
+        quantity: item.quantity,
+        amount: Number(item.unit_price) * item.quantity,
+        currency: item.currency,
+      })),
+      tickets: purchase.tickets.map((ticket) => ({
+        id: ticket.id,
+        ticketNumber: ticket.ticket_number,
+        attendeeLastname: ticket.attendee_lastname,
+        attendeeFirstname: ticket.attendee_firstname,
+        attendeeEmail: ticket.attendee_email,
+        statusLabel: ticket.used ? 'Utilisé' : 'Valide',
+      })),
+    }));
+  }, [purchases]);
 
   const handleOpenInvoice = async (stripePaymentIntentId: string) => {
     if (!stripePaymentIntentId) {
@@ -115,101 +131,16 @@ const MyTickets = () => {
             Aucun ticket acheté pour le moment.
           </div>
         ) : (
-          <div className="space-y-6">
-            {purchases.map((purchase) => (
-              <section
-                key={purchase.id}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-                  <div>
-                    <p className="text-sm text-gray-400">Achat</p>
-                    <p className="text-white font-semibold">{purchase.id}</p>
-                    <p className="mt-1 text-xs text-gray-400">Stripe: {purchase.stripe_payment_intent_id}</p>
-                    <button
-                      type="button"
-                      onClick={() => void handleOpenInvoice(purchase.stripe_payment_intent_id)}
-                      disabled={openingInvoiceId === purchase.stripe_payment_intent_id}
-                      className="mt-2 inline-flex items-center rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {openingInvoiceId === purchase.stripe_payment_intent_id
-                        ? 'Ouverture...'
-                        : 'Voir la facture'}
-                    </button>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-400">Montant</p>
-                    <p className="text-thunder-gold font-semibold">
-                      {formatCurrency(Number(purchase.total_amount ?? 0), purchase.currency)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-400">Payé le</p>
-                    <p className="text-white">{formatDate(purchase.paid_at ?? purchase.created_at)}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                    <h3 className="text-white font-semibold mb-2">Détails de l'achat</h3>
-                    <div className="space-y-2 text-sm text-gray-200 mb-4">
-                      <p>
-                        <span className="text-gray-400">Nom:</span> {purchase.buyer?.lastName || '-'}
-                      </p>
-                      <p>
-                        <span className="text-gray-400">Prénom:</span> {purchase.buyer?.firstName || '-'}
-                      </p>
-                      <p>
-                        <span className="text-gray-400">Email:</span> {purchase.buyer?.email || '-'}
-                      </p>
-                      <p>
-                        <span className="text-gray-400">Statut:</span> {toTicketPurchaseStatusLabel(purchase.status)}
-                      </p>
-                      <p>
-                        <span className="text-gray-400">Nombre de tickets:</span> {purchase.tickets.length}
-                      </p>
-                    </div>
-                    <h3 className="text-white font-semibold mb-2">Lignes d'achat</h3>
-                    <ul className="space-y-2 text-sm text-gray-200">
-                      {purchase.items.map((item) => (
-                        <li key={item.id} className="flex items-center justify-between gap-3">
-                          <span>
-                            {item.ticket_type_label || item.ticket_type?.name || 'Ticket'} x{item.quantity}
-                          </span>
-                          <span>
-                            {formatCurrency(Number(item.unit_price) * item.quantity, item.currency)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                    <h3 className="text-white font-semibold mb-2">Billets générés</h3>
-                    <div className="space-y-2">
-                      {purchase.tickets.map((ticket) => (
-                        <div
-                          key={ticket.id}
-                          className="rounded-lg border border-white/10 bg-white/5 p-3"
-                        >
-                          <p className="text-xs text-gray-400">Numéro de ticket</p>
-                          <p className="font-mono text-thunder-gold text-sm">{ticket.ticket_number}</p>
-                          <div className="mt-1 text-xs text-gray-300">
-                            <span className="block">Nom : <span className="font-semibold text-white">{ticket.attendee_lastname}</span></span>
-                            <span className="block">Prénom : <span className="font-semibold text-white">{ticket.attendee_firstname}</span></span>
-                            <span className="block">Email : <span className="font-semibold text-white">{ticket.attendee_email || '-'}</span></span>
-                          </div>
-                          <p className="mt-1 text-xs text-gray-400">
-                            Statut: {ticket.used ? 'Utilisé' : 'Valide'}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            ))}
-          </div>
+          <TicketPurchaseCards
+            purchases={purchaseCards}
+            openingInvoiceId={openingInvoiceId}
+            onOpenInvoice={(stripePaymentIntentId) => {
+              void handleOpenInvoice(stripePaymentIntentId);
+            }}
+            emptyMessage="Aucun ticket acheté pour le moment."
+            dateLabel="Payé le"
+            totalLabel="Montant"
+          />
         )}
       </div>
     </div>

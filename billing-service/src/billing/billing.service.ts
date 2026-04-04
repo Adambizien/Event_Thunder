@@ -174,16 +174,19 @@ export class BillingService {
     );
 
     const latestCharge =
-      typeof paymentIntent.latest_charge === 'string' || !paymentIntent.latest_charge
+      typeof paymentIntent.latest_charge === 'string' ||
+      !paymentIntent.latest_charge
         ? null
         : paymentIntent.latest_charge;
 
     const receiptUrl = latestCharge?.receipt_url ?? null;
 
     const chargeInvoice = (
-      latestCharge as Stripe.Charge & {
-        invoice?: string | Stripe.Invoice | null;
-      } | null
+      latestCharge as
+        | (Stripe.Charge & {
+            invoice?: string | Stripe.Invoice | null;
+          })
+        | null
     )?.invoice;
     let invoice: Stripe.Invoice | null = null;
 
@@ -411,26 +414,61 @@ export class BillingService {
       return;
     }
 
-    let attendees: Array<{ ticketTypeId: string; firstname: string; lastname: string; email: string }> = [];
+    let attendees: Array<{
+      ticketTypeId: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+    }> = [];
     if (session.metadata?.attendees) {
       try {
-        attendees = JSON.parse(session.metadata.attendees);
+        const parsedAttendees = JSON.parse(
+          session.metadata.attendees,
+        ) as unknown;
+        const isAttendee = (
+          value: unknown,
+        ): value is {
+          ticketTypeId: string;
+          firstname: string;
+          lastname: string;
+          email: string;
+        } => {
+          if (typeof value !== 'object' || value === null) {
+            return false;
+          }
+
+          const candidate = value as Record<string, unknown>;
+          return (
+            typeof candidate.ticketTypeId === 'string' &&
+            typeof candidate.firstname === 'string' &&
+            typeof candidate.lastname === 'string' &&
+            typeof candidate.email === 'string'
+          );
+        };
+
+        if (Array.isArray(parsedAttendees)) {
+          attendees = parsedAttendees.filter(isAttendee);
+        }
       } catch {
         this.logger.warn('Metadata attendees Stripe invalide');
       }
     }
-    await this.rabbitmqPublisher.publishWithRetry('billing.ticket.payment.succeeded', {
-      userId: session.metadata?.userId ?? session.client_reference_id,
-      eventId: session.metadata?.eventId,
-      customerName: session.metadata?.customerName,
-      customerEmail: session.customer_details?.email ?? session.customer_email,
-      attendees,
-      stripePaymentIntentId,
-      stripeCheckoutSessionId: session.id,
-      currency: (session.currency ?? 'eur').toUpperCase(),
-      amountTotal: (session.amount_total ?? 0) / 100,
-      items: parsedItems,
-    });
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.ticket.payment.succeeded',
+      {
+        userId: session.metadata?.userId ?? session.client_reference_id,
+        eventId: session.metadata?.eventId,
+        customerName: session.metadata?.customerName,
+        customerEmail:
+          session.customer_details?.email ?? session.customer_email,
+        attendees,
+        stripePaymentIntentId,
+        stripeCheckoutSessionId: session.id,
+        currency: (session.currency ?? 'eur').toUpperCase(),
+        amountTotal: (session.amount_total ?? 0) / 100,
+        items: parsedItems,
+      },
+    );
   }
 
   private async onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {

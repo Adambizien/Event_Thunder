@@ -29,6 +29,7 @@ export const authService = {
     try {
       await api.post('/api/auth/logout');
     } catch {
+      // --- IGNORE ---
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

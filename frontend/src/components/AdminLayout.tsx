@@ -12,6 +12,10 @@ const AdminLayout = () => {
       path: '/admin/subscription-transactions',
       label: 'Transactions abonnements',
     },
+    {
+      path: '/admin/ticket-transactions',
+      label: 'Transactions tickets',
+    },
     { path: '/admin/users', label: 'Liste des utilisateurs' },
   ];
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/AdminPageHeader';
-import Modal from '../../components/Modal';
+import EventCategoryFormModal from '../../components/EventCategoryFormModal';
+import UniformTable from '../../components/UniformTable';
 import { eventCategoryService } from '../../services/EventCategoryService';
 import type { EventCategory } from '../../types/EventCategoryTypes';
 
@@ -188,58 +189,16 @@ const AdminEventCategories = () => {
         </div>
       </div>
 
-      <Modal
+      <EventCategoryFormModal
         isOpen={showForm}
+        isEditing={Boolean(editingCategoryId)}
+        name={name}
+        formError={formError}
+        submitting={submitting}
         onClose={resetForm}
-        title={
-          editingCategoryId
-            ? 'Modifier la catégorie'
-            : 'Créer une nouvelle catégorie'
-        }
-        size="md"
-      >
-        {formError && (
-          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300 mb-4">
-            {formError}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Nom de la catégorie
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="Ex: Conférence"
-            />
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
-            >
-              {submitting
-                ? 'Sauvegarde...'
-                : editingCategoryId
-                ? 'Modifier la catégorie'
-                : 'Créer la catégorie'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={handleSubmit}
+        onNameChange={setName}
+      />
 
       {/* Categories Table */}
       <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl backdrop-blur-lg">
@@ -252,71 +211,51 @@ const AdminEventCategories = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Nom
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Date de création
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Date de mise à jour
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCategories.map((category) => {
-                  const isDeleting = deletingCategoryId === category.id;
+          <UniformTable headers={['Nom', 'Date de création', 'Date de mise à jour', 'Actions']}>
+            {filteredCategories.map((category) => {
+              const isDeleting = deletingCategoryId === category.id;
 
-                  return (
-                    <tr
-                      key={category.id}
-                      className={`border-b border-white/10 transition-colors ${isDeleting ? 'opacity-60 pointer-events-none' : 'hover:bg-white/5'}`}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <p className="font-medium text-white">{category.name}</p>
-                            <p className="text-xs text-gray-400">{category.id}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-300">
-                        {formatDate(category.created_at)}
-                      </td>
-                      <td className="px-6 py-4 text-gray-300">
-                        {formatDate(category.updated_at)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEdit(category)}
-                            className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
-                            disabled={isDeleting}
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            onClick={() => handleDelete(category.id)}
-                            className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
-                            disabled={isDeleting}
-                          >
-                            {isDeleting ? 'Suppression...' : 'Supprimer'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+              return (
+                <tr
+                  key={category.id}
+                  className={`border-b border-white/10 transition-colors ${isDeleting ? 'opacity-60 pointer-events-none' : 'hover:bg-white/5'}`}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="font-medium text-white">{category.name}</p>
+                        <p className="text-xs text-gray-400">{category.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-300">
+                    {formatDate(category.created_at)}
+                  </td>
+                  <td className="px-6 py-4 text-gray-300">
+                    {formatDate(category.updated_at)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(category)}
+                        className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
+                        disabled={isDeleting}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDelete(category.id)}
+                        className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? 'Suppression...' : 'Supprimer'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </UniformTable>
         )}
       </div>
     </div>

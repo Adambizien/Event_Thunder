@@ -65,7 +65,10 @@ export class ProxyController {
       return true;
     }
 
-    if (/^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) && method === 'GET') {
+    if (
+      /^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) &&
+      method === 'GET'
+    ) {
       return true;
     }
 
@@ -157,11 +160,17 @@ export class ProxyController {
       return true;
     }
 
-    if (/^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) && method === 'PUT') {
+    if (
+      /^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) &&
+      method === 'PUT'
+    ) {
       return true;
     }
 
-    if (/^\/api\/ticketing\/events\/[^/]+\/sold-tickets$/.test(path) && method === 'GET') {
+    if (
+      /^\/api\/ticketing\/events\/[^/]+\/sold-tickets$/.test(path) &&
+      method === 'GET'
+    ) {
       return true;
     }
 

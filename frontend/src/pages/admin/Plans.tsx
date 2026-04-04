@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Modal from '../../components/Modal';
+import PlanFormModal from '../../components/PlanFormModal';
 import type { Plan, FormData } from '../../types/PlanTypes';
 import { planService } from '../../services/PlanService';
 import AdminPageHeader from '../../components/AdminPageHeader';
@@ -159,158 +159,16 @@ const AdminPlans = () => {
       )}
 
       {/* Modal Form */}
-      <Modal
+      <PlanFormModal
         isOpen={showForm}
+        isEditing={Boolean(editingId)}
+        formData={formData}
+        formError={formError}
+        isSubmitting={isSubmitting}
         onClose={resetForm}
-        title={editingId ? 'Modifier le plan' : 'Créer un nouveau plan'}
-        size="lg"
-      >
-        {formError && (
-          <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300 mb-4">
-            {formError}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Nom du plan
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="Ex: Pro"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Prix (€)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="9.99"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Intervalle
-              </label>
-              <select
-                value={formData.interval}
-                onChange={(e) => setFormData({ ...formData, interval: e.target.value as 'monthly' | 'yearly' })}
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              >
-                <option value="monthly">Mensuel</option>
-                <option value="yearly">Annuel</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Devise
-              </label>
-              <select
-                value={formData.currency}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    currency: e.target.value as 'EUR' | 'USD',
-                  })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              >
-                <option value="EUR">EUR</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Événements max (-1 = illimité)
-              </label>
-              <input
-                type="number"
-                value={formData.maxEvents}
-                onChange={(e) => setFormData({ ...formData, maxEvents: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Posts max (-1 = illimité)
-              </label>
-              <input
-                type="number"
-                value={formData.maxPosts}
-                onChange={(e) => setFormData({ ...formData, maxPosts: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="10"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Ordre d'affichage
-              </label>
-              <input
-                type="number"
-                value={formData.displayOrder}
-                onChange={(e) =>
-                  setFormData({ ...formData, displayOrder: e.target.value })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none min-h-[96px]"
-                placeholder="Décrivez le plan (optionnel)"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
-            >
-              {isSubmitting
-                ? 'Sauvegarde...'
-                : editingId
-                ? 'Modifier'
-                : 'Créer'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={handleSubmit}
+        onFormDataChange={setFormData}
+      />
 
       {/* Plans List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

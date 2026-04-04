@@ -46,6 +46,12 @@ type BillingTicketSucceededPayload = {
   attendeeFirstname?: string;
   attendeeLastname?: string;
   attendeeEmail?: string;
+  attendees?: Array<{
+    ticketTypeId?: string;
+    firstname?: string;
+    lastname?: string;
+    email?: string;
+  }>;
   amountTotal?: number;
   currency?: string;
   items?: Array<{
@@ -97,7 +103,9 @@ export class TicketsService {
       const existing = await tx.ticketType.findMany({
         where: { event_id: eventId },
       });
-      const existingById = new Map(existing.map((ticket) => [ticket.id, ticket]));
+      const existingById = new Map(
+        existing.map((ticket) => [ticket.id, ticket]),
+      );
 
       const keepIds: string[] = [];
       const updated: TicketType[] = [];
@@ -149,7 +157,9 @@ export class TicketsService {
         });
 
         if (protectedTickets.length > 0) {
-          const names = protectedTickets.map((ticket) => ticket.name).join(', ');
+          const names = protectedTickets
+            .map((ticket) => ticket.name)
+            .join(', ');
           throw new BadRequestException(
             `Suppression impossible: des achats existent pour ${names}`,
           );
@@ -192,14 +202,18 @@ export class TicketsService {
     });
 
     if (ticketTypes.length !== quantitiesByType.size) {
-      throw new NotFoundException('Un ou plusieurs types de ticket sont introuvables');
+      throw new NotFoundException(
+        'Un ou plusieurs types de ticket sont introuvables',
+      );
     }
 
     const billingItems: BillingCheckoutItem[] = [];
     for (const ticketType of ticketTypes) {
       const quantity = quantitiesByType.get(ticketType.id) ?? 0;
       if (quantity <= 0) {
-        throw new BadRequestException('Quantité invalide pour un type de ticket');
+        throw new BadRequestException(
+          'Quantité invalide pour un type de ticket',
+        );
       }
 
       if (
@@ -234,7 +248,7 @@ export class TicketsService {
 
     try {
       const attendees = Array.isArray(dto.attendees)
-        ? dto.attendees.map(a => ({
+        ? dto.attendees.map((a) => ({
             ticketTypeId: a.ticket_type_id,
             firstname: a.firstname,
             lastname: a.lastname,
@@ -290,12 +304,48 @@ export class TicketsService {
       orderBy: { created_at: 'desc' },
     });
 
-    const buyerByUserId = await this.fetchBuyersByUserIds([userId], authorization);
+    const buyerByUserId = await this.fetchBuyersByUserIds(
+      [userId],
+      authorization,
+    );
     const buyer = buyerByUserId.get(userId) ?? null;
 
     const enrichedPurchases = purchases.map((purchase) => ({
       ...purchase,
       buyer,
+    }));
+
+    return {
+      purchases: enrichedPurchases,
+    };
+  }
+
+  async getAdminTickets(authorization: string) {
+    const purchases = await this.prisma.ticketPurchase.findMany({
+      include: {
+        items: {
+          include: {
+            ticket_type: true,
+          },
+        },
+        tickets: {
+          orderBy: { created_at: 'asc' },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const uniqueUserIds = [
+      ...new Set(purchases.map((purchase) => purchase.user_id)),
+    ];
+    const buyerByUserId = await this.fetchBuyersByUserIds(
+      uniqueUserIds,
+      authorization,
+    );
+
+    const enrichedPurchases = purchases.map((purchase) => ({
+      ...purchase,
+      buyer: buyerByUserId.get(purchase.user_id) ?? null,
     }));
 
     return {
@@ -336,8 +386,13 @@ export class TicketsService {
       },
     });
 
-    const uniqueUserIds = [...new Set(tickets.map((ticket) => ticket.ticket_purchase.user_id))];
-    const buyerByUserId = await this.fetchBuyersByUserIds(uniqueUserIds, authorization);
+    const uniqueUserIds = [
+      ...new Set(tickets.map((ticket) => ticket.ticket_purchase.user_id)),
+    ];
+    const buyerByUserId = await this.fetchBuyersByUserIds(
+      uniqueUserIds,
+      authorization,
+    );
 
     const enrichedTickets = tickets.map((ticket) => {
       const buyer = buyerByUserId.get(ticket.ticket_purchase.user_id) ?? null;
@@ -362,11 +417,24 @@ export class TicketsService {
     userIds: string[],
     authorization: string,
   ): Promise<
-    Map<string, { id: string; firstName: string | null; lastName: string | null; email: string | null }>
+    Map<
+      string,
+      {
+        id: string;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+      }
+    >
   > {
     const buyers = new Map<
       string,
-      { id: string; firstName: string | null; lastName: string | null; email: string | null }
+      {
+        id: string;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+      }
     >();
 
     if (userIds.length === 0) {
@@ -473,7 +541,10 @@ export class TicketsService {
     }
   }
 
-  async handleBillingEvent(routingKey: string, payload: Record<string, unknown>) {
+  async handleBillingEvent(
+    routingKey: string,
+    payload: Record<string, unknown>,
+  ) {
     if (routingKey !== 'billing.ticket.payment.succeeded') {
       this.logger.debug(`Routing key ignorée: ${routingKey}`);
       return;
@@ -509,8 +580,24 @@ export class TicketsService {
     const amountTotal = Number(payload.amountTotal ?? 0);
     const fallbackName = (payload.customerName || '').trim();
     const fallbackNameParts = fallbackName.split(/\s+/).filter(Boolean);
-    const attendees: Array<{ ticketTypeId: string; firstname: string; lastname: string; email: string }> = Array.isArray((payload as any).attendees)
-      ? (payload as any).attendees
+    const attendees: Array<{
+      ticketTypeId: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+    }> = Array.isArray(payload.attendees)
+      ? payload.attendees
+          .filter((attendee) => attendee && typeof attendee === 'object')
+          .map((attendee) => ({
+            ticketTypeId: String(attendee.ticketTypeId ?? ''),
+            firstname: String(attendee.firstname ?? ''),
+            lastname: String(attendee.lastname ?? ''),
+            email: String(attendee.email ?? ''),
+          }))
+          .filter(
+            (attendee) =>
+              attendee.ticketTypeId.length > 0 && attendee.email.length > 0,
+          )
       : [];
 
     await this.prisma.$transaction(async (tx) => {
@@ -519,7 +606,9 @@ export class TicketsService {
           user_id: payload.userId!,
           stripe_payment_intent_id: payload.stripePaymentIntentId!,
           status: TicketPurchaseStatus.paid,
-          total_amount: this.toPrismaDecimal(amountTotal >= 0 ? amountTotal : 0),
+          total_amount: this.toPrismaDecimal(
+            amountTotal >= 0 ? amountTotal : 0,
+          ),
           currency,
           paid_at: new Date(),
         },
@@ -549,8 +638,12 @@ export class TicketsService {
           );
         }
 
-        const unitAmount = Number(rawItem.unitAmount ?? Number(ticketType.price));
-        const itemCurrency = this.toTicketCurrency(rawItem.currency ?? ticketType.currency);
+        const unitAmount = Number(
+          rawItem.unitAmount ?? Number(ticketType.price),
+        );
+        const itemCurrency = this.toTicketCurrency(
+          rawItem.currency ?? ticketType.currency,
+        );
 
         await tx.ticketPurchaseItem.create({
           data: {
@@ -574,8 +667,8 @@ export class TicketsService {
 
         const ticketRows: Prisma.TicketCreateManyInput[] = [];
         for (let i = 0; i < quantity; i += 1) {
-          const ticketNumber = this.generateTicketNumber(payload.eventId!);
-          let attendee = attendees[attendeeIdx] || {
+          const ticketNumber = this.generateTicketNumber(payload.eventId);
+          const attendee = attendees[attendeeIdx] || {
             ticketTypeId,
             firstname: fallbackNameParts[0] || 'A_Renseigner',
             lastname: fallbackNameParts.slice(1).join(' ') || 'A_Renseigner',
@@ -624,7 +717,7 @@ export class TicketsService {
     return new Prisma.Decimal(value.toFixed(2));
   }
 
-  private toTicketCurrency(value: string | TicketCurrency | undefined): TicketCurrency {
+  private toTicketCurrency(value: string | undefined): TicketCurrency {
     if (String(value ?? '').toUpperCase() === TicketCurrency.USD) {
       return TicketCurrency.USD;
     }
@@ -634,7 +727,10 @@ export class TicketsService {
 
   private generateTicketNumber(eventId: string): string {
     const eventSegment = eventId.replace(/-/g, '').slice(0, 8).toUpperCase();
-    const randomSegment = randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
+    const randomSegment = randomUUID()
+      .replace(/-/g, '')
+      .slice(0, 10)
+      .toUpperCase();
     return `ET-${eventSegment}-${randomSegment}`;
   }
 }

@@ -25,6 +25,7 @@ const readRouteGuard = (key: string) => {
   try {
     return sessionStorage.getItem(key);
   } catch {
+    // --- IGNORE ---
     return null;
   }
 };
@@ -33,6 +34,7 @@ const writeRouteGuard = (key: string, value: string) => {
   try {
     sessionStorage.setItem(key, value);
   } catch {
+    // --- IGNORE ---
   }
 };
 
@@ -40,6 +42,7 @@ const clearRouteGuard = (key: string) => {
   try {
     sessionStorage.removeItem(key);
   } catch {
+    // --- IGNORE ---
   }
 };
 
@@ -126,6 +129,7 @@ const Subscription = () => {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       } catch {
+        // --- IGNORE ---
       } finally {
         if (!cancelled) {
           setIsResolvingSubscriptionState(false);
@@ -159,6 +163,7 @@ const Subscription = () => {
                 const subs = await subscriptionService.getUserSubscriptions(user.id);
                 setUserSubscriptions(Array.isArray(subs) ? subs : []);
               } catch {
+                // --- IGNORE ---
                 setUserSubscriptions([]);
               }
             }

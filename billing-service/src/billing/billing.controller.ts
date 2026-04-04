@@ -100,17 +100,37 @@ export class BillingController {
       if (!attendee || typeof attendee !== 'object') {
         throw new BadRequestException(`Champ invalide: attendees[${idx}]`);
       }
-      if (!attendee.firstname || typeof attendee.firstname !== 'string' || !attendee.firstname.trim()) {
-        throw new BadRequestException(`Champ invalide: attendees[${idx}].firstname`);
+      if (
+        !attendee.firstname ||
+        typeof attendee.firstname !== 'string' ||
+        !attendee.firstname.trim()
+      ) {
+        throw new BadRequestException(
+          `Champ invalide: attendees[${idx}].firstname`,
+        );
       }
-      if (!attendee.lastname || typeof attendee.lastname !== 'string' || !attendee.lastname.trim()) {
-        throw new BadRequestException(`Champ invalide: attendees[${idx}].lastname`);
+      if (
+        !attendee.lastname ||
+        typeof attendee.lastname !== 'string' ||
+        !attendee.lastname.trim()
+      ) {
+        throw new BadRequestException(
+          `Champ invalide: attendees[${idx}].lastname`,
+        );
       }
-      if (!attendee.email || typeof attendee.email !== 'string' || !attendee.email.includes('@')) {
-        throw new BadRequestException(`Champ invalide: attendees[${idx}].email`);
+      if (
+        !attendee.email ||
+        typeof attendee.email !== 'string' ||
+        !attendee.email.includes('@')
+      ) {
+        throw new BadRequestException(
+          `Champ invalide: attendees[${idx}].email`,
+        );
       }
       if (!attendee.ticketTypeId || typeof attendee.ticketTypeId !== 'string') {
-        throw new BadRequestException(`Champ invalide: attendees[${idx}].ticketTypeId`);
+        throw new BadRequestException(
+          `Champ invalide: attendees[${idx}].ticketTypeId`,
+        );
       }
     }
 

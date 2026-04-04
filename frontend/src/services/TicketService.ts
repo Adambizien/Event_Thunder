@@ -49,6 +49,11 @@ export const ticketService = {
     return response.data as MyTicketsResponse;
   },
 
+  async getAdminTicketsOverview(): Promise<MyTicketsResponse> {
+    const response = await api.get('/api/ticketing/admin/tickets');
+    return response.data as MyTicketsResponse;
+  },
+
   async getEventSoldTickets(eventId: string): Promise<EventSoldTicketsResponse> {
     const response = await api.get(`/api/ticketing/events/${eventId}/sold-tickets`);
     return response.data as EventSoldTicketsResponse;

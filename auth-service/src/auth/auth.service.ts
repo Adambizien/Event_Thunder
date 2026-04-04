@@ -154,8 +154,7 @@ export class AuthService {
       }
 
       if (isNewUser) {
-        this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
-        });
+        this.sendWelcomeEmail(user.email, user.firstName).catch(() => {});
       }
 
       const token = this.generateToken(user.id);
@@ -195,8 +194,7 @@ export class AuthService {
 
       const token = this.generateToken(user.id);
 
-      this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
-      });
+      this.sendWelcomeEmail(user.email, user.firstName).catch(() => {});
 
       return {
         message: 'Utilisateur enregistré avec succès',
