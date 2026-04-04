@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from '../users/users.controller';
-import { UsersService } from 'src/users/users.service';
+import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { VerifyUserDto } from '../users/dto/verify-user.dto';
 import { UpdatePasswordDto } from '../users/dto/update-password.dto';
