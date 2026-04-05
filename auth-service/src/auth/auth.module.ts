@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
 import { HttpModule } from '@nestjs/axios';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { readSecret } from '../utils/secret.util';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     HttpModule.register({
       timeout: 5000,
       maxRedirects: 5,
@@ -35,6 +38,6 @@ import { readSecret } from '../utils/secret.util';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RabbitmqPublisherService],
 })
 export class AuthModule {}

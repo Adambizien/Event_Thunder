@@ -52,6 +52,8 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       USER_SERVICE_URL: ${USER_SERVICE_URL}
@@ -68,6 +70,7 @@ services:
     depends_on:
       - user-service
       - mailing-service
+      - rabbitmq
 
   # User Service
   user-service:
@@ -219,11 +222,19 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_MAILING_QUEUE: mailing-service.billing.events
       RESEND_API_KEY_FILE: /run/secrets/resend_api_key
       MAIL_FROM: ${MAIL_FROM}
       PRODUCT_NAME: ${PRODUCT_NAME}
+      TICKETING_SERVICE_URL: ${TICKETING_SERVICE_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
     secrets:
       - resend_api_key
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   # Frontend
   frontend:

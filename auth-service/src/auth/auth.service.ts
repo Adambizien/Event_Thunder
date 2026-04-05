@@ -15,6 +15,7 @@ import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { readSecret } from '../utils/secret.util';
+import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
 
 type UserPayload = {
   id: string;
@@ -38,18 +39,16 @@ type AuthResponse = {
 export class AuthService {
   private googleClient: OAuth2Client;
   private userServiceUrl: string;
-  private mailingServiceUrl: string;
   private usedResetTokens: Map<string, number> = new Map();
   private blacklistedTokens: Set<string> = new Set();
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly httpService: HttpService,
+    private readonly rabbitmqPublisher: RabbitmqPublisherService,
   ) {
     this.userServiceUrl =
       process.env.USER_SERVICE_URL || 'http://user-service:3000';
-    this.mailingServiceUrl =
-      process.env.MAILING_SERVICE_URL || 'http://mailing-service:3000';
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     const googleClientSecret = readSecret('GOOGLE_CLIENT_SECRET');
@@ -303,13 +302,14 @@ export class AuthService {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-      await firstValueFrom(
-        this.httpService.post(`${this.mailingServiceUrl}/mail/password-reset`, {
+      await this.rabbitmqPublisher.publishWithRetry(
+        'auth.mail.password-reset',
+        {
           email: dto.email,
           resetUrl,
           username: user.firstName || user.email.split('@')[0],
           expiresInMinutes: 30,
-        }),
+        },
       );
 
       return {
@@ -455,12 +455,10 @@ export class AuthService {
     username?: string,
   ): Promise<void> {
     try {
-      await firstValueFrom(
-        this.httpService.post(`${this.mailingServiceUrl}/mail/welcome`, {
-          email,
-          username: username || email.split('@')[0],
-        }),
-      );
+      await this.rabbitmqPublisher.publishWithRetry('auth.mail.welcome', {
+        email,
+        username: username || email.split('@')[0],
+      });
     } catch (error: unknown) {
       console.error('Error sending welcome email:', error);
       throw error;

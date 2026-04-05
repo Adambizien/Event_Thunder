@@ -7,6 +7,49 @@ import { EmailTemplateFactory } from './templates/email-template.factory';
 import { SendEmailOptions } from './interfaces/email.interface';
 import { readSecret } from '../utils/secret.util';
 
+type SubscriptionThanksInput = {
+  email: string;
+  username?: string;
+  amount?: number;
+  currency?: string;
+  paidAt?: string;
+  hostedInvoiceUrl?: string | null;
+  invoicePdfUrl?: string | null;
+};
+
+type TicketPurchaseThanksInput = {
+  email: string;
+  username?: string;
+  amountTotal?: number;
+  currency?: string;
+  ticketCount: number;
+  buyerFirstname?: string;
+  buyerLastname?: string;
+  buyerEmail?: string | null;
+  statusLabel?: string;
+  purchaseDate?: string;
+  purchaseId?: string;
+  stripePaymentIntentId?: string;
+  stripeCheckoutSessionId?: string;
+  hostedInvoiceUrl?: string | null;
+  invoicePdfUrl?: string | null;
+  receiptUrl?: string | null;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitAmount?: number;
+  }>;
+  tickets?: Array<{
+    ticketNumber?: string;
+    attendeeLastname?: string;
+    attendeeFirstname?: string;
+    attendeeEmail?: string | null;
+    ticketTypeName?: string;
+    statusLabel?: string;
+    qrCode?: string;
+  }>;
+};
+
 @Injectable()
 export class MailService {
   private readonly resend: Resend;
@@ -65,6 +108,55 @@ export class MailService {
 
     return this.sendEmail({
       to: dto.email,
+      subject: template.subject,
+      html: template.html,
+    });
+  }
+
+  async sendSubscriptionThanks(input: SubscriptionThanksInput) {
+    const username = input.username ?? input.email.split('@')[0];
+
+    const template = this.templateFactory.createSubscriptionThanksTemplate({
+      username,
+      amount: input.amount,
+      currency: input.currency,
+      paidAt: input.paidAt,
+      hostedInvoiceUrl: input.hostedInvoiceUrl,
+      invoicePdfUrl: input.invoicePdfUrl,
+    });
+
+    return this.sendEmail({
+      to: input.email,
+      subject: template.subject,
+      html: template.html,
+    });
+  }
+
+  async sendTicketPurchaseThanks(input: TicketPurchaseThanksInput) {
+    const username = input.username ?? input.email.split('@')[0];
+
+    const template = this.templateFactory.createTicketPurchaseTemplate({
+      username,
+      amountTotal: input.amountTotal,
+      currency: input.currency,
+      ticketCount: input.ticketCount,
+      buyerFirstname: input.buyerFirstname,
+      buyerLastname: input.buyerLastname,
+      buyerEmail: input.buyerEmail,
+      statusLabel: input.statusLabel,
+      purchaseDate: input.purchaseDate,
+      purchaseId: input.purchaseId,
+      stripePaymentIntentId: input.stripePaymentIntentId,
+      stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+      hostedInvoiceUrl: input.hostedInvoiceUrl,
+      invoicePdfUrl: input.invoicePdfUrl,
+      receiptUrl: input.receiptUrl,
+      items: input.items,
+      tickets: input.tickets,
+    });
+
+    return this.sendEmail({
+      to: input.email,
       subject: template.subject,
       html: template.html,
     });

@@ -413,9 +413,104 @@ export class TicketsService {
     };
   }
 
+  private toStatusLabel(status?: string | null) {
+    if (!status) {
+      return '-';
+    }
+
+    const labels: Record<string, string> = {
+      pending: 'En attente',
+      paid: 'Payé',
+      failed: 'Échoué',
+      cancelled: 'Annulé',
+      refunded: 'Remboursé',
+    };
+
+    return labels[status.toLowerCase()] ?? status;
+  }
+
+  async getPurchaseByStripePaymentIntentId(
+    stripePaymentIntentId: string,
+  ): Promise<{
+    purchase: {
+      id: string;
+      paidAt: string | null;
+      createdAt: string | null;
+      statusLabel: string;
+      totalAmount: number;
+      currency: string;
+      buyer: {
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+      } | null;
+      items: Array<{
+        label: string;
+        quantity: number;
+        unitAmount: number;
+        currency: string;
+      }>;
+      tickets: Array<{
+        ticketNumber: string;
+        attendeeFirstname: string;
+        attendeeLastname: string;
+        attendeeEmail: string | null;
+        statusLabel: string;
+        qrCode: string;
+      }>;
+    } | null;
+  }> {
+    const purchase = await this.prisma.ticketPurchase.findUnique({
+      where: { stripe_payment_intent_id: stripePaymentIntentId },
+      include: {
+        items: {
+          include: {
+            ticket_type: true,
+          },
+        },
+        tickets: {
+          orderBy: { created_at: 'asc' },
+        },
+      },
+    });
+
+    if (!purchase) {
+      return { purchase: null };
+    }
+
+    const buyerByUserId = await this.fetchBuyersByUserIds([purchase.user_id]);
+    const buyer = buyerByUserId.get(purchase.user_id) ?? null;
+
+    return {
+      purchase: {
+        id: purchase.id,
+        paidAt: purchase.paid_at ? purchase.paid_at.toISOString() : null,
+        createdAt: purchase.created_at ? purchase.created_at.toISOString() : null,
+        statusLabel: this.toStatusLabel(purchase.status),
+        totalAmount: Number(purchase.total_amount ?? 0),
+        currency: purchase.currency,
+        buyer,
+        items: purchase.items.map((item) => ({
+          label: item.ticket_type_label || item.ticket_type?.name || 'Ticket',
+          quantity: item.quantity,
+          unitAmount: Number(item.unit_price ?? 0),
+          currency: item.currency,
+        })),
+        tickets: purchase.tickets.map((ticket) => ({
+          ticketNumber: ticket.ticket_number,
+          attendeeFirstname: ticket.attendee_firstname,
+          attendeeLastname: ticket.attendee_lastname,
+          attendeeEmail: ticket.attendee_email,
+          statusLabel: ticket.used ? 'Utilisé' : 'Valide',
+          qrCode: ticket.qr_code,
+        })),
+      },
+    };
+  }
+
   private async fetchBuyersByUserIds(
     userIds: string[],
-    authorization: string,
+    authorization?: string,
   ): Promise<
     Map<
       string,
@@ -445,6 +540,11 @@ export class TicketsService {
       this.configService.get<string>('USER_SERVICE_URL') ??
       'http://user-service:3000';
 
+    const headers: Record<string, string> = {};
+    if (authorization && authorization.trim().length > 0) {
+      headers.Authorization = authorization;
+    }
+
     await Promise.all(
       userIds.map(async (userId) => {
         try {
@@ -457,9 +557,7 @@ export class TicketsService {
                 email?: string | null;
               };
             }>(`${userBaseUrl}/api/users/${encodeURIComponent(userId)}`, {
-              headers: {
-                Authorization: authorization,
-              },
+              headers,
             }),
           );
 

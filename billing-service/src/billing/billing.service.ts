@@ -53,11 +53,13 @@ export class BillingService {
       metadata: {
         userId: dto.userId,
         planId: dto.planId,
+        customerEmail: dto.customerEmail ?? '',
       },
       subscription_data: {
         metadata: {
           userId: dto.userId,
           planId: dto.planId,
+          customerEmail: dto.customerEmail ?? '',
         },
       },
     });
@@ -341,6 +343,7 @@ export class BillingService {
         status: this.mapSubscriptionStatus(subscription.status),
         currentPeriodStart: period.start,
         currentPeriodEnd: period.end,
+        customerEmail: subscription.metadata?.customerEmail,
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000).toISOString()
           : null,
@@ -366,6 +369,7 @@ export class BillingService {
         status: this.mapSubscriptionStatus(subscription.status),
         currentPeriodStart: period.start,
         currentPeriodEnd: period.end,
+        customerEmail: subscription.metadata?.customerEmail,
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000).toISOString()
           : null,
@@ -453,6 +457,11 @@ export class BillingService {
         this.logger.warn('Metadata attendees Stripe invalide');
       }
     }
+
+    const ticketLinks = await this.safeGetTicketPaymentLinks(
+      stripePaymentIntentId,
+    );
+
     await this.rabbitmqPublisher.publishWithRetry(
       'billing.ticket.payment.succeeded',
       {
@@ -464,6 +473,12 @@ export class BillingService {
         attendees,
         stripePaymentIntentId,
         stripeCheckoutSessionId: session.id,
+        createdAt: session.created
+          ? new Date(session.created * 1000).toISOString()
+          : new Date().toISOString(),
+        hostedInvoiceUrl: ticketLinks.hostedInvoiceUrl,
+        invoicePdfUrl: ticketLinks.invoicePdfUrl,
+        receiptUrl: ticketLinks.receiptUrl,
         currency: (session.currency ?? 'eur').toUpperCase(),
         amountTotal: (session.amount_total ?? 0) / 100,
         items: parsedItems,
@@ -476,10 +491,17 @@ export class BillingService {
 
     if (!stripeSubscriptionId) return;
 
+    const subscriptionMetadata =
+      await this.getSubscriptionMetadata(stripeSubscriptionId);
+
     const period = invoice.lines.data[0]?.period;
     await this.rabbitmqPublisher.publishWithRetry('billing.payment.succeeded', {
+      userId: subscriptionMetadata.userId,
+      planId: subscriptionMetadata.planId,
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
+      customerEmail:
+        invoice.customer_email ?? subscriptionMetadata.customerEmail ?? null,
       hostedInvoiceUrl: invoice.hosted_invoice_url,
       invoicePdfUrl: invoice.invoice_pdf,
       amount: (invoice.amount_paid ?? 0) / 100,
@@ -509,9 +531,16 @@ export class BillingService {
 
     if (!stripeSubscriptionId) return;
 
+    const subscriptionMetadata =
+      await this.getSubscriptionMetadata(stripeSubscriptionId);
+
     await this.rabbitmqPublisher.publishWithRetry('billing.payment.failed', {
+      userId: subscriptionMetadata.userId,
+      planId: subscriptionMetadata.planId,
       stripeSubscriptionId,
       stripeInvoiceId: invoice.id,
+      customerEmail:
+        invoice.customer_email ?? subscriptionMetadata.customerEmail ?? null,
       hostedInvoiceUrl: invoice.hosted_invoice_url,
       invoicePdfUrl: invoice.invoice_pdf,
       amount: (invoice.amount_due ?? 0) / 100,
@@ -563,6 +592,58 @@ export class BillingService {
     ).parent?.subscription_details?.subscription;
 
     return parentSubscription;
+  }
+
+  private async getSubscriptionMetadata(stripeSubscriptionId: string): Promise<{
+    userId?: string;
+    planId?: string;
+    customerEmail?: string;
+  }> {
+    if (!this.stripe) {
+      return {};
+    }
+
+    try {
+      const subscription =
+        await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+      return {
+        userId: subscription.metadata?.userId,
+        planId: subscription.metadata?.planId,
+        customerEmail: subscription.metadata?.customerEmail,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Impossible de recuperer les metadata subscription ${stripeSubscriptionId}`,
+      );
+      this.logger.debug(
+        error instanceof Error ? error.message : 'Erreur inconnue',
+      );
+      return {};
+    }
+  }
+
+  private async safeGetTicketPaymentLinks(
+    stripePaymentIntentId: string,
+  ): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+    receiptUrl: string | null;
+  }> {
+    try {
+      return await this.getTicketPaymentLinks(stripePaymentIntentId);
+    } catch (error) {
+      this.logger.warn(
+        `Impossible de recuperer les liens de facture ticket pour ${stripePaymentIntentId}`,
+      );
+      this.logger.debug(
+        error instanceof Error ? error.message : 'Erreur inconnue',
+      );
+      return {
+        hostedInvoiceUrl: null,
+        invoicePdfUrl: null,
+        receiptUrl: null,
+      };
+    }
   }
 
   private extractPriceIdFromSubscription(

@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { HttpService } from '@nestjs/axios';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
+import { RabbitmqPublisherService } from '../auth/rabbitmq-publisher.service';
 import { of, throwError } from 'rxjs';
 import { AxiosError, AxiosResponse } from 'axios';
 import * as jwt from 'jsonwebtoken';
@@ -36,12 +37,15 @@ describe('AuthService - Tests réels de logique métier', () => {
     patch: jest.fn(),
   };
 
+  const mockRabbitmqPublisher = {
+    publishWithRetry: jest.fn(),
+  };
+
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key';
     process.env.GOOGLE_CLIENT_ID = 'test-client-id';
     process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
     process.env.USER_SERVICE_URL = 'http://user-service:3000';
-    process.env.MAILING_SERVICE_URL = 'http://mailing-service:3000';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +58,10 @@ describe('AuthService - Tests réels de logique métier', () => {
           provide: HttpService,
           useValue: mockHttpService,
         },
+        {
+          provide: RabbitmqPublisherService,
+          useValue: mockRabbitmqPublisher,
+        },
       ],
     }).compile();
 
@@ -62,6 +70,7 @@ describe('AuthService - Tests réels de logique métier', () => {
     httpService = module.get<HttpService>(HttpService);
 
     jest.clearAllMocks();
+    mockRabbitmqPublisher.publishWithRetry.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -111,7 +120,7 @@ describe('AuthService - Tests réels de logique métier', () => {
       expect(result.user.id).toBe('user-123');
     });
 
-    it('devrait appeler le service de mailing pour envoyer un email de bienvenue', async () => {
+    it('devrait publier un event RabbitMQ pour envoyer un email de bienvenue', async () => {
       const registerDto = {
         firstName: 'Jane',
         lastName: 'Smith',
@@ -131,18 +140,11 @@ describe('AuthService - Tests réels de logique métier', () => {
         data: { user: mockUser },
       } as unknown as AxiosResponse;
 
-      const mailResponse = {
-        data: { success: true },
-      } as unknown as AxiosResponse;
-
       mockHttpService.post.mockImplementation((url) => {
         if (url.includes('/api/users') && !url.includes('verify')) {
           return of(userResponse);
         }
-        if (url.includes('/mail/welcome')) {
-          return of(mailResponse);
-        }
-        return of(mailResponse);
+        return of(userResponse);
       });
 
       const result = await service.register(registerDto);
@@ -151,8 +153,8 @@ describe('AuthService - Tests réels de logique métier', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
 
       // ✓ Vérifie que le mail a été appelé
-      const mailCall = mockHttpService.post.mock.calls.find(call =>
-        call[0].includes('/mail/welcome')
+      const mailCall = mockRabbitmqPublisher.publishWithRetry.mock.calls.find(
+        (call) => call[0] === 'auth.mail.welcome',
       );
       expect(mailCall).toBeDefined();
       expect(mailCall?.[1]).toEqual({
@@ -453,19 +455,16 @@ describe('AuthService - Tests réels de logique métier', () => {
         data: { user: mockUser },
       } as unknown as AxiosResponse;
 
-      const mailResponse = {
-        data: { success: true },
-      } as unknown as AxiosResponse;
-
       mockHttpService.get.mockReturnValueOnce(of(userResponse));
-      mockHttpService.post.mockReturnValueOnce(of(mailResponse));
 
       const forgotResult = await service.forgotPassword({ email });
       expect(forgotResult.message).toContain('lien de réinitialisation');
 
       // ✓ Récupère le token généré depuis le mail
-      const mailCall = mockHttpService.post.mock.calls[0];
-      const resetUrl = mailCall[1].resetUrl as string;
+      const mailCall = mockRabbitmqPublisher.publishWithRetry.mock.calls.find(
+        (call) => call[0] === 'auth.mail.password-reset',
+      );
+      const resetUrl = mailCall?.[1]?.resetUrl as string;
       const token = resetUrl.split('token=')[1];
 
       // ✓ VRAI TEST: Le token peut être vérifié
@@ -520,16 +519,7 @@ describe('AuthService - Tests réels de logique métier', () => {
         config: {} as unknown,
       } as unknown as AxiosResponse;
 
-      const mailResponse = {
-        data: {},
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as unknown,
-      } as unknown as AxiosResponse;
-
       mockHttpService.get.mockReturnValue(of(userResponse));
-      mockHttpService.post.mockReturnValue(of(mailResponse));
 
       const result = await service.forgotPassword(dto);
 
@@ -538,8 +528,8 @@ describe('AuthService - Tests réels de logique métier', () => {
       
       // ✓ Vérifie que le service mailing a été appelé
       await new Promise(resolve => setTimeout(resolve, 10));
-      const mailCall = mockHttpService.post.mock.calls.find(call =>
-        call[0].includes('/mail/password-reset')
+      const mailCall = mockRabbitmqPublisher.publishWithRetry.mock.calls.find(
+        (call) => call[0] === 'auth.mail.password-reset',
       );
       expect(mailCall).toBeDefined();
       expect(mailCall?.[1]).toMatchObject({
@@ -547,7 +537,7 @@ describe('AuthService - Tests réels de logique métier', () => {
         username: 'John',
         expiresInMinutes: 30,
       });
-      expect(mailCall?.[1].resetUrl).toContain('token=');
+      expect(String(mailCall?.[1]?.resetUrl)).toContain('token=');
     });
 
     it('devrait rejeter un token invalide', async () => {
@@ -571,11 +561,8 @@ describe('AuthService - Tests réels de logique métier', () => {
       };
 
       const resetTokens = (service as unknown as Record<string, unknown>)
-        .resetTokens as Map<string, { email: string; expiresAt: number }>;
-      resetTokens.set('expired-token', {
-        email: 'john@example.com',
-        expiresAt: Date.now() - 10000, // ✗ Expiré
-      });
+        .usedResetTokens as Map<string, number>;
+      resetTokens.set('expired-token', Date.now() - 10000);
 
       await expect(service.resetPassword(dto)).rejects.toThrow(
         BadRequestException,
@@ -593,11 +580,8 @@ describe('AuthService - Tests réels de logique métier', () => {
       };
 
       const resetTokens = (service as unknown as Record<string, unknown>)
-        .resetTokens as Map<string, { email: string; expiresAt: number }>;
-      resetTokens.set('valid-token', {
-        email: 'john@example.com',
-        expiresAt: Date.now() + 10000,
-      });
+        .usedResetTokens as Map<string, number>;
+      resetTokens.set('valid-token', Date.now() + 10000);
 
       const axiosError = {
         response: {
@@ -619,12 +603,9 @@ describe('AuthService - Tests réels de logique métier', () => {
     it('devrait retourner valide pour un token de réinitialisation valide', () => {
       const token = 'valid-reset-token';
       const resetTokens = (service as unknown as Record<string, unknown>)
-        .resetTokens as Map<string, { email: string; expiresAt: number }>;
-      
-      resetTokens.set(token, {
-        email: 'john@example.com',
-        expiresAt: Date.now() + 10000,
-      });
+        .usedResetTokens as Map<string, number>;
+
+      resetTokens.set(token, Date.now() + 10000);
 
       const result = service.verifyResetToken(token);
 
@@ -649,17 +630,14 @@ describe('AuthService - Tests réels de logique métier', () => {
     it('devrait retourner invalide ET supprimer un token expiré', () => {
       const token = 'expired-reset-token';
       const resetTokens = (service as unknown as Record<string, unknown>)
-        .resetTokens as Map<string, { email: string; expiresAt: number }>;
-      
-      resetTokens.set(token, {
-        email: 'john@example.com',
-        expiresAt: Date.now() - 10000, // ✗ Expiré
-      });
+        .usedResetTokens as Map<string, number>;
+
+      resetTokens.set(token, Date.now() - 10000);
 
       const result = service.verifyResetToken(token);
 
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Le jeton a expiré');
+      expect(result.message).toBe('Jeton invalide ou expiré');
       
       // ✓ Token supprimé de la map
       expect(resetTokens.has(token)).toBe(false);

@@ -1,13 +1,21 @@
 import { EmailTemplate } from '../interfaces/email.interface';
 import { PasswordResetTemplate } from './password-reset.template';
+import { SubscriptionThanksTemplate } from './subscription-thanks.template';
+import { TicketPurchaseTemplate } from './ticket-purchase.template';
 import { WelcomeTemplate } from './welcome.template';
 
 export class EmailTemplateFactory {
   private readonly passwordResetTemplate: PasswordResetTemplate;
+  private readonly subscriptionThanksTemplate: SubscriptionThanksTemplate;
+  private readonly ticketPurchaseTemplate: TicketPurchaseTemplate;
   private readonly welcomeTemplate: WelcomeTemplate;
 
   constructor(private readonly productName: string) {
     this.passwordResetTemplate = new PasswordResetTemplate(productName);
+    this.subscriptionThanksTemplate = new SubscriptionThanksTemplate(
+      productName,
+    );
+    this.ticketPurchaseTemplate = new TicketPurchaseTemplate(productName);
     this.welcomeTemplate = new WelcomeTemplate(productName);
   }
 
@@ -30,5 +38,56 @@ export class EmailTemplateFactory {
     activationUrl?: string;
   }): EmailTemplate {
     return this.welcomeTemplate.create(payload);
+  }
+
+  /**
+   * Genere le template de remerciement abonnement
+   */
+  createSubscriptionThanksTemplate(payload: {
+    username: string;
+    amount?: number;
+    currency?: string;
+    paidAt?: string;
+    hostedInvoiceUrl?: string | null;
+    invoicePdfUrl?: string | null;
+  }): EmailTemplate {
+    return this.subscriptionThanksTemplate.create(payload);
+  }
+
+  /**
+   * Genere le template de remerciement achat tickets
+   */
+  createTicketPurchaseTemplate(payload: {
+    username: string;
+    amountTotal?: number;
+    currency?: string;
+    ticketCount: number;
+    buyerFirstname?: string;
+    buyerLastname?: string;
+    buyerEmail?: string | null;
+    statusLabel?: string;
+    purchaseDate?: string;
+    purchaseId?: string;
+    stripePaymentIntentId?: string;
+    stripeCheckoutSessionId?: string;
+    hostedInvoiceUrl?: string | null;
+    invoicePdfUrl?: string | null;
+    receiptUrl?: string | null;
+    items: Array<{
+      name: string;
+      quantity: number;
+      unitAmount?: number;
+    }>;
+    tickets?: Array<{
+      ticketNumber?: string;
+      attendeeLastname?: string;
+      attendeeFirstname?: string;
+      attendeeEmail?: string | null;
+      ticketTypeName?: string;
+      statusLabel?: string;
+      qrCode?: string;
+    }>;
+  }): EmailTemplate {
+    return this.ticketPurchaseTemplate.create(payload);
   }
 }

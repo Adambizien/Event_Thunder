@@ -152,4 +152,17 @@ export class TicketsController {
       authorization,
     );
   }
+
+  @Get('internal/purchases/payment-intent/:stripePaymentIntentId')
+  getPurchaseByStripePaymentIntentId(
+    @Param('stripePaymentIntentId') stripePaymentIntentId: string,
+  ) {
+    if (!stripePaymentIntentId || stripePaymentIntentId.trim().length === 0) {
+      throw new BadRequestException('Champ invalide: stripePaymentIntentId');
+    }
+
+    return this.ticketsService.getPurchaseByStripePaymentIntentId(
+      stripePaymentIntentId,
+    );
+  }
 }
