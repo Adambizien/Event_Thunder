@@ -205,6 +205,64 @@ export class BillingService {
     };
   }
 
+  async refundTicketPayment(
+    stripePaymentIntentId: string,
+    reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer',
+  ): Promise<{
+    refundId: string;
+    status: string;
+    amount: number;
+    currency: string;
+  }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: stripePaymentIntentId,
+        reason,
+      },
+      {
+        idempotencyKey: `ticket-refund-${stripePaymentIntentId}`,
+      },
+    );
+
+    const refundPaymentIntentId =
+      typeof refund.payment_intent === 'string'
+        ? refund.payment_intent
+        : refund.payment_intent?.id;
+
+    const ticketLinks = refundPaymentIntentId
+      ? await this.safeGetTicketPaymentLinks(refundPaymentIntentId)
+      : {
+          hostedInvoiceUrl: null,
+          invoicePdfUrl: null,
+          receiptUrl: null,
+        };
+
+    if (refundPaymentIntentId) {
+      await this.publishTicketPaymentRefunded({
+        stripePaymentIntentId: refundPaymentIntentId,
+        stripeRefundId: refund.id,
+        amount: (refund.amount ?? 0) / 100,
+        currency: (refund.currency ?? 'eur').toUpperCase(),
+        reason: refund.reason,
+        refundedAt: new Date().toISOString(),
+        hostedInvoiceUrl: ticketLinks.hostedInvoiceUrl,
+        invoicePdfUrl: ticketLinks.invoicePdfUrl,
+        receiptUrl: ticketLinks.receiptUrl,
+      });
+    }
+
+    return {
+      refundId: refund.id,
+      status: refund.status ?? 'pending',
+      amount: (refund.amount ?? 0) / 100,
+      currency: (refund.currency ?? 'eur').toUpperCase(),
+    };
+  }
+
   async syncPlanPrice(
     dto: SyncPlanPriceDto,
   ): Promise<{ stripePriceId: string; stripeProductId: string }> {
@@ -323,9 +381,37 @@ export class BillingService {
       case 'customer.subscription.deleted':
         await this.onSubscriptionCanceled(event.data.object);
         break;
+      case 'charge.refunded':
+        await this.onChargeRefunded(event.data.object);
+        break;
       default:
         this.logger.debug(`Event Stripe ignoré: ${event.type}`);
     }
+  }
+
+  private async onChargeRefunded(charge: Stripe.Charge): Promise<void> {
+    const stripePaymentIntentId =
+      typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id;
+
+    if (!stripePaymentIntentId) {
+      return;
+    }
+
+    const ticketLinks = await this.safeGetTicketPaymentLinks(
+      stripePaymentIntentId,
+    );
+
+    await this.publishTicketPaymentRefunded({
+      stripePaymentIntentId,
+      amount: (charge.amount_refunded ?? 0) / 100,
+      currency: (charge.currency ?? 'eur').toUpperCase(),
+      refundedAt: new Date().toISOString(),
+      hostedInvoiceUrl: ticketLinks.hostedInvoiceUrl,
+      invoicePdfUrl: ticketLinks.invoicePdfUrl,
+      receiptUrl: ticketLinks.receiptUrl,
+    });
   }
 
   private async onSubscriptionCreated(
@@ -644,6 +730,30 @@ export class BillingService {
         receiptUrl: null,
       };
     }
+  }
+
+  private async publishTicketPaymentRefunded(payload: {
+    stripePaymentIntentId: string;
+    stripeRefundId?: string;
+    amount?: number;
+    currency?: string;
+    reason?: string | null;
+    refundedAt?: string;
+    hostedInvoiceUrl?: string | null;
+    invoicePdfUrl?: string | null;
+    receiptUrl?: string | null;
+  }): Promise<void> {
+    await this.rabbitmqPublisher.publishWithRetry('billing.ticket.payment.refunded', {
+      stripePaymentIntentId: payload.stripePaymentIntentId,
+      stripeRefundId: payload.stripeRefundId,
+      amount: payload.amount,
+      currency: payload.currency,
+      reason: payload.reason,
+      refundedAt: payload.refundedAt ?? new Date().toISOString(),
+      hostedInvoiceUrl: payload.hostedInvoiceUrl ?? null,
+      invoicePdfUrl: payload.invoicePdfUrl ?? null,
+      receiptUrl: payload.receiptUrl ?? null,
+    });
   }
 
   private extractPriceIdFromSubscription(

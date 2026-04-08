@@ -129,6 +129,9 @@ export type SoldEventTicketItem = {
     user_id: string;
     stripe_payment_intent_id: string;
     created_at: string;
+    paid_at?: string | null;
+    refunded_at?: string | null;
+    updated_at?: string;
     status: string;
     total_amount: number | string;
     currency: TicketCurrency;

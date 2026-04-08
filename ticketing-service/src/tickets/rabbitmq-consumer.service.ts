@@ -21,6 +21,7 @@ export class RabbitmqConsumerService
   private readonly routingKeys = [
     'billing.ticket.payment.succeeded',
     'billing.ticket.payment.failed',
+    'billing.ticket.payment.refunded',
   ];
   private readonly retryDelayMs: number;
   private reconnectTimer?: NodeJS.Timeout;

@@ -20,6 +20,7 @@ type SubscriptionThanksInput = {
 type TicketPurchaseThanksInput = {
   email: string;
   username?: string;
+  eventId?: string;
   amountTotal?: number;
   currency?: string;
   ticketCount: number;
@@ -50,11 +51,14 @@ type TicketPurchaseThanksInput = {
   }>;
 };
 
+type TicketRefundSuccessInput = TicketPurchaseThanksInput;
+
 @Injectable()
 export class MailService {
   private readonly resend: Resend;
   private readonly from: string;
   private readonly productName: string;
+  private readonly frontendUrl: string;
   private readonly templateFactory: EmailTemplateFactory;
 
   constructor(private readonly configService: ConfigService) {
@@ -66,6 +70,8 @@ export class MailService {
       'no-reply@mail.event-thunder.com';
     this.productName =
       this.configService.get<string>('PRODUCT_NAME') ?? 'Event Thunder';
+    this.frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
 
     if (!apiKey) {
       throw new Error('RESEND_API_KEY is missing');
@@ -134,8 +140,51 @@ export class MailService {
 
   async sendTicketPurchaseThanks(input: TicketPurchaseThanksInput) {
     const username = input.username ?? input.email.split('@')[0];
+    const eventUrl = this.buildEventUrl(input.eventId);
 
     const template = this.templateFactory.createTicketPurchaseTemplate({
+      username,
+      eventUrl,
+      amountTotal: input.amountTotal,
+      currency: input.currency,
+      ticketCount: input.ticketCount,
+      buyerFirstname: input.buyerFirstname,
+      buyerLastname: input.buyerLastname,
+      buyerEmail: input.buyerEmail,
+      statusLabel: input.statusLabel,
+      purchaseDate: input.purchaseDate,
+      purchaseId: input.purchaseId,
+      stripePaymentIntentId: input.stripePaymentIntentId,
+      stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+      hostedInvoiceUrl: input.hostedInvoiceUrl,
+      invoicePdfUrl: input.invoicePdfUrl,
+      receiptUrl: input.receiptUrl,
+      items: input.items,
+      tickets: input.tickets,
+    });
+
+    return this.sendEmail({
+      to: input.email,
+      subject: template.subject,
+      html: template.html,
+    });
+  }
+
+  async sendTicketRefundedSuccess(input: TicketRefundSuccessInput) {
+    const username = input.username ?? input.email.split('@')[0];
+    const eventUrl = this.buildEventUrl(input.eventId);
+
+    const template = this.templateFactory.createTicketPurchaseTemplate({
+      subject: `${this.productName} - Ticket remboursé avec succès`,
+      emailTitle: 'Remboursement confirmé',
+      emailSubtitle: 'Votre demande de remboursement a bien été validée.',
+      introText:
+        'Le remboursement de votre achat de tickets a été effectué avec succès. Voici le détail de la transaction remboursée.',
+      footerText:
+        'Conservez cet email comme justificatif de remboursement et de facturation.',
+      ctaLabel: 'Voir la facture',
+      eventUrl,
+      showQrCodes: false,
       username,
       amountTotal: input.amountTotal,
       currency: input.currency,
@@ -160,6 +209,15 @@ export class MailService {
       subject: template.subject,
       html: template.html,
     });
+  }
+
+  private buildEventUrl(eventId?: string): string | undefined {
+    if (!eventId || eventId.trim().length === 0) {
+      return undefined;
+    }
+
+    const normalizedBase = this.frontendUrl.replace(/\/$/, '');
+    return `${normalizedBase}/events/${encodeURIComponent(eventId)}`;
   }
 
   /**

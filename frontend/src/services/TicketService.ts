@@ -67,4 +67,20 @@ export const ticketService = {
     );
     return response.data as TicketInvoiceLinksResponse;
   },
+
+  async refundPurchase(
+    purchaseId: string,
+    reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer',
+  ): Promise<{ refundId: string; status: string; amount: number; currency: string }> {
+    const response = await api.post(
+      `/api/ticketing/purchases/${encodeURIComponent(purchaseId)}/refund`,
+      reason ? { reason } : {},
+    );
+    return response.data as {
+      refundId: string;
+      status: string;
+      amount: number;
+      currency: string;
+    };
+  },
 };

@@ -167,13 +167,6 @@ export class ProxyController {
       return true;
     }
 
-    if (
-      /^\/api\/ticketing\/events\/[^/]+\/sold-tickets$/.test(path) &&
-      method === 'GET'
-    ) {
-      return true;
-    }
-
     return false;
   }
 

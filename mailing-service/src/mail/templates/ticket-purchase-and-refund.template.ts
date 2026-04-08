@@ -1,9 +1,18 @@
 import { EmailTemplate } from '../interfaces/email.interface';
 
-export class TicketPurchaseTemplate {
+export class TicketPurchaseAndRefundTemplate {
   constructor(private readonly productName: string) {}
 
   create(payload: {
+    subject?: string;
+    emailTitle?: string;
+    emailSubtitle?: string;
+    introText?: string;
+    footerText?: string;
+    ctaLabel?: string;
+    eventUrl?: string;
+    eventCtaLabel?: string;
+    showQrCodes?: boolean;
     username: string;
     amountTotal?: number;
     currency?: string;
@@ -40,6 +49,19 @@ export class TicketPurchaseTemplate {
       payload.invoicePdfUrl ||
       payload.receiptUrl ||
       '';
+    const subject =
+      payload.subject || `${this.productName} - Merci pour votre achat de tickets`;
+    const emailTitle = payload.emailTitle || 'Merci pour votre achat';
+    const emailSubtitle = payload.emailSubtitle || 'Vos tickets sont confirmés.';
+    const introText =
+      payload.introText ||
+      'Merci pour votre commande. Voici les informations essentielles à conserver.';
+    const footerText =
+      payload.footerText ||
+      "Pensez à présenter vos tickets (QR code) lors de l'entrée à l'événement.";
+    const ctaLabel = payload.ctaLabel || 'Voir la facture';
+    const eventCtaLabel = payload.eventCtaLabel || "Voir l'evenement";
+    const showQrCodes = payload.showQrCodes ?? true;
     const purchaseDateText = this.formatDateTime(payload.purchaseDate);
     const purchaseStatus = payload.statusLabel ?? 'Paiement confirmé';
 
@@ -63,7 +85,7 @@ export class TicketPurchaseTemplate {
         const qrData = encodeURIComponent(
           ticket.qrCode ?? ticket.ticketNumber ?? '',
         );
-        const qrImg = qrData
+        const qrImg = showQrCodes && qrData
           ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${qrData}" alt="QR code ticket" width="140" height="140" style="display: block; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); margin-top: 10px;" />`
           : '';
         return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; background: rgba(255, 255, 255, 0.05); margin-bottom: 10px;">
@@ -88,7 +110,7 @@ export class TicketPurchaseTemplate {
       .join('');
 
     return {
-      subject: `${this.productName} - Merci pour votre achat de tickets`,
+      subject,
       html: `<!doctype html>
 <html>
   <head>
@@ -125,15 +147,15 @@ export class TicketPurchaseTemplate {
             <tr>
               <td style="background: linear-gradient(135deg, #095668, #074353); color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid rgba(255, 176, 32, 0.35);">
                 <p style="margin: 0 0 10px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #ffd24a; font-weight: 700;">Event Thunder</p>
-                <h1 style="margin: 0; font-size: 22px;">Merci pour votre achat</h1>
-                <p style="margin: 8px 0 0; font-size: 14px; color: #d1d5db;">Vos tickets sont confirmés.</p>
+                <h1 style="margin: 0; font-size: 22px;">${emailTitle}</h1>
+                <p style="margin: 8px 0 0; font-size: 14px; color: #d1d5db;">${emailSubtitle}</p>
               </td>
             </tr>
             <tr>
               <td style="padding: 32px; color: #f3f4f6;">
                 <p style="font-size: 15px; margin: 0 0 12px;">Bonjour ${payload.username},</p>
                 <p style="font-size: 15px; margin: 0 0 16px; color: #e5e7eb; line-height: 1.55;">
-                  Merci pour votre commande. Voici les informations essentielles à conserver.
+                  ${introText}
                 </p>
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; background: rgba(255, 255, 255, 0.05); box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28); margin: 0 0 16px;">
@@ -193,15 +215,20 @@ export class TicketPurchaseTemplate {
                   </tr>
                 </table>
 
-                ${
-                  invoiceUrl
-                    ? `<p style="text-align: center; margin: 0 0 20px;">
-                  <a href="${invoiceUrl}" style="display: inline-block; padding: 14px 22px; background: #ffb020; color: #000000; text-decoration: none; border-radius: 10px; font-weight: 700;">Voir la facture</a>
-                </p>`
-                    : ''
-                }
+                <p style="text-align: center; margin: 0 0 20px;">
+                  ${
+                    payload.eventUrl
+                      ? `<a href="${payload.eventUrl}" style="display: inline-block; padding: 14px 22px; background: #ffb020; color: #000000; text-decoration: none; border-radius: 10px; font-weight: 700; margin: 0 6px 8px;">${eventCtaLabel}</a>`
+                      : ''
+                  }
+                  ${
+                    invoiceUrl
+                      ? `<a href="${invoiceUrl}" style="display: inline-block; padding: 14px 22px; background: #ffb020; color: #000000; text-decoration: none; border-radius: 10px; font-weight: 700; margin: 0 6px 8px;">${ctaLabel}</a>`
+                      : ''
+                  }
+                </p>
                 <p style="font-size: 13px; color: #d1d5db; margin: 0; line-height: 1.55;">
-                  Pensez à présenter vos tickets (QR code) lors de l'entrée à l'événement.
+                  ${footerText}
                 </p>
               </td>
             </tr>

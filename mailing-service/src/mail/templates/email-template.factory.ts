@@ -1,13 +1,13 @@
 import { EmailTemplate } from '../interfaces/email.interface';
 import { PasswordResetTemplate } from './password-reset.template';
 import { SubscriptionThanksTemplate } from './subscription-thanks.template';
-import { TicketPurchaseTemplate } from './ticket-purchase.template';
+import { TicketPurchaseAndRefundTemplate } from './ticket-purchase-and-refund.template';
 import { WelcomeTemplate } from './welcome.template';
 
 export class EmailTemplateFactory {
   private readonly passwordResetTemplate: PasswordResetTemplate;
   private readonly subscriptionThanksTemplate: SubscriptionThanksTemplate;
-  private readonly ticketPurchaseTemplate: TicketPurchaseTemplate;
+  private readonly ticketPurchaseTemplate: TicketPurchaseAndRefundTemplate;
   private readonly welcomeTemplate: WelcomeTemplate;
 
   constructor(private readonly productName: string) {
@@ -15,7 +15,9 @@ export class EmailTemplateFactory {
     this.subscriptionThanksTemplate = new SubscriptionThanksTemplate(
       productName,
     );
-    this.ticketPurchaseTemplate = new TicketPurchaseTemplate(productName);
+    this.ticketPurchaseTemplate = new TicketPurchaseAndRefundTemplate(
+      productName,
+    );
     this.welcomeTemplate = new WelcomeTemplate(productName);
   }
 
@@ -58,6 +60,15 @@ export class EmailTemplateFactory {
    * Genere le template de remerciement achat tickets
    */
   createTicketPurchaseTemplate(payload: {
+    subject?: string;
+    emailTitle?: string;
+    emailSubtitle?: string;
+    introText?: string;
+    footerText?: string;
+    ctaLabel?: string;
+    eventUrl?: string;
+    eventCtaLabel?: string;
+    showQrCodes?: boolean;
     username: string;
     amountTotal?: number;
     currency?: string;

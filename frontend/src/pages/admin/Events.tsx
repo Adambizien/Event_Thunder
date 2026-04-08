@@ -102,6 +102,7 @@ const AdminEvents = () => {
   const [hasSoldTicketsByEvent, setHasSoldTicketsByEvent] = useState<Record<string, boolean>>({});
   const [ticketTypeCountByEvent, setTicketTypeCountByEvent] = useState<Record<string, number>>({});
   const [soldTicketCountByEvent, setSoldTicketCountByEvent] = useState<Record<string, number>>({});
+  const [refundedTicketCountByEvent, setRefundedTicketCountByEvent] = useState<Record<string, number>>({});
   const [selectedEventForComments, setSelectedEventForComments] = useState<EventItem | null>(null);
   const [eventComments, setEventComments] = useState<CommentItem[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -113,6 +114,7 @@ const AdminEvents = () => {
   const [loadingSoldTickets, setLoadingSoldTickets] = useState(false);
   const [soldTicketsError, setSoldTicketsError] = useState<string | null>(null);
   const [openingSoldTicketInvoiceId, setOpeningSoldTicketInvoiceId] = useState<string | null>(null);
+  const [refundingSoldTicketPurchaseId, setRefundingSoldTicketPurchaseId] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -180,14 +182,25 @@ const AdminEvents = () => {
 
       const ticketStatsEntries = await Promise.all(
         loadedEvents.map(async (event) => {
-          const ticketTypes = await ticketService.getEventTicketTypes(event.id, {
-            includeInactive: true,
-          });
-          const hasSoldTickets = ticketTypes.some((ticketType) => ticketType.sold_quantity > 0);
+          const [ticketTypes, soldTicketsResponse] = await Promise.all([
+            ticketService.getEventTicketTypes(event.id, {
+              includeInactive: true,
+            }),
+            ticketService
+              .getEventSoldTickets(event.id)
+              .catch(() => ({ count: 0, tickets: [] })),
+          ]);
+          const hasSoldTickets =
+            Number(soldTicketsResponse.count ?? 0) > 0 ||
+            ticketTypes.some((ticketType) => ticketType.sold_quantity > 0);
           const soldTicketsCount = ticketTypes.reduce(
             (sum, ticketType) => sum + ticketType.sold_quantity,
             0,
           );
+          const refundedTicketsCount = soldTicketsResponse.tickets.filter(
+            (ticket) =>
+              String(ticket.ticket_purchase.status).toLowerCase() === 'refunded',
+          ).length;
 
           return [
             event.id,
@@ -195,6 +208,7 @@ const AdminEvents = () => {
               hasSoldTickets,
               ticketTypesCount: ticketTypes.length,
               soldTicketsCount,
+              refundedTicketsCount,
             },
           ] as const;
         }),
@@ -212,6 +226,10 @@ const AdminEvents = () => {
         eventId,
         stats.soldTicketsCount,
       ] as const);
+      const refundedTicketCountEntries = ticketStatsEntries.map(([eventId, stats]) => [
+        eventId,
+        stats.refundedTicketsCount,
+      ] as const);
 
       setCategories(loadedCategories);
       setEvents(loadedEvents);
@@ -219,6 +237,7 @@ const AdminEvents = () => {
       setHasSoldTicketsByEvent(Object.fromEntries(soldStatusEntries));
       setTicketTypeCountByEvent(Object.fromEntries(ticketTypeCountEntries));
       setSoldTicketCountByEvent(Object.fromEntries(soldTicketCountEntries));
+      setRefundedTicketCountByEvent(Object.fromEntries(refundedTicketCountEntries));
       if (loadedCategories.length > 0) {
         setCategoryId((prev) => prev || loadedCategories[0].id);
       }
@@ -230,6 +249,7 @@ const AdminEvents = () => {
       setHasSoldTicketsByEvent({});
       setTicketTypeCountByEvent({});
       setSoldTicketCountByEvent({});
+      setRefundedTicketCountByEvent({});
     } finally {
       setLoading(false);
     }
@@ -427,6 +447,11 @@ const AdminEvents = () => {
         delete next[id];
         return next;
       });
+      setRefundedTicketCountByEvent((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setCommentCounts((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -547,7 +572,9 @@ const AdminEvents = () => {
         );
         setHasSoldTicketsByEvent((prev) => ({
           ...prev,
-          [updatedEvent.id]: updatedTicketTypes.some((ticketType) => ticketType.sold_quantity > 0),
+          [updatedEvent.id]:
+            Boolean(prev[updatedEvent.id]) ||
+            updatedTicketTypes.some((ticketType) => ticketType.sold_quantity > 0),
         }));
         setTicketTypeCountByEvent((prev) => ({
           ...prev,
@@ -559,6 +586,10 @@ const AdminEvents = () => {
             (sum, ticketType) => sum + ticketType.sold_quantity,
             0,
           ),
+        }));
+        setRefundedTicketCountByEvent((prev) => ({
+          ...prev,
+          [updatedEvent.id]: prev[updatedEvent.id] ?? 0,
         }));
         setSuccess("L'événement a été modifié avec succès");
       } else {
@@ -578,6 +609,10 @@ const AdminEvents = () => {
           [createdEvent.id]: normalizedTicketTypes.length,
         }));
         setSoldTicketCountByEvent((prev) => ({
+          ...prev,
+          [createdEvent.id]: 0,
+        }));
+        setRefundedTicketCountByEvent((prev) => ({
           ...prev,
           [createdEvent.id]: 0,
         }));
@@ -735,14 +770,20 @@ const AdminEvents = () => {
 
       return {
         id: purchaseGroup.purchase.id,
+        eventId: selectedEventForSoldTickets?.id,
         stripePaymentIntentId: purchaseGroup.purchase.stripe_payment_intent_id,
-        createdAt: purchaseGroup.createdAt,
+        createdAt: purchaseGroup.purchase.paid_at ?? purchaseGroup.createdAt,
+        refundedAt:
+          String(purchaseGroup.purchase.status ?? '').toLowerCase() === 'refunded'
+            ? purchaseGroup.purchase.refunded_at ?? purchaseGroup.purchase.updated_at
+            : undefined,
         totalAmount,
         currency: totalCurrency,
         buyerId: purchaseGroup.purchase.user_id,
         buyerLastname: purchaseGroup.buyerLastname,
         buyerFirstname: purchaseGroup.buyerFirstname,
         buyerEmail: purchaseGroup.buyerEmail,
+        status: purchaseGroup.purchase.status,
         statusLabel: toTicketPurchaseStatusLabel(purchaseGroup.purchase.status),
         ticketCount: purchaseGroup.tickets.length,
         lineItems: amountDetails.map((detail) => ({
@@ -759,11 +800,14 @@ const AdminEvents = () => {
           attendeeFirstname: ticket.attendee_firstname,
           attendeeEmail: ticket.attendee_email,
           ticketTypeName: ticket.ticket_type.name,
-          statusLabel: 'Valide',
+          statusLabel:
+            String(purchaseGroup.purchase.status).toLowerCase() === 'refunded'
+              ? 'Remboursé'
+              : 'Valide',
         })),
       };
     });
-  }, [groupedSoldTicketPurchases]);
+  }, [groupedSoldTicketPurchases, selectedEventForSoldTickets?.id]);
 
   const closeCommentsModal = () => {
     setSelectedEventForComments(null);
@@ -800,6 +844,7 @@ const AdminEvents = () => {
     setSoldTicketsSearchTerm('');
     setLoadingSoldTickets(false);
     setOpeningSoldTicketInvoiceId(null);
+    setRefundingSoldTicketPurchaseId(null);
     setSoldTicketsError(null);
   };
 
@@ -813,6 +858,19 @@ const AdminEvents = () => {
       setSoldTicketsError(null);
       const response = await ticketService.getEventSoldTickets(event.id);
       setSoldTickets(response.tickets);
+      setRefundedTicketCountByEvent((prev) => ({
+        ...prev,
+        [event.id]: response.tickets.filter(
+          (ticket) =>
+            String(ticket.ticket_purchase.status).toLowerCase() === 'refunded',
+        ).length,
+      }));
+      if (response.tickets.length > 0) {
+        setHasSoldTicketsByEvent((prev) => ({
+          ...prev,
+          [event.id]: true,
+        }));
+      }
       setError(null);
     } catch (err) {
       setSoldTickets([]);
@@ -845,6 +903,54 @@ const AdminEvents = () => {
       setSoldTicketsError('Impossible d’ouvrir la facture Stripe.');
     } finally {
       setOpeningSoldTicketInvoiceId(null);
+    }
+  };
+
+  const refreshSelectedEventSoldTickets = async () => {
+    if (!selectedEventForSoldTickets) {
+      return;
+    }
+
+    const response = await ticketService.getEventSoldTickets(
+      selectedEventForSoldTickets.id,
+    );
+    setSoldTickets(response.tickets);
+    setRefundedTicketCountByEvent((prev) => ({
+      ...prev,
+      [selectedEventForSoldTickets.id]: response.tickets.filter(
+        (ticket) =>
+          String(ticket.ticket_purchase.status).toLowerCase() === 'refunded',
+      ).length,
+    }));
+  };
+
+  const handleRefundSoldTicketPurchase = async (purchaseId: string) => {
+    const purchaseCard = soldTicketPurchaseCards.find((card) => card.id === purchaseId);
+    if (!purchaseCard) {
+      setSoldTicketsError('Transaction introuvable.');
+      return;
+    }
+
+    if (String(purchaseCard.status ?? '').toLowerCase() !== 'paid') {
+      setSoldTicketsError('Seules les transactions payées sont remboursables.');
+      return;
+    }
+
+    if (!window.confirm('Confirmer le remboursement de cette transaction ticket ?')) {
+      return;
+    }
+
+    try {
+      setRefundingSoldTicketPurchaseId(purchaseId);
+      setSoldTicketsError(null);
+      await ticketService.refundPurchase(purchaseId, 'requested_by_customer');
+      await refreshSelectedEventSoldTickets();
+    } catch (err) {
+      setSoldTicketsError(
+        err instanceof Error ? err.message : 'Remboursement impossible.',
+      );
+    } finally {
+      setRefundingSoldTicketPurchaseId(null);
     }
   };
 
@@ -1033,10 +1139,17 @@ const AdminEvents = () => {
         hasSearchResults={groupedSoldTicketPurchases.length > 0}
         soldTicketPurchaseCards={soldTicketPurchaseCards}
         openingSoldTicketInvoiceId={openingSoldTicketInvoiceId}
+        refundingSoldTicketPurchaseId={refundingSoldTicketPurchaseId}
         onClose={closeSoldTicketsModal}
         onSearchTermChange={setSoldTicketsSearchTerm}
         onOpenInvoice={(stripePaymentIntentId) => {
           void handleOpenSoldTicketInvoice(stripePaymentIntentId);
+        }}
+        onOpenEvent={(eventId) => {
+          navigate(`/events/${eventId}`);
+        }}
+        onRefundPurchase={(purchaseId) => {
+          void handleRefundSoldTicketPurchase(purchaseId);
         }}
       />
 
@@ -1059,6 +1172,7 @@ const AdminEvents = () => {
               'Fin',
               'Types de ticket',
               'Tickets vendus',
+              'Tickets remboursés',
               'Statut',
               'Commentaires',
               'Actions',
@@ -1078,6 +1192,7 @@ const AdminEvents = () => {
                 <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
                 <td className="px-6 py-4 text-gray-300">{ticketTypeCountByEvent[event.id] || 0}</td>
                 <td className="px-6 py-4 text-gray-300">{soldTicketCountByEvent[event.id] || 0}</td>
+                <td className="px-6 py-4 text-gray-300">{refundedTicketCountByEvent[event.id] || 0}</td>
                 <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
                 <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
                 <td className="px-6 py-4">

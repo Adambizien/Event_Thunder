@@ -20,6 +20,7 @@ import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { CreateTicketRefundDto } from './dto/create-ticket-refund.dto';
 
 type AuthenticatedRequest = {
   rawBody?: Buffer;
@@ -167,6 +168,25 @@ export class BillingController {
     }
 
     return this.billingService.createTicketCheckoutSession(dto);
+  }
+
+  @Post('tickets/refund')
+  @UseGuards(AuthGuard)
+  async createTicketRefund(@Body() dto: CreateTicketRefundDto) {
+    this.ensureNonEmptyString(dto.stripePaymentIntentId, 'stripePaymentIntentId');
+    if (
+      dto.reason !== undefined &&
+      dto.reason !== 'duplicate' &&
+      dto.reason !== 'fraudulent' &&
+      dto.reason !== 'requested_by_customer'
+    ) {
+      throw new BadRequestException('Champ invalide: reason');
+    }
+
+    return this.billingService.refundTicketPayment(
+      dto.stripePaymentIntentId,
+      dto.reason,
+    );
   }
 
   @Post('subscriptions/cancel')

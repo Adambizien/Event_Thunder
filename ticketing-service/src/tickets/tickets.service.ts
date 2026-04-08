@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -62,6 +63,22 @@ type BillingTicketSucceededPayload = {
     unitAmount?: number;
     currency?: string;
   }>;
+};
+
+type BillingTicketRefundedPayload = {
+  stripePaymentIntentId?: string;
+  stripeRefundId?: string;
+  amount?: number;
+  currency?: string;
+  reason?: string | null;
+  refundedAt?: string;
+};
+
+type BillingRefundResponse = {
+  refundId: string;
+  status: string;
+  amount: number;
+  currency: string;
 };
 
 @Injectable()
@@ -353,7 +370,17 @@ export class TicketsService {
     };
   }
 
-  async getEventSoldTickets(eventId: string, authorization: string) {
+  async getEventSoldTickets(
+    eventId: string,
+    userId: string,
+    isAdmin: boolean,
+    authorization: string,
+  ) {
+    const isCreator = await this.isEventCreator(eventId, userId, authorization);
+    if (!isAdmin && !isCreator) {
+      throw new ForbiddenException('Accès administrateur ou créateur requis');
+    }
+
     const tickets = await this.prisma.ticket.findMany({
       where: {
         ticket_type: {
@@ -375,6 +402,9 @@ export class TicketsService {
             user_id: true,
             stripe_payment_intent_id: true,
             created_at: true,
+            paid_at: true,
+            refunded_at: true,
+            updated_at: true,
             status: true,
             total_amount: true,
             currency: true,
@@ -434,6 +464,7 @@ export class TicketsService {
   ): Promise<{
     purchase: {
       id: string;
+      eventId: string | null;
       paidAt: string | null;
       createdAt: string | null;
       statusLabel: string;
@@ -484,6 +515,7 @@ export class TicketsService {
     return {
       purchase: {
         id: purchase.id,
+        eventId: purchase.items[0]?.ticket_type?.event_id ?? null,
         paidAt: purchase.paid_at ? purchase.paid_at.toISOString() : null,
         createdAt: purchase.created_at ? purchase.created_at.toISOString() : null,
         statusLabel: this.toStatusLabel(purchase.status),
@@ -639,17 +671,177 @@ export class TicketsService {
     }
   }
 
+  async requestPurchaseRefund(
+    purchaseId: string,
+    userId: string,
+    isAdmin: boolean,
+    authorization: string,
+    reason?: string,
+  ): Promise<BillingRefundResponse> {
+    const purchase = await this.prisma.ticketPurchase.findUnique({
+      where: { id: purchaseId },
+      include: {
+        items: {
+          include: {
+            ticket_type: {
+              select: {
+                event_id: true,
+              },
+            },
+          },
+        },
+        tickets: {
+          select: {
+            used: true,
+          },
+        },
+      },
+    });
+
+    if (!purchase) {
+      throw new NotFoundException('Achat ticket introuvable');
+    }
+
+    if (purchase.status === TicketPurchaseStatus.refunded) {
+      throw new BadRequestException('Ce paiement ticket est déjà remboursé');
+    }
+
+    if (purchase.status !== TicketPurchaseStatus.paid) {
+      throw new BadRequestException('Seuls les achats payés sont remboursables');
+    }
+
+    const eventId = purchase.items[0]?.ticket_type?.event_id;
+    const isOwner = purchase.user_id === userId;
+    const isEventCreator = eventId
+      ? await this.isEventCreator(eventId, userId, authorization)
+      : false;
+
+    if (!isAdmin && !isOwner && !isEventCreator) {
+      throw new ForbiddenException('Remboursement non autorisé');
+    }
+
+    if (purchase.tickets.some((ticket) => ticket.used)) {
+      throw new BadRequestException(
+        'Remboursement impossible: au moins un ticket a déjà été utilisé',
+      );
+    }
+
+    const billingBaseUrl =
+      this.configService.get<string>('BILLING_SERVICE_URL') ??
+      'http://billing-service:3000';
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.post<BillingRefundResponse>(
+          `${billingBaseUrl}/api/billing/tickets/refund`,
+          {
+            stripePaymentIntentId: purchase.stripe_payment_intent_id,
+            reason: reason?.trim() || undefined,
+          },
+          {
+            headers: {
+              Authorization: authorization,
+            },
+          },
+        ),
+      );
+
+      return data;
+    } catch (error) {
+      this.logger.error(
+        'Impossible de rembourser le paiement ticket',
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException('Remboursement impossible');
+    }
+  }
+
   async handleBillingEvent(
     routingKey: string,
     payload: Record<string, unknown>,
   ) {
-    if (routingKey !== 'billing.ticket.payment.succeeded') {
-      this.logger.debug(`Routing key ignorée: ${routingKey}`);
+    if (routingKey === 'billing.ticket.payment.succeeded') {
+      const typedPayload = payload as BillingTicketSucceededPayload;
+      await this.createPurchaseFromSucceededPayment(typedPayload);
       return;
     }
 
-    const typedPayload = payload as BillingTicketSucceededPayload;
-    await this.createPurchaseFromSucceededPayment(typedPayload);
+    if (routingKey === 'billing.ticket.payment.refunded') {
+      const typedPayload = payload as BillingTicketRefundedPayload;
+      await this.applyPurchaseRefund(typedPayload);
+      return;
+    }
+
+    this.logger.debug(`Routing key ignorée: ${routingKey}`);
+  }
+
+  private async applyPurchaseRefund(payload: BillingTicketRefundedPayload) {
+    if (!payload.stripePaymentIntentId) {
+      this.logger.warn('Event billing.ticket.payment.refunded incomplet');
+      return;
+    }
+
+    const purchase = await this.prisma.ticketPurchase.findUnique({
+      where: { stripe_payment_intent_id: payload.stripePaymentIntentId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!purchase) {
+      this.logger.warn(
+        `Achat ticket introuvable pour refund ${payload.stripePaymentIntentId}`,
+      );
+      return;
+    }
+
+    if (purchase.status === TicketPurchaseStatus.refunded) {
+      return;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.ticketPurchase.update({
+        where: { id: purchase.id },
+        data: {
+          status: TicketPurchaseStatus.refunded,
+          refunded_at: payload.refundedAt
+            ? new Date(payload.refundedAt)
+            : new Date(),
+          failure_reason: payload.reason ?? null,
+        },
+      });
+
+      for (const item of purchase.items) {
+        const ticketType = await tx.ticketType.findUnique({
+          where: { id: item.ticket_type_id },
+          select: {
+            sold_quantity: true,
+          },
+        });
+
+        if (!ticketType) {
+          continue;
+        }
+
+        await tx.ticketType.update({
+          where: { id: item.ticket_type_id },
+          data: {
+            sold_quantity: Math.max(0, ticketType.sold_quantity - item.quantity),
+          },
+        });
+      }
+
+      await tx.ticket.updateMany({
+        where: {
+          ticket_purchase_id: purchase.id,
+          used: false,
+        },
+        data: {
+          used: true,
+          used_at: new Date(),
+        },
+      });
+    });
   }
 
   private async createPurchaseFromSucceededPayment(
@@ -809,6 +1001,38 @@ export class TicketsService {
       max_quantity: item.max_quantity ?? null,
       is_active: item.is_active ?? true,
     };
+  }
+
+  private async isEventCreator(
+    eventId: string,
+    userId: string,
+    authorization: string,
+  ): Promise<boolean> {
+    const eventBaseUrl =
+      this.configService.get<string>('EVENT_SERVICE_URL') ??
+      'http://event-service:3000';
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<{ creator_id?: string }>(
+          `${eventBaseUrl}/api/events/${encodeURIComponent(eventId)}`,
+          {
+            headers: {
+              Authorization: authorization,
+            },
+          },
+        ),
+      );
+
+      return data?.creator_id === userId;
+    } catch (error) {
+      this.logger.warn(
+        `Impossible de vérifier le créateur de l'événement ${eventId}: ${
+          error instanceof Error ? error.message : 'erreur inconnue'
+        }`,
+      );
+      return false;
+    }
   }
 
   private toPrismaDecimal(value: number) {

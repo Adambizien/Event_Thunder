@@ -23,13 +23,18 @@ const MyTickets = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
+  const [refundingPurchaseId, setRefundingPurchaseId] = useState<string | null>(null);
+
+  const loadTickets = async () => {
+    const data = await ticketService.getMyTickets();
+    setPurchases(Array.isArray(data.purchases) ? data.purchases : []);
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const data = await ticketService.getMyTickets();
-        setPurchases(Array.isArray(data.purchases) ? data.purchases : []);
+        await loadTickets();
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -50,13 +55,19 @@ const MyTickets = () => {
   const purchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
     return purchases.map((purchase) => ({
       id: purchase.id,
+      eventId: purchase.items[0]?.ticket_type?.event_id,
       stripePaymentIntentId: purchase.stripe_payment_intent_id,
       createdAt: purchase.paid_at ?? purchase.created_at,
+      refundedAt:
+        String(purchase.status ?? '').toLowerCase() === 'refunded'
+          ? purchase.refunded_at ?? purchase.updated_at
+          : undefined,
       totalAmount: Number(purchase.total_amount ?? 0),
       currency: purchase.currency,
       buyerLastname: purchase.buyer?.lastName ?? undefined,
       buyerFirstname: purchase.buyer?.firstName ?? undefined,
       buyerEmail: purchase.buyer?.email ?? null,
+      status: purchase.status,
       statusLabel: toTicketPurchaseStatusLabel(purchase.status),
       ticketCount: purchase.tickets.length,
       lineItems: purchase.items.map((item) => ({
@@ -72,7 +83,12 @@ const MyTickets = () => {
         attendeeLastname: ticket.attendee_lastname,
         attendeeFirstname: ticket.attendee_firstname,
         attendeeEmail: ticket.attendee_email,
-        statusLabel: ticket.used ? 'Utilisé' : 'Valide',
+        statusLabel:
+          String(purchase.status).toLowerCase() === 'refunded'
+            ? 'Remboursé'
+            : ticket.used
+              ? 'Utilisé'
+              : 'Valide',
       })),
     }));
   }, [purchases]);
@@ -100,6 +116,34 @@ const MyTickets = () => {
       setError('Impossible d’ouvrir la facture Stripe.');
     } finally {
       setOpeningInvoiceId(null);
+    }
+  };
+
+  const handleRefundPurchase = async (purchaseId: string) => {
+    const targetPurchase = purchases.find((purchase) => purchase.id === purchaseId);
+    if (!targetPurchase) {
+      setError('Achat introuvable.');
+      return;
+    }
+
+    if (String(targetPurchase.status).toLowerCase() !== 'paid') {
+      setError('Seuls les achats payés sont remboursables.');
+      return;
+    }
+
+    if (!window.confirm('Confirmer le remboursement de cet achat ?')) {
+      return;
+    }
+
+    try {
+      setRefundingPurchaseId(purchaseId);
+      setError(null);
+      await ticketService.refundPurchase(purchaseId, 'requested_by_customer');
+      await loadTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Remboursement impossible');
+    } finally {
+      setRefundingPurchaseId(null);
     }
   };
 
@@ -134,9 +178,19 @@ const MyTickets = () => {
           <TicketPurchaseCards
             purchases={purchaseCards}
             openingInvoiceId={openingInvoiceId}
+            onOpenEvent={(eventId) => {
+              window.location.href = `/events/${eventId}`;
+            }}
+            refundingPurchaseId={refundingPurchaseId}
             onOpenInvoice={(stripePaymentIntentId) => {
               void handleOpenInvoice(stripePaymentIntentId);
             }}
+            onRefundPurchase={(purchaseId) => {
+              void handleRefundPurchase(purchaseId);
+            }}
+            canRefundPurchase={(purchase) =>
+              String(purchase.status ?? '').toLowerCase() === 'paid'
+            }
             emptyMessage="Aucun ticket acheté pour le moment."
             dateLabel="Payé le"
             totalLabel="Montant"

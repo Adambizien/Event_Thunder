@@ -202,19 +202,24 @@ const AdminTicketTransactions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
+  const [refundingPurchaseId, setRefundingPurchaseId] = useState<string | null>(null);
   const [periodMode, setPeriodMode] = useState<PeriodMode>('year');
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthValue);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
 
+  const loadOverview = async () => {
+    const data = await ticketService.getAdminTicketsOverview();
+    setPurchases(Array.isArray(data.purchases) ? data.purchases : []);
+  };
+
   useEffect(() => {
     const fetchOverview = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await ticketService.getAdminTicketsOverview();
-        setPurchases(Array.isArray(data.purchases) ? data.purchases : []);
+        await loadOverview();
       } catch {
         setError('Impossible de charger les transactions tickets.');
         setPurchases([]);
@@ -358,14 +363,20 @@ const AdminTicketTransactions = () => {
   const purchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
     return displayedPurchases.map((purchase) => ({
       id: purchase.id,
+      eventId: purchase.items[0]?.ticket_type?.event_id,
       stripePaymentIntentId: purchase.stripe_payment_intent_id,
       createdAt: purchase.paid_at ?? purchase.created_at,
+      refundedAt:
+        String(purchase.status ?? '').toLowerCase() === 'refunded'
+          ? purchase.refunded_at ?? purchase.updated_at
+          : undefined,
       totalAmount: Number(purchase.total_amount ?? 0),
       currency: purchase.currency,
       buyerId: purchase.user_id,
       buyerLastname: purchase.buyer?.lastName ?? undefined,
       buyerFirstname: purchase.buyer?.firstName ?? undefined,
       buyerEmail: purchase.buyer?.email ?? null,
+      status: purchase.status,
       statusLabel: toStatusLabel(purchase.status),
       ticketCount: purchase.tickets.length,
       lineItems: purchase.items.map((item) => ({
@@ -381,7 +392,12 @@ const AdminTicketTransactions = () => {
         attendeeLastname: ticket.attendee_lastname,
         attendeeFirstname: ticket.attendee_firstname,
         attendeeEmail: ticket.attendee_email,
-        statusLabel: ticket.used ? 'Utilisé' : 'Valide',
+        statusLabel:
+          String(purchase.status).toLowerCase() === 'refunded'
+            ? 'Remboursé'
+            : ticket.used
+              ? 'Utilisé'
+              : 'Valide',
       })),
     }));
   }, [displayedPurchases]);
@@ -426,6 +442,34 @@ const AdminTicketTransactions = () => {
       setError('Impossible d’ouvrir la facture Stripe.');
     } finally {
       setOpeningInvoiceId(null);
+    }
+  };
+
+  const handleRefundPurchase = async (purchaseId: string) => {
+    const purchase = purchases.find((item) => item.id === purchaseId);
+    if (!purchase) {
+      setError('Transaction introuvable.');
+      return;
+    }
+
+    if (String(purchase.status).toLowerCase() !== 'paid') {
+      setError('Seules les transactions payées sont remboursables.');
+      return;
+    }
+
+    if (!window.confirm('Confirmer le remboursement de cette transaction ticket ?')) {
+      return;
+    }
+
+    try {
+      setRefundingPurchaseId(purchaseId);
+      setError(null);
+      await ticketService.refundPurchase(purchaseId, 'requested_by_customer');
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Remboursement impossible.');
+    } finally {
+      setRefundingPurchaseId(null);
     }
   };
 
@@ -606,9 +650,19 @@ const AdminTicketTransactions = () => {
           <TicketPurchaseCards
             purchases={purchaseCards}
             openingInvoiceId={openingInvoiceId}
+            onOpenEvent={(eventId) => {
+              window.location.href = `/events/${eventId}`;
+            }}
+            refundingPurchaseId={refundingPurchaseId}
             onOpenInvoice={(stripePaymentIntentId) => {
               void handleOpenInvoice(stripePaymentIntentId);
             }}
+            onRefundPurchase={(purchaseId) => {
+              void handleRefundPurchase(purchaseId);
+            }}
+            canRefundPurchase={(purchase) =>
+              String(purchase.status ?? '').toLowerCase() === 'paid'
+            }
             emptyMessage="Aucune transaction ticket disponible."
             emptySearchMessage="Aucune transaction ne correspond aux filtres sélectionnés."
           />

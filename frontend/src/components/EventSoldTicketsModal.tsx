@@ -10,9 +10,12 @@ interface EventSoldTicketsModalProps {
   hasSearchResults: boolean;
   soldTicketPurchaseCards: TicketPurchaseCardData[];
   openingSoldTicketInvoiceId: string | null;
+  refundingSoldTicketPurchaseId: string | null;
   onClose: () => void;
   onSearchTermChange: (value: string) => void;
   onOpenInvoice: (stripePaymentIntentId: string) => void;
+  onOpenEvent: (eventId: string) => void;
+  onRefundPurchase: (purchaseId: string) => void;
 }
 
 const EventSoldTicketsModal = ({
@@ -24,9 +27,12 @@ const EventSoldTicketsModal = ({
   hasSearchResults,
   soldTicketPurchaseCards,
   openingSoldTicketInvoiceId,
+  refundingSoldTicketPurchaseId,
   onClose,
   onSearchTermChange,
   onOpenInvoice,
+  onOpenEvent,
+  onRefundPurchase,
 }: EventSoldTicketsModalProps) => {
   return (
     <Modal
@@ -68,7 +74,13 @@ const EventSoldTicketsModal = ({
               <TicketPurchaseCards
                 purchases={soldTicketPurchaseCards}
                 openingInvoiceId={openingSoldTicketInvoiceId}
+                onOpenEvent={onOpenEvent}
+                refundingPurchaseId={refundingSoldTicketPurchaseId}
                 onOpenInvoice={onOpenInvoice}
+                onRefundPurchase={onRefundPurchase}
+                canRefundPurchase={(purchase) =>
+                  String(purchase.status ?? '').toLowerCase() === 'paid'
+                }
                 emptyMessage="Aucun ticket vendu pour cet evenement."
                 emptySearchMessage="Aucun ticket ne correspond a votre recherche."
               />

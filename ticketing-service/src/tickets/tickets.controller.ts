@@ -41,19 +41,26 @@ export class TicketsController {
   @Get('events/:eventId/sold-tickets')
   getEventSoldTickets(
     @Param('eventId') eventId: string,
+    @Headers('x-user-id') userId?: string,
     @Headers('x-user-role') userRole?: string,
     @Headers('authorization') authorization?: string,
   ) {
     this.ensureUuid(eventId, 'eventId');
-    if (userRole !== 'Admin') {
-      throw new ForbiddenException('Accès administrateur requis');
+    if (!userId) {
+      throw new ForbiddenException('Utilisateur non authentifié');
     }
+    this.ensureUuid(userId, 'userId');
 
     if (!authorization || authorization.trim().length === 0) {
       throw new ForbiddenException('En-tête Authorization manquant');
     }
 
-    return this.ticketsService.getEventSoldTickets(eventId, authorization);
+    return this.ticketsService.getEventSoldTickets(
+      eventId,
+      userId,
+      userRole === 'Admin',
+      authorization,
+    );
   }
 
   @Put('events/:eventId/types')
@@ -163,6 +170,33 @@ export class TicketsController {
 
     return this.ticketsService.getPurchaseByStripePaymentIntentId(
       stripePaymentIntentId,
+    );
+  }
+
+  @Post('purchases/:purchaseId/refund')
+  refundPurchase(
+    @Param('purchaseId') purchaseId: string,
+    @Body() body: { reason?: string },
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-role') userRole?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    if (!userId) {
+      throw new ForbiddenException('Utilisateur non authentifié');
+    }
+    this.ensureUuid(userId, 'userId');
+    this.ensureUuid(purchaseId, 'purchaseId');
+
+    if (!authorization || authorization.trim().length === 0) {
+      throw new ForbiddenException('En-tête Authorization manquant');
+    }
+
+    return this.ticketsService.requestPurchaseRefund(
+      purchaseId,
+      userId,
+      userRole === 'Admin',
+      authorization,
+      body?.reason,
     );
   }
 }
