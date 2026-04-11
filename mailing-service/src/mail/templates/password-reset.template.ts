@@ -47,11 +47,6 @@ export class PasswordResetTemplate {
                 <p style="font-size: 13px; color: #9ca3af; margin: 0;">Si vous n'avez pas demandé cela, vous pouvez ignorer cet email.</p>
               </td>
             </tr>
-            <tr>
-              <td style="background: rgba(0, 0, 0, 0.22); color: #9ca3af; font-size: 12px; padding: 16px 32px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <p style="margin: 0;">${this.productName}</p>
-              </td>
-            </tr>
           </table>
         </td>
       </tr>
