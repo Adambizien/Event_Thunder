@@ -366,13 +366,15 @@ const AdminUsers = () => {
         ) : (
           <UniformTable
             headers={['Utilisateur', 'Email', 'Téléphone', 'Rôle', 'Plan', 'Actions']}
+            tableClassName="min-w-[900px] w-full"
+            headerCellClassName="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm"
           >
             {filteredUsers.map((user) => (
               <tr
                 key={user.id}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors"
               >
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-thunder-gold/20 rounded-full flex items-center justify-center">
                       <span className="text-thunder-gold font-semibold">
@@ -387,17 +389,17 @@ const AdminUsers = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
                   <div className="text-gray-300">
                     {user.email}
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
                   <div className="text-gray-300">
                     {user.phoneNumber || '-'}
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
                   <div className="flex items-center gap-2">
                     {user.role === 'Admin' && (
                       <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -411,7 +413,7 @@ const AdminUsers = () => {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-gray-300">
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">
                   {subsLoading ? (
                       <span className="text-gray-500">Chargement...</span>
                     ) : activeSubscriptionsByUser[user.id] ? (
@@ -442,18 +444,18 @@ const AdminUsers = () => {
                       </div>
                   )}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => openRoleModal(user)}
-                      className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm border border-white/20"
+                      className="w-full sm:w-auto px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm border border-white/20"
                       title="Modifier le rôle"
                     >
                       Modifier le rôle
                     </button>
                     <button
                       onClick={() => handleDelete(user.id)}
-                      className="px-3 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-sm transition-colors"
+                      className="w-full sm:w-auto px-3 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-sm transition-colors"
                       title="Supprimer l'utilisateur"
                     >
                       Supprimer le compte

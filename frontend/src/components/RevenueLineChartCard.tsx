@@ -58,7 +58,7 @@ const RevenueLineChartCard = ({
     );
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div className="min-h-[72px]">
           <h2 className="text-xl font-semibold text-white">{title}</h2>
@@ -74,76 +74,82 @@ const RevenueLineChartCard = ({
           {emptyMessage}
         </div>
       ) : (
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-72 w-full overflow-visible">
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-            const y = chartBottomY - ratio * (height - padding * 2 - bottomAxisSpace);
-            const value = maxValue * ratio;
+        <div className="w-full max-w-full overflow-x-auto">
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="h-64 min-w-[680px] w-full overflow-visible sm:h-72"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+              const y = chartBottomY - ratio * (height - padding * 2 - bottomAxisSpace);
+              const value = maxValue * ratio;
 
-            return (
-              <g key={ratio}>
-                <line
-                  x1={padding}
-                  x2={width - padding}
-                  y1={y}
-                  y2={y}
-                  stroke="rgba(255,255,255,0.08)"
-                  strokeDasharray="4 6"
-                />
-                <text
-                  x={padding}
-                  y={y - 6}
-                  fill="rgba(255,255,255,0.45)"
-                  fontSize="10"
-                >
-                  {formatCurrency(value, currency)}
-                </text>
-              </g>
-            );
-          })}
+              return (
+                <g key={ratio}>
+                  <line
+                    x1={padding}
+                    x2={width - padding}
+                    y1={y}
+                    y2={y}
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeDasharray="4 6"
+                  />
+                  <text
+                    x={padding}
+                    y={y - 6}
+                    fill="rgba(255,255,255,0.45)"
+                    fontSize="10"
+                  >
+                    {formatCurrency(value, currency)}
+                  </text>
+                </g>
+              );
+            })}
 
-          <line
-            x1={padding}
-            x2={width - padding}
-            y1={chartBottomY}
-            y2={chartBottomY}
-            stroke="rgba(255,255,255,0.1)"
-          />
+            <line
+              x1={padding}
+              x2={width - padding}
+              y1={chartBottomY}
+              y2={chartBottomY}
+              stroke="rgba(255,255,255,0.1)"
+            />
 
-          <polygon points={areaPoints} fill="rgba(255, 184, 0, 0.18)" />
-          <polyline
-            points={points.join(' ')}
-            fill="none"
-            stroke="#f4b400"
-            strokeWidth="4"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+            <polygon points={areaPoints} fill="rgba(255, 184, 0, 0.18)" />
+            <polyline
+              points={points.join(' ')}
+              fill="none"
+              stroke="#f4b400"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
 
-          {data.map((point, index) => {
-            const x = padding + (index * (width - padding * 2)) / Math.max(data.length - 1, 1);
-            const y = chartBottomY - (point.value / maxValue) * (height - padding * 2 - bottomAxisSpace);
+            {data.map((point, index) => {
+              const x = padding + (index * (width - padding * 2)) / Math.max(data.length - 1, 1);
+              const y = chartBottomY - (point.value / maxValue) * (height - padding * 2 - bottomAxisSpace);
 
-            return (
-              <g key={`${point.label}-${index}`}>
-                <circle cx={x} cy={y} r="4" fill="#f4b400" />
-                <title>{`${point.label} · ${formatCurrency(point.value, currency)}`}</title>
-              </g>
-            );
-          })}
+              return (
+                <g key={`${point.label}-${index}`}>
+                  <circle cx={x} cy={y} r="4" fill="#f4b400" />
+                  <title>{`${point.label} · ${formatCurrency(point.value, currency)}`}</title>
+                </g>
+              );
+            })}
 
-          {visibleTicks.map((point) => (
-            <text
-              key={point.label}
-              x={point.x}
-              y={height - 8}
-              fill="rgba(255,255,255,0.65)"
-              fontSize="12"
-              textAnchor="middle"
-            >
-              {point.label}
-            </text>
-          ))}
-        </svg>
+            {visibleTicks.map((point) => (
+              <text
+                key={point.label}
+                x={point.x}
+                y={height - 8}
+                fill="rgba(255,255,255,0.65)"
+                fontSize="12"
+                textAnchor="middle"
+              >
+                {point.label}
+              </text>
+            ))}
+          </svg>
+        </div>
       )}
     </div>
   );

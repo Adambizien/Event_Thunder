@@ -152,15 +152,25 @@ const AdminEvents = () => {
   const openActionMenu = (eventId: string, trigger: HTMLElement) => {
     const rect = trigger.getBoundingClientRect();
     const menuWidth = 256;
+    const menuHeight = hasSoldTicketsByEvent[eventId] ? 228 : 180;
     const viewportPadding = 12;
-    const left = Math.min(
+    const leftInViewport = Math.min(
       Math.max(viewportPadding, rect.right - menuWidth),
       window.innerWidth - menuWidth - viewportPadding,
     );
 
+    const overflowBottom = rect.bottom + 8 + menuHeight - window.innerHeight + viewportPadding;
+    if (overflowBottom > 0) {
+      window.scrollBy({
+        top: overflowBottom,
+        left: 0,
+        behavior: 'auto',
+      });
+    }
+
     setActionMenuPosition({
-      top: rect.bottom + 8,
-      left,
+      top: window.scrollY + rect.bottom + 8,
+      left: window.scrollX + leftInViewport,
     });
     setOpenActionMenuEventId(eventId);
   };
@@ -276,20 +286,14 @@ const AdminEvents = () => {
       }
     };
 
-    const handleScroll = () => {
-      closeActionMenu();
-    };
-
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleScroll);
+    window.addEventListener('resize', closeActionMenu);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('resize', closeActionMenu);
     };
   }, []);
 
@@ -1012,7 +1016,7 @@ const AdminEvents = () => {
         action={
           <button
             onClick={openCreateForm}
-            className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="w-full md:w-auto bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Nouvel événement
           </button>
@@ -1032,7 +1036,7 @@ const AdminEvents = () => {
       )}
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Rechercher</label>
             <input
@@ -1177,25 +1181,27 @@ const AdminEvents = () => {
               'Commentaires',
               'Actions',
             ]}
+            tableClassName="min-w-[1200px] w-full"
+            headerCellClassName="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm"
           >
             {filteredEvents.map((event) => (
               <tr key={event.id} className="border-b border-white/10 transition-colors hover:bg-white/5">
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
                   <div>
                     <p className="font-medium text-white">{event.title}</p>
                     <p className="text-xs text-gray-400">{event.id}</p>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-gray-300">{event.category?.name || '-'}</td>
-                <td className="px-6 py-4 text-gray-300">{event.location}</td>
-                <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.start_date)}</td>
-                <td className="px-6 py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
-                <td className="px-6 py-4 text-gray-300">{ticketTypeCountByEvent[event.id] || 0}</td>
-                <td className="px-6 py-4 text-gray-300">{soldTicketCountByEvent[event.id] || 0}</td>
-                <td className="px-6 py-4 text-gray-300">{refundedTicketCountByEvent[event.id] || 0}</td>
-                <td className="px-6 py-4 text-gray-300">{statusLabels[event.status]}</td>
-                <td className="px-6 py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{event.category?.name || '-'}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{event.location}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{toLocalInputDateTime(event.start_date)}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{toLocalInputDateTime(event.end_date)}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{ticketTypeCountByEvent[event.id] || 0}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{soldTicketCountByEvent[event.id] || 0}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{refundedTicketCountByEvent[event.id] || 0}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{statusLabels[event.status]}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{commentCounts[event.id] || 0}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
                   <div className="relative inline-flex" data-action-menu-root="true">
                     <button
                       type="button"
@@ -1241,7 +1247,7 @@ const AdminEvents = () => {
         createPortal(
           <div
             data-action-menu-floating="true"
-            className="fixed z-[130] w-64 rounded-xl border border-white/30 shadow-2xl overflow-hidden"
+            className="absolute z-[130] w-64 rounded-xl border border-white/30 shadow-2xl overflow-hidden"
             style={{
               top: actionMenuPosition.top,
               left: actionMenuPosition.left,

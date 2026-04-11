@@ -618,7 +618,7 @@ const AdminTicketTransactions = () => {
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr] [&>*]:min-w-0">
         <RevenueLineChartCard
           title="Évolution du chiffre d'affaires des tickets"
           subtitle="Transactions payées agrégées sur la période sélectionnée."

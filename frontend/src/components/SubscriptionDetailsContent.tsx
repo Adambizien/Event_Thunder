@@ -236,8 +236,8 @@ const SubscriptionDetailsContent = ({
       ) : (
         <UniformTable
           headers={['Date', 'Plan', 'Montant', 'Statut', 'Facture Stripe']}
-          containerClassName="overflow-hidden rounded-lg border border-white/10"
-          tableClassName="w-full text-sm"
+          containerClassName="w-full max-w-full overflow-x-auto rounded-lg border border-white/10"
+          tableClassName="min-w-[760px] w-full text-sm"
           bodyClassName="divide-y divide-white/10 text-white"
         >
           {payments.map((payment) => (

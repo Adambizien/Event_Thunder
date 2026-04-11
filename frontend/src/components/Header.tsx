@@ -29,18 +29,13 @@ const Header = ({ user, onLogout }: HeaderProps) => {
     location.pathname === '/events' || location.pathname.startsWith('/events/');
   const isSubscriptionHistoryActive = location.pathname === '/subscription-history';
   const isMyTicketsActive = location.pathname === '/my-tickets';
-  const isAdminActive =
-    isActive('/admin') ||
-    isActive('/admin/plans') ||
-    isActive('/admin/subscription-transactions') ||
-    isActive('/admin/users');
+  const isAdminActive = location.pathname.startsWith('/admin');
   const navItemClass = (active: boolean) =>
     `block font-semibold px-4 py-2 rounded-lg transition-all w-full md:w-auto text-left ${
       active
-        ? 'bg-thunder-gold text-black'
+        ? 'bg-thunder-gold text-[#ffb020]'
         : 'text-white hover:text-white hover:bg-white/10'
     }`;
-
   const handleNavLinkClickCapture = (event: ReactMouseEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('a')) {
@@ -193,7 +188,9 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                       to="/profile"
                       onClick={() => setIsProfileMenuOpen(false)}
                       className={`block px-4 py-3 text-sm transition-colors ${
-                        isActive('/profile') ? 'bg-thunder-gold text-black' : 'text-white hover:bg-white/10'
+                        isActive('/profile')
+                          ? 'bg-thunder-gold text-[#ffb020] font-semibold'
+                          : 'text-white hover:bg-white/10'
                       }`}
                     >
                       Mon profil
@@ -203,7 +200,9 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                       to="/subscription-history"
                       onClick={() => setIsProfileMenuOpen(false)}
                       className={`block px-4 py-3 text-sm transition-colors ${
-                        isSubscriptionHistoryActive ? 'bg-thunder-gold text-black' : 'text-white hover:bg-white/10'
+                        isSubscriptionHistoryActive
+                          ? 'bg-thunder-gold text-[#ffb020] font-semibold'
+                          : 'text-white hover:bg-white/10'
                       }`}
                     >
                       Mes abonnements
@@ -213,7 +212,9 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                       to="/my-tickets"
                       onClick={() => setIsProfileMenuOpen(false)}
                       className={`block px-4 py-3 text-sm transition-colors ${
-                        isMyTicketsActive ? 'bg-thunder-gold text-black' : 'text-white hover:bg-white/10'
+                        isMyTicketsActive
+                          ? 'bg-thunder-gold text-[#ffb020] font-semibold'
+                          : 'text-white hover:bg-white/10'
                       }`}
                     >
                       Mes tickets
@@ -224,7 +225,9 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                         to="/admin"
                         onClick={() => setIsProfileMenuOpen(false)}
                         className={`block px-4 py-3 text-sm transition-colors ${
-                          isAdminActive ? 'bg-thunder-gold text-black' : 'text-white hover:bg-white/10'
+                          isAdminActive
+                            ? 'bg-thunder-gold text-[#ffb020] font-semibold'
+                            : 'text-white hover:bg-white/10'
                         }`}
                       >
                         Interface Admin

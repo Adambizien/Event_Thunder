@@ -566,7 +566,7 @@ const AdminSubscriptionTransactions = () => {
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr] [&>*]:min-w-0">
         <RevenueLineChartCard
           title="Évolution du chiffre d’affaires des abonnements"
           subtitle="Transactions payées agrégées sur la période sélectionnée."
@@ -608,16 +608,16 @@ const AdminSubscriptionTransactions = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="min-w-[900px] w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Date</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Client</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Plan</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Montant</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Statut</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Référence</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Facture</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Client</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Plan</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Montant</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Statut</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Référence</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm">Facture</th>
                 </tr>
               </thead>
               <tbody>
@@ -629,24 +629,24 @@ const AdminSubscriptionTransactions = () => {
                       key={payment.id}
                       className="border-b border-white/10 hover:bg-white/5 transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="font-medium text-white">{formatDateTime(payment.effectiveDate)}</div>
                         <div className="text-xs text-gray-400">Souscription #{payment.subscription.id.slice(0, 8)}</div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="font-medium text-white">{fullName || 'Utilisateur inconnu'}</div>
                         <div className="text-xs text-gray-400">{payment.user?.email ?? payment.subscription.userId}</div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="font-medium text-white">{payment.subscription.plan.name}</div>
                         <div className="text-xs text-gray-400">
                           {payment.subscription.plan.interval === 'yearly' ? 'Annuel' : 'Mensuel'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-thunder-gold">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 font-semibold text-thunder-gold">
                         {formatCurrency(payment.amount, payment.currency)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             payment.status === 'paid'
@@ -657,7 +657,7 @@ const AdminSubscriptionTransactions = () => {
                           {payment.status === 'paid' ? 'Payée' : 'Échouée'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="max-w-[180px] truncate text-xs text-gray-400">
                           {payment.stripeInvoiceId || 'Aucune'}
                         </div>
@@ -665,7 +665,7 @@ const AdminSubscriptionTransactions = () => {
                           {payment.subscription.stripeSubscriptionId}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <button
                           type="button"
                           onClick={() => void handleOpenInvoice(payment)}

@@ -145,7 +145,7 @@ const AdminPlans = () => {
         action={
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="w-full md:w-auto bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Nouveau plan
           </button>
@@ -212,7 +212,7 @@ const AdminPlans = () => {
                   )}
                   <p className="text-xs text-gray-400">Stripe: {plan.stripePriceId}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handleEdit(plan)}
                     className="flex-1 flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white py-2 rounded transition-colors"

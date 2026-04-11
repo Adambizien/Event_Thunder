@@ -31,7 +31,7 @@ import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
 import SubscriptionHistory from './pages/sub/SubscriptionHistory';
-import MyTickets from './pages/profile/MyTickets';
+import MyTickets from './pages/tickets/MyTickets';
 
 
 function AppContent() {

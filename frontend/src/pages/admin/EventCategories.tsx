@@ -145,7 +145,7 @@ const AdminEventCategories = () => {
         action={
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="w-full md:w-auto bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Nouvelle catégorie
           </button>
@@ -211,7 +211,11 @@ const AdminEventCategories = () => {
             </p>
           </div>
         ) : (
-          <UniformTable headers={['Nom', 'Date de création', 'Date de mise à jour', 'Actions']}>
+          <UniformTable
+            headers={['Nom', 'Date de création', 'Date de mise à jour', 'Actions']}
+            tableClassName="min-w-[640px] w-full"
+            headerCellClassName="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm"
+          >
             {filteredCategories.map((category) => {
               const isDeleting = deletingCategoryId === category.id;
 
@@ -220,7 +224,7 @@ const AdminEventCategories = () => {
                   key={category.id}
                   className={`border-b border-white/10 transition-colors ${isDeleting ? 'opacity-60 pointer-events-none' : 'hover:bg-white/5'}`}
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3 sm:px-6 sm:py-4">
                     <div className="flex items-center gap-3">
                       <div>
                         <p className="font-medium text-white">{category.name}</p>
@@ -228,24 +232,24 @@ const AdminEventCategories = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-300">
+                  <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">
                     {formatDate(category.created_at)}
                   </td>
-                  <td className="px-6 py-4 text-gray-300">
+                  <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">
                     {formatDate(category.updated_at)}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
+                  <td className="px-4 py-3 sm:px-6 sm:py-4">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
+                        className="w-full sm:w-auto bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors"
                         disabled={isDeleting}
                       >
                         Modifier
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
-                        className="bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
+                        className="w-full sm:w-auto bg-red-500/25 hover:bg-red-500/30 border border-red-500/50 text-red-200 px-4 py-2 rounded transition-colors"
                         disabled={isDeleting}
                       >
                         {isDeleting ? 'Suppression...' : 'Supprimer'}
