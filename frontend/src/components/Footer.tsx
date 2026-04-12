@@ -12,7 +12,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="flex flex-col">
             <div className="mb-4">
-              <Logo size="sm" />
+              <Logo size="md" />
             </div>
             <p className="text-gray-400 text-sm">
               La plateforme pour gérer vos événements avec foudre et précision.

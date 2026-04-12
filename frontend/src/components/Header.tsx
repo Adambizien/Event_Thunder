@@ -72,7 +72,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
         {/* Logo/Brand */}
         <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <Logo size="md" />
+          <Logo size="lg" />
         </Link>
 
         <button

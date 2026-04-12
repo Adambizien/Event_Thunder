@@ -1,14 +1,15 @@
 import logoImage from '../assets/event-thunder-logo.png';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const Logo = ({ size = 'md' }: LogoProps) => {
   const sizeMap = {
     sm: { width: 50, height: 50 },
     md: { width: 80, height: 80 },
-    lg: { width: 150, height: 150 },
+    lg: { width: 110, height: 110 },
+    xl: { width: 150, height: 150 },
   };
 
   const { width, height } = sizeMap[size];
