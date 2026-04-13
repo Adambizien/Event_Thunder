@@ -2,3 +2,4 @@
 .prod
 secrets/*
 !secrets/.gitkeep
+log/*
