@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import UniformTable from './UniformTable';
 import type { SubscriptionType } from '../types/SubscriptionTypes';
+import { formatCountdown } from '../utils/subscriptionAccess';
 
 type ActionMessage = {
   type: 'success' | 'error';
@@ -14,8 +15,10 @@ type SubscriptionDetailsContentProps = {
   actionMessage: ActionMessage | null;
   openingInvoiceId: string | null;
   cancelingSubscriptionId: string | null;
+  resumingSubscriptionId: string | null;
   onOpenInvoice: (stripeInvoiceId: string) => void;
   onCancelSubscription: (stripeSubscriptionId: string) => void;
+  onResumeSubscription: (stripeSubscriptionId: string) => void;
   loadingLabel: string;
   activeEmptyLabel: string;
   transactionsEmptyLabel: string;
@@ -92,13 +95,27 @@ const SubscriptionDetailsContent = ({
   actionMessage,
   openingInvoiceId,
   cancelingSubscriptionId,
+  resumingSubscriptionId,
   onOpenInvoice,
   onCancelSubscription,
+  onResumeSubscription,
   loadingLabel,
   activeEmptyLabel,
   transactionsEmptyLabel,
   canceledEmptyLabel,
 }: SubscriptionDetailsContentProps) => {
+  const [nowMs, setNowMs] = useState(Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   const payments = useMemo(() => {
     return subscriptions
       .flatMap((subscription) =>
@@ -123,6 +140,32 @@ const SubscriptionDetailsContent = ({
     () => subscriptions.filter((subscription) => subscription.status === 'canceled'),
     [subscriptions],
   );
+
+  const latestCancelingSubscriptionId = useMemo(() => {
+    if (activeSubscription) {
+      return null;
+    }
+
+    const candidates = canceledSubscriptions.filter((subscription) =>
+      hasAccessUntilEnd(subscription.currentPeriodEnd),
+    );
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const sorted = [...candidates].sort((first, second) => {
+      const firstTime = new Date(
+        first.canceledAt ?? first.currentPeriodEnd ?? 0,
+      ).getTime();
+      const secondTime = new Date(
+        second.canceledAt ?? second.currentPeriodEnd ?? 0,
+      ).getTime();
+      return secondTime - firstTime;
+    });
+
+    return sorted[0]?.id ?? null;
+  }, [activeSubscription, canceledSubscriptions]);
 
   if (loading) {
     return (
@@ -331,10 +374,30 @@ const SubscriptionDetailsContent = ({
                   </p>
                 </div>
 
-                {hasAccessUntilEnd(subscription.currentPeriodEnd) && (
+                {latestCancelingSubscriptionId === subscription.id && (
                   <div className="mt-4 rounded-lg border border-thunder-gold/30 bg-thunder-gold/10 p-3 text-sm text-thunder-gold">
-                    Cet abonnement est annulé, mais l’utilisateur conserve encore les privilèges jusqu’au{' '}
-                    {formatDate(subscription.currentPeriodEnd)}. Il ne sera pas renouvelé ensuite.
+                    <p>
+                      Cet abonnement est annulé. Vous ne serez bientôt plus abonné et devrez renouveler l'abonnement,
+                      mais vous avez encore accès aux privilèges pour l'instant.
+                    </p>
+                    <p className="mt-2 font-mono text-base">
+                      Compte à rebours: {formatCountdown(subscription.currentPeriodEnd ?? '', nowMs)}
+                    </p>
+                    <p className="mt-1">
+                      Fin d'accès: {formatDate(subscription.currentPeriodEnd)}
+                    </p>
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => onResumeSubscription(subscription.stripeSubscriptionId)}
+                        disabled={resumingSubscriptionId === subscription.stripeSubscriptionId}
+                        className="inline-flex items-center justify-center rounded-lg border border-emerald-500/50 px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {resumingSubscriptionId === subscription.stripeSubscriptionId
+                          ? 'Réactivation...'
+                          : "Réactiver l’abonnement"}
+                      </button>
+                    </div>
                   </div>
                 )}
               </article>

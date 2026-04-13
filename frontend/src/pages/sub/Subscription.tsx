@@ -4,6 +4,7 @@ import Modal from '../../components/Modal';
 import { authService } from '../../services/AuthServices';
 import { subscriptionService } from '../../services/SubscriptionService';
 import type { SubscriptionType } from '../../types/SubscriptionTypes';
+import { formatCountdown } from '../../utils/subscriptionAccess';
 
 interface Plan {
   id: string;
@@ -46,6 +47,12 @@ const clearRouteGuard = (key: string) => {
   }
 };
 
+const isFutureDate = (value: string | null | undefined) => {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  return !Number.isNaN(timestamp) && timestamp > Date.now();
+};
+
 const Subscription = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [userSubscriptions, setUserSubscriptions] = useState<SubscriptionType[]>([]);
@@ -53,6 +60,8 @@ const Subscription = () => {
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<string | null>(null);
+  const [resuming, setResuming] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(Date.now());
   const [isProcessingRoute, setIsProcessingRoute] = useState(false);
   const [isResolvingSubscriptionState, setIsResolvingSubscriptionState] = useState(false);
   const [transactionMessage, setTransactionMessage] = useState<{
@@ -77,10 +86,49 @@ const Subscription = () => {
   const activeSubscriptions = userSubscriptions.filter(
     (sub) => sub.status === 'active',
   );
-  const hasMultipleActiveSubscriptions = activeSubscriptions.length > 1;
   const activeUserSubscription = userSubscriptions.find(
     (sub) => sub.status === 'active',
   );
+  const cancelingCandidates = userSubscriptions.filter(
+    (sub) =>
+      sub.status === 'canceled' &&
+      isFutureDate(sub.currentPeriodEnd) &&
+      // Exclude subscriptions canceled immediately (e.g. replaced by a new plan).
+      (sub.endedAt === null || isFutureDate(sub.endedAt)) &&
+      // If a plan is currently active, only show canceling state for that same plan.
+      (!activeUserSubscription || sub.planId === activeUserSubscription.planId),
+  );
+
+  const latestCancelingSubscription =
+    cancelingCandidates.length > 0
+      ? [...cancelingCandidates].sort((first, second) => {
+          const firstDate = new Date(
+            first.canceledAt ?? first.currentPeriodEnd ?? 0,
+          ).getTime();
+          const secondDate = new Date(
+            second.canceledAt ?? second.currentPeriodEnd ?? 0,
+          ).getTime();
+          return secondDate - firstDate;
+        })[0]
+      : null;
+
+  const cancelingSubscriptions = latestCancelingSubscription
+    ? [latestCancelingSubscription]
+    : [];
+  const hasMultipleActiveSubscriptions = activeSubscriptions.length > 1;
+  useEffect(() => {
+    if (cancelingSubscriptions.length === 0) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [cancelingSubscriptions.length]);
 
   useEffect(() => {
     if (!isCheckoutStep && !isSuccessStep && !isCancelStep) {
@@ -434,7 +482,7 @@ const Subscription = () => {
                 ...sub,
                 status: 'canceled',
                 canceledAt: nowIso,
-                endedAt: nowIso,
+                endedAt: sub.currentPeriodEnd ?? sub.endedAt,
               }
             : sub,
         ),
@@ -452,6 +500,51 @@ const Subscription = () => {
       setError("Erreur lors de l'annulation de l'abonnement");
     } finally {
       setCanceling(null);
+    }
+  };
+
+  const handleResumeSubscription = async (stripeSubscriptionId: string) => {
+    const user = authService.getStoredUser();
+    const userId = user?.id;
+
+    if (!userId) {
+      setError('Session utilisateur invalide. Reconnectez-vous.');
+      return;
+    }
+
+    setResuming(stripeSubscriptionId);
+    try {
+      await subscriptionService.resumeSubscription({
+        userId,
+        stripeSubscriptionId,
+      });
+
+      setUserSubscriptions((prev) =>
+        prev.map((sub) =>
+          sub.stripeSubscriptionId === stripeSubscriptionId
+            ? {
+                ...sub,
+                status: 'active',
+                canceledAt: null,
+                endedAt: null,
+              }
+            : sub,
+        ),
+      );
+
+      setTransactionMessage({
+        type: 'success',
+        text: "L'annulation a été retirée. Votre abonnement continue normalement.",
+      });
+      setError(null);
+    } catch {
+      setTransactionMessage({
+        type: 'error',
+        text: "Impossible de retirer l'annulation de l'abonnement.",
+      });
+      setError("Erreur lors de la reprise de l'abonnement");
+    } finally {
+      setResuming(null);
     }
   };
 
@@ -518,9 +611,12 @@ const Subscription = () => {
               ? 'Illimité'
               : `${plan.maxPosts}`;
 
-          const userSub = activeUserSubscription?.planId === plan.id
+          const activePlanSub = activeUserSubscription?.planId === plan.id
             ? activeUserSubscription
             : null;
+          const cancelingPlanSub =
+            cancelingSubscriptions.find((sub) => sub.planId === plan.id) ?? null;
+          const userSub = activePlanSub ?? cancelingPlanSub;
             return (
             <div key={plan.id} className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg flex flex-col items-center">
               <h2 className="text-xl font-bold mb-2 text-white">{plan.name}</h2>
@@ -538,10 +634,10 @@ const Subscription = () => {
                   <span className="text-gray-400">Posts max:</span> {maxPostsLabel}
                 </p>
               </div>
-              {userSub ? (
+              {userSub && userSub.status === 'active' ? (
                 <div className="mt-auto w-full flex flex-col gap-3">
                   <div className="px-6 py-2 bg-green-500/25 text-green-300 font-semibold rounded text-center border border-green-500/50">
-                    Déjà inscrit à ce plan (actif)
+                    Déjà inscrit à ce plan
                   </div>
                   <button
                     onClick={() => handleCancelSubscription(userSub.stripeSubscriptionId)}
@@ -551,10 +647,31 @@ const Subscription = () => {
                     {canceling === userSub.stripeSubscriptionId ? 'Annulation...' : "Annuler l'abonnement"}
                   </button>
                 </div>
+              ) : userSub && userSub.status === 'canceled' ? (
+                <div className="mt-auto w-full flex flex-col gap-3">
+                  <div className="px-4 py-3 bg-amber-500/20 text-amber-200 font-semibold rounded text-center border border-amber-500/40">
+                    Désabonnement programmé
+                  </div>
+                  <p className="text-center text-sm text-amber-100">
+                    Vous ne serez bientôt plus abonné. Temps restant:
+                  </p>
+                  <p className="text-center font-mono text-lg text-amber-100">
+                    {formatCountdown(userSub.currentPeriodEnd ?? '', nowMs)}
+                  </p>
+                  <button
+                    onClick={() => handleResumeSubscription(userSub.stripeSubscriptionId)}
+                    disabled={!!resuming || !!canceling}
+                    className="px-6 py-2 bg-emerald-500/25 text-emerald-200 font-semibold rounded border border-emerald-500/50 hover:bg-emerald-500/35 transition-colors disabled:opacity-60"
+                  >
+                    {resuming === userSub.stripeSubscriptionId
+                      ? 'Réactivation...'
+                      : "Réactiver l’abonnement"}
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={!!subscribing || !!canceling}
+                  disabled={!!subscribing || !!canceling || !!resuming}
                   className="mt-auto px-6 py-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold rounded transition-colors disabled:opacity-60"
                 >
                   {subscribing === plan.id ? 'Redirection...' : 'S’abonner'}

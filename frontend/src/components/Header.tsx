@@ -30,6 +30,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
   const isSubscriptionHistoryActive = location.pathname === '/subscription-history';
   const isMyTicketsActive = location.pathname === '/my-tickets';
   const isAdminActive = location.pathname.startsWith('/admin');
+  const isOrganizerActive = location.pathname.startsWith('/organizer');
   const navItemClass = (active: boolean) =>
     `block font-semibold px-4 py-2 rounded-lg transition-all w-full md:w-auto text-left ${
       active
@@ -152,6 +153,13 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 Événements
               </Link>
 
+              <Link
+                to="/organizer"
+                className={navItemClass(isOrganizerActive)}
+              >
+                Espace Organisateur
+              </Link>
+
               <div className="relative" ref={profileMenuRef}>
                 <button
                   type="button"
@@ -266,6 +274,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 <Link to="/" className={navItemClass(isActive('/'))}>Accueil</Link>
                 <Link to="/subscription" className={navItemClass(isActive('/subscription'))}>Plans d’abonnement</Link>
                 <Link to="/events" className={navItemClass(isEventsActive)}>Événements</Link>
+                <Link to="/organizer" className={navItemClass(isOrganizerActive)}>Espace Organisateur</Link>
 
                 <div className="mt-2 pt-3 border-t border-white/15">
                   <p className="px-4 pb-2 text-xs uppercase tracking-wide text-gray-300">Compte</p>

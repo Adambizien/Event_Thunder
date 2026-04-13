@@ -3,22 +3,51 @@ import UserRoleModal from '../../components/UserRoleModal';
 import UserSubscriptionDetailsModal from '../../components/UserSubscriptionDetailsModal';
 import UniformTable from '../../components/UniformTable';
 import AdminPageHeader from '../../components/AdminPageHeader';
+import FloatingActionsMenu from '../../components/FloatingActionsMenu';
 import type { User } from '../../types/AuthTypes';
 import { userService } from '../../services/UserService';
 import { subscriptionService } from '../../services/SubscriptionService';
 import type { SubscriptionType } from '../../types/SubscriptionTypes';
 
+type UserSubscriptionStatus = 'subscribed' | 'canceling' | 'unsubscribed';
+
+const hasAccessUntil = (value: string | null) => {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  return !Number.isNaN(timestamp) && timestamp > Date.now();
+};
+
+const getUserSubscriptionStatus = (
+  subscriptions: SubscriptionType[],
+): UserSubscriptionStatus => {
+  const hasActive = subscriptions.some((sub) => sub.status === 'active');
+  if (hasActive) {
+    return 'subscribed';
+  }
+
+  const hasCanceling = subscriptions.some(
+    (sub) => sub.status === 'canceled' && hasAccessUntil(sub.currentPeriodEnd),
+  );
+  if (hasCanceling) {
+    return 'canceling';
+  }
+
+  return 'unsubscribed';
+};
+
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [activeSubscriptionsByUser, setActiveSubscriptionsByUser] = useState<
-    Record<string, SubscriptionType | null>
+  const [subscriptionStatusByUser, setSubscriptionStatusByUser] = useState<
+    Record<string, UserSubscriptionStatus>
   >({});
   const [loading, setLoading] = useState(true);
   const [subsLoading, setSubsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
-  const [filterPlan, setFilterPlan] = useState<'all' | 'subscribed' | 'unsubscribed'>('all');
+  const [filterPlan, setFilterPlan] = useState<
+    'all' | 'subscribed' | 'canceling' | 'unsubscribed'
+  >('all');
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
@@ -31,6 +60,7 @@ const AdminUsers = () => {
   const [transactionsError, setTransactionsError] = useState<string | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
   const [cancelingSubscriptionId, setCancelingSubscriptionId] = useState<string | null>(null);
+  const [resumingSubscriptionId, setResumingSubscriptionId] = useState<string | null>(null);
   const [transactionsActionMessage, setTransactionsActionMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -51,6 +81,7 @@ const AdminUsers = () => {
     setTransactionsActionMessage(null);
     setOpeningInvoiceId(null);
     setCancelingSubscriptionId(null);
+    setResumingSubscriptionId(null);
   };
 
   useEffect(() => {
@@ -74,6 +105,7 @@ const AdminUsers = () => {
 
     void fetchSubscriptions();
   }, [showTransactionsModal, transactionsUser?.id]);
+
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
     setNewRole(user.role === 'Admin' ? 'Admin' : 'User');
@@ -103,7 +135,7 @@ const AdminUsers = () => {
     }
   };
 
-  const fetchActiveSubscriptions = useCallback(async (userList: User[]) => {
+  const fetchSubscriptionStatuses = useCallback(async (userList: User[]) => {
     setSubsLoading(true);
     try {
       const results = await Promise.allSettled(
@@ -112,20 +144,19 @@ const AdminUsers = () => {
           const normalized = Array.isArray(subs)
             ? (subs as SubscriptionType[])
             : [];
-          const active =
-            normalized.find((sub) => sub.status === 'active') ?? null;
-          return [user.id, active] as const;
+          const status = getUserSubscriptionStatus(normalized);
+          return [user.id, status] as const;
         }),
       );
 
-      const next: Record<string, SubscriptionType | null> = {};
+      const next: Record<string, UserSubscriptionStatus> = {};
       for (const result of results) {
         if (result.status === 'fulfilled') {
-          const [userId, activeSub] = result.value;
-          next[userId] = activeSub;
+          const [userId, status] = result.value;
+          next[userId] = status;
         }
       }
-      setActiveSubscriptionsByUser(next);
+      setSubscriptionStatusByUser(next);
     } finally {
       setSubsLoading(false);
     }
@@ -136,16 +167,16 @@ const AdminUsers = () => {
       setLoading(true);
       const data = await userService.fetchUsers();
       setUsers(data);
-      await fetchActiveSubscriptions(data);
+      await fetchSubscriptionStatuses(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       setUsers([]);
-      setActiveSubscriptionsByUser({});
+      setSubscriptionStatusByUser({});
     } finally {
       setLoading(false);
     }
-  }, [fetchActiveSubscriptions]);
+  }, [fetchSubscriptionStatuses]);
 
   useEffect(() => {
     void fetchUsers();
@@ -221,7 +252,7 @@ const AdminUsers = () => {
                   ...subscription,
                   status: 'canceled',
                   canceledAt: nowIso,
-                  endedAt: nowIso,
+                  endedAt: subscription.currentPeriodEnd ?? subscription.endedAt,
                 }
               : subscription,
           ),
@@ -243,6 +274,55 @@ const AdminUsers = () => {
     }
   };
 
+  const handleResumeSubscription = async (stripeSubscriptionId: string) => {
+    if (!transactionsUser?.id) {
+      setTransactionsError('Utilisateur invalide.');
+      return;
+    }
+
+    try {
+      setResumingSubscriptionId(stripeSubscriptionId);
+      setTransactionsError(null);
+      setTransactionsActionMessage(null);
+
+      await subscriptionService.resumeSubscription({
+        userId: transactionsUser.id,
+        stripeSubscriptionId,
+      });
+
+      try {
+        const data = await subscriptionService.getUserSubscriptions(transactionsUser.id);
+        setTransactionsSubscriptions(Array.isArray(data) ? data : []);
+      } catch {
+        setTransactionsSubscriptions((prev) =>
+          prev.map((subscription) =>
+            subscription.stripeSubscriptionId === stripeSubscriptionId
+              ? {
+                  ...subscription,
+                  status: 'active',
+                  canceledAt: null,
+                  endedAt: null,
+                }
+              : subscription,
+          ),
+        );
+      }
+
+      setTransactionsActionMessage({
+        type: 'success',
+        text: "L'annulation a bien été retirée.",
+      });
+    } catch {
+      setTransactionsError("Erreur lors de l'annulation de l'annulation.");
+      setTransactionsActionMessage({
+        type: 'error',
+        text: "Impossible de retirer l'annulation de l'abonnement.",
+      });
+    } finally {
+      setResumingSubscriptionId(null);
+    }
+  };
+
 
   const filteredUsers = users.filter((user) => {
     const haystack = [user.firstName, user.lastName, user.email]
@@ -255,11 +335,12 @@ const AdminUsers = () => {
       .filter(Boolean);
     const matchesSearch = searchWords.every(word => haystack.includes(word));
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-    const hasActiveSubscription = Boolean(activeSubscriptionsByUser[user.id]);
+    const userSubscriptionStatus = subscriptionStatusByUser[user.id] ?? 'unsubscribed';
     const matchesPlan =
       filterPlan === 'all' ||
-      (filterPlan === 'subscribed' && hasActiveSubscription) ||
-      (filterPlan === 'unsubscribed' && !hasActiveSubscription);
+      (filterPlan === 'subscribed' && userSubscriptionStatus === 'subscribed') ||
+      (filterPlan === 'canceling' && userSubscriptionStatus === 'canceling') ||
+      (filterPlan === 'unsubscribed' && userSubscriptionStatus === 'unsubscribed');
     return matchesSearch && matchesRole && matchesPlan;
   });
 
@@ -323,12 +404,19 @@ const AdminUsers = () => {
             <select
               value={filterPlan}
               onChange={(e) =>
-                setFilterPlan(e.target.value as 'all' | 'subscribed' | 'unsubscribed')
+                setFilterPlan(
+                  e.target.value as
+                    | 'all'
+                    | 'subscribed'
+                    | 'canceling'
+                    | 'unsubscribed',
+                )
               }
               className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             >
               <option value="all">Tous</option>
               <option value="subscribed">Abonnés</option>
+              <option value="canceling">En cours de désabonnement</option>
               <option value="unsubscribed">Non abonnés</option>
             </select>
           </div>
@@ -416,51 +504,49 @@ const AdminUsers = () => {
                 <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">
                   {subsLoading ? (
                       <span className="text-gray-500">Chargement...</span>
-                    ) : activeSubscriptionsByUser[user.id] ? (
+                    ) : (subscriptionStatusByUser[user.id] ?? 'unsubscribed') === 'subscribed' ? (
                       <div className="flex flex-col space-y-2">
                         <div className="inline-flex bg-green-900/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium self-start">
                           Abonné
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openTransactionsModal(user)}
-                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
-                        >
-                          Voir les détails
-                        </button>
+                      </div>
+                    ) : (subscriptionStatusByUser[user.id] ?? 'unsubscribed') === 'canceling' ? (
+                      <div className="flex flex-col space-y-2">
+                        <div className="inline-flex bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full text-sm font-medium self-start border border-amber-500/40">
+                          En cours de désabonnement
+                        </div>
                       </div>
                     ) : (
                       <div className="flex flex-col space-y-2">
                         <div className="inline-flex bg-red-500/30 text-red-300 px-3 py-1 rounded-full text-sm font-medium self-start border border-red-500/50">
                           Non abonné
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openTransactionsModal(user)}
-                          className="inline-flex items-center justify-center rounded border border-thunder-gold/40 px-4 py-2 text-sm font-semibold text-thunder-gold transition-colors hover:bg-thunder-gold hover:text-black self-start"
-                        >
-                          Voir les détails
-                        </button>
                       </div>
                   )}
                 </td>
                 <td className="px-4 py-3 sm:px-6 sm:py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => openRoleModal(user)}
-                      className="w-full sm:w-auto px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm border border-white/20"
-                      title="Modifier le rôle"
-                    >
-                      Modifier le rôle
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="w-full sm:w-auto px-3 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50 rounded text-red-200 text-sm transition-colors"
-                      title="Supprimer l'utilisateur"
-                    >
-                      Supprimer le compte
-                    </button>
-                  </div>
+                  <FloatingActionsMenu
+                    items={[
+                      {
+                        key: 'details',
+                        label: 'Détails de l’abonnement',
+                        onClick: () => openTransactionsModal(user),
+                      },
+                      {
+                        key: 'edit-role',
+                        label: 'Modifier le rôle',
+                        onClick: () => openRoleModal(user),
+                      },
+                      {
+                        key: 'delete-user',
+                        label: 'Supprimer le compte',
+                        onClick: () => {
+                          void handleDelete(user.id);
+                        },
+                        destructive: true,
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
             ))}
@@ -488,12 +574,16 @@ const AdminUsers = () => {
         actionMessage={transactionsActionMessage}
         openingInvoiceId={openingInvoiceId}
         cancelingSubscriptionId={cancelingSubscriptionId}
+        resumingSubscriptionId={resumingSubscriptionId}
         onClose={closeTransactionsModal}
         onOpenInvoice={(stripeInvoiceId) => {
           void handleOpenInvoice(stripeInvoiceId);
         }}
         onCancelSubscription={(stripeSubscriptionId) => {
           void handleCancelSubscription(stripeSubscriptionId);
+        }}
+        onResumeSubscription={(stripeSubscriptionId) => {
+          void handleResumeSubscription(stripeSubscriptionId);
         }}
       />
     </div>

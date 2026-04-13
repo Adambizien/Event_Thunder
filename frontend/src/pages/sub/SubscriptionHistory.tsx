@@ -15,6 +15,7 @@ const SubscriptionHistory = () => {
   } | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
   const [cancelingSubscriptionId, setCancelingSubscriptionId] = useState<string | null>(null);
+  const [resumingSubscriptionId, setResumingSubscriptionId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -107,7 +108,7 @@ const SubscriptionHistory = () => {
                   ...subscription,
                   status: 'canceled',
                   canceledAt: nowIso,
-                  endedAt: nowIso,
+                  endedAt: subscription.currentPeriodEnd ?? subscription.endedAt,
                 }
               : subscription,
           ),
@@ -126,6 +127,58 @@ const SubscriptionHistory = () => {
       });
     } finally {
       setCancelingSubscriptionId(null);
+    }
+  };
+
+  const handleResumeSubscription = async (stripeSubscriptionId: string) => {
+    const user = authService.getStoredUser();
+    const userId = user?.id;
+
+    if (!userId) {
+      setError('Session utilisateur invalide. Reconnectez-vous.');
+      return;
+    }
+
+    try {
+      setResumingSubscriptionId(stripeSubscriptionId);
+      setError(null);
+      setActionMessage(null);
+
+      await subscriptionService.resumeSubscription({
+        userId,
+        stripeSubscriptionId,
+      });
+
+      try {
+        const data = await subscriptionService.getUserSubscriptions(userId);
+        setSubscriptions(Array.isArray(data) ? data : []);
+      } catch {
+        setSubscriptions((prev) =>
+          prev.map((subscription) =>
+            subscription.stripeSubscriptionId === stripeSubscriptionId
+              ? {
+                  ...subscription,
+                  status: 'active',
+                  canceledAt: null,
+                  endedAt: null,
+                }
+              : subscription,
+          ),
+        );
+      }
+
+      setActionMessage({
+        type: 'success',
+        text: "L'annulation a bien été retirée.",
+      });
+    } catch {
+      setError("Erreur lors de l'annulation de l'annulation.");
+      setActionMessage({
+        type: 'error',
+        text: "Impossible de retirer l'annulation de l'abonnement.",
+      });
+    } finally {
+      setResumingSubscriptionId(null);
     }
   };
 
@@ -154,11 +207,15 @@ const SubscriptionHistory = () => {
           actionMessage={actionMessage}
           openingInvoiceId={openingInvoiceId}
           cancelingSubscriptionId={cancelingSubscriptionId}
+          resumingSubscriptionId={resumingSubscriptionId}
           onOpenInvoice={(stripeInvoiceId) => {
             void handleOpenInvoice(stripeInvoiceId);
           }}
           onCancelSubscription={(stripeSubscriptionId) => {
             void handleCancelSubscription(stripeSubscriptionId);
+          }}
+          onResumeSubscription={(stripeSubscriptionId) => {
+            void handleResumeSubscription(stripeSubscriptionId);
           }}
           loadingLabel="Chargement de vos abonnements et transactions..."
           activeEmptyLabel="Vous n’avez actuellement aucun abonnement actif."

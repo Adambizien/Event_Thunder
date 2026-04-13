@@ -207,6 +207,24 @@ export class BillingController {
     return this.billingService.cancelSubscription(dto.stripeSubscriptionId);
   }
 
+  @Post('subscriptions/resume')
+  @UseGuards(AuthGuard)
+  async resumeSubscription(
+    @Body() dto: CancelSubscriptionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    this.ensureNonEmptyString(dto.userId, 'userId');
+    this.ensureNonEmptyString(dto.stripeSubscriptionId, 'stripeSubscriptionId');
+
+    const requestUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'Admin';
+    if (!isAdmin && requestUserId && requestUserId !== dto.userId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    return this.billingService.resumeSubscription(dto.stripeSubscriptionId);
+  }
+
   @Get('invoices/:stripeInvoiceId')
   @UseGuards(AuthGuard)
   async getInvoiceLinks(@Param('stripeInvoiceId') stripeInvoiceId: string) {

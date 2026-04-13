@@ -205,6 +205,29 @@ export class SubscriptionsController {
     );
   }
 
+  @Post('resume')
+  @UseGuards(AuthGuard)
+  resumeSubscription(
+    @Body() dto: CancelSubscriptionDto,
+    @Req() req: AuthenticatedRequest,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    this.ensureNonEmptyString(dto.userId, 'userId');
+    this.ensureNonEmptyString(dto.stripeSubscriptionId, 'stripeSubscriptionId');
+
+    const requestUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'Admin';
+    if (!isAdmin && requestUserId && requestUserId !== dto.userId) {
+      throw new ForbiddenException('Accès refusé');
+    }
+
+    return this.subscriptionsService.resumeSubscription(
+      dto.userId,
+      dto.stripeSubscriptionId,
+      authHeader,
+    );
+  }
+
   @Post('finalize-plan-change')
   @UseGuards(AuthGuard)
   finalizePlanChange(

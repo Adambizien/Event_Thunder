@@ -32,6 +32,9 @@ import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
 import SubscriptionHistory from './pages/sub/SubscriptionHistory';
 import MyTickets from './pages/tickets/MyTickets';
+import OrganizerLayout from './components/OrganizerLayout';
+import OrganizerDashboard from './pages/organizer/Dashboard';
+import OrganizerCreateEvent from './pages/organizer/CreateEvent';
 
 
 function AppContent() {
@@ -40,6 +43,7 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isOrganizerRoute = location.pathname.startsWith('/organizer');
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -205,8 +209,19 @@ function AppContent() {
           <Route path="ticket-transactions" element={<AdminTicketTransactions />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>
+        <Route
+          path="/organizer"
+          element={
+            <ProtectedRoute user={user}>
+              <OrganizerLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<OrganizerDashboard user={user!} />} />
+          <Route path="create-event" element={<OrganizerCreateEvent user={user!} />} />
+        </Route>
       </Routes>
-      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && !isOrganizerRoute && <Footer />}
     </>
   );
 }

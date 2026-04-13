@@ -17,9 +17,11 @@ interface UserSubscriptionDetailsModalProps {
   actionMessage: ActionMessage | null;
   openingInvoiceId: string | null;
   cancelingSubscriptionId: string | null;
+  resumingSubscriptionId: string | null;
   onClose: () => void;
   onOpenInvoice: (stripeInvoiceId: string) => void;
   onCancelSubscription: (stripeSubscriptionId: string) => void;
+  onResumeSubscription: (stripeSubscriptionId: string) => void;
 }
 
 const UserSubscriptionDetailsModal = ({
@@ -31,9 +33,11 @@ const UserSubscriptionDetailsModal = ({
   actionMessage,
   openingInvoiceId,
   cancelingSubscriptionId,
+  resumingSubscriptionId,
   onClose,
   onOpenInvoice,
   onCancelSubscription,
+  onResumeSubscription,
 }: UserSubscriptionDetailsModalProps) => {
   return (
     <Modal
@@ -53,8 +57,10 @@ const UserSubscriptionDetailsModal = ({
         actionMessage={actionMessage}
         openingInvoiceId={openingInvoiceId}
         cancelingSubscriptionId={cancelingSubscriptionId}
+        resumingSubscriptionId={resumingSubscriptionId}
         onOpenInvoice={onOpenInvoice}
         onCancelSubscription={onCancelSubscription}
+        onResumeSubscription={onResumeSubscription}
         loadingLabel="Chargement des transactions..."
         activeEmptyLabel="Aucun abonnement actif pour cet utilisateur."
         transactionsEmptyLabel="Aucune transaction disponible pour cet utilisateur."

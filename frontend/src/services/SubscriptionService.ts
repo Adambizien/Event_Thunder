@@ -75,6 +75,14 @@ export const subscriptionService = {
     return response.data;
   },
 
+  resumeSubscription: async (payload: {
+    userId: string;
+    stripeSubscriptionId: string;
+  }) => {
+    const response = await api.post('/api/subscriptions/resume', payload);
+    return response.data;
+  },
+
   finalizePlanChange: async (payload: {
     userId: string;
     activePlanId?: string;

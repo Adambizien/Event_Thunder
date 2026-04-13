@@ -540,11 +540,57 @@ export class SubscriptionsService {
       data: {
         status: SubscriptionStatus.canceled,
         canceled_at: new Date(),
-        ended_at: new Date(),
+        ended_at: existing.current_period_end ?? null,
       },
     });
 
     return { message: 'Abonnement annulé avec succès' };
+  }
+
+  async resumeSubscription(
+    userId: string,
+    stripeSubscriptionId: string,
+    authHeader?: string,
+  ): Promise<{ message: string }> {
+    const existing = await this.prisma.subscription.findFirst({
+      where: {
+        user_id: userId,
+        stripe_subscription_id: stripeSubscriptionId,
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Abonnement introuvable');
+    }
+
+    const subscription = this.toSubscriptionModel(existing);
+    if (subscription.status === SubscriptionStatus.active) {
+      return { message: 'Abonnement déjà actif' };
+    }
+
+    const periodEnd = existing.current_period_end;
+    if (!periodEnd || periodEnd.getTime() <= Date.now()) {
+      throw new BadRequestException(
+        'La période est terminée, veuillez souscrire à un nouveau plan.',
+      );
+    }
+
+    await this.resumeSubscriptionWithBilling(
+      userId,
+      stripeSubscriptionId,
+      authHeader,
+    );
+
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.active,
+        canceled_at: null,
+        ended_at: null,
+      },
+    });
+
+    return { message: 'Annulation retirée, abonnement réactivé' };
   }
 
   async finalizePlanChange(
@@ -1070,6 +1116,25 @@ export class SubscriptionsService {
     await firstValueFrom(
       this.httpService.post(
         `${this.billingServiceUrl}/api/billing/subscriptions/cancel`,
+        {
+          userId,
+          stripeSubscriptionId,
+        },
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+        },
+      ),
+    );
+  }
+
+  private async resumeSubscriptionWithBilling(
+    userId: string,
+    stripeSubscriptionId: string,
+    authHeader?: string,
+  ) {
+    await firstValueFrom(
+      this.httpService.post(
+        `${this.billingServiceUrl}/api/billing/subscriptions/resume`,
         {
           userId,
           stripeSubscriptionId,

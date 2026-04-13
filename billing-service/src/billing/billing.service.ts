@@ -135,10 +135,51 @@ export class BillingService {
       };
     }
 
-    await this.stripe.subscriptions.cancel(stripeSubscriptionId);
+    if (existing.cancel_at_period_end) {
+      return {
+        canceled: true,
+        stripeSubscriptionId,
+      };
+    }
+
+    await this.stripe.subscriptions.update(stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
 
     return {
       canceled: true,
+      stripeSubscriptionId,
+    };
+  }
+
+  async resumeSubscription(
+    stripeSubscriptionId: string,
+  ): Promise<{ resumed: boolean; stripeSubscriptionId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const existing = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+
+    if (existing.status === 'canceled') {
+      throw new BadRequestException(
+        'Abonnement déjà terminé, veuillez souscrire à un nouveau plan.',
+      );
+    }
+
+    if (!existing.cancel_at_period_end) {
+      return {
+        resumed: true,
+        stripeSubscriptionId,
+      };
+    }
+
+    await this.stripe.subscriptions.update(stripeSubscriptionId, {
+      cancel_at_period_end: false,
+    });
+
+    return {
+      resumed: true,
       stripeSubscriptionId,
     };
   }
@@ -426,15 +467,19 @@ export class BillingService {
         planId: subscription.metadata?.planId,
         stripePriceId: this.extractPriceIdFromSubscription(subscription),
         stripeSubscriptionId: subscription.id,
-        status: this.mapSubscriptionStatus(subscription.status),
+        status: this.mapSubscriptionStatus(subscription),
         currentPeriodStart: period.start,
         currentPeriodEnd: period.end,
         customerEmail: subscription.metadata?.customerEmail,
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? new Date().toISOString()
           : null,
         endedAt: subscription.ended_at
           ? new Date(subscription.ended_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? period.end ?? null
           : null,
       },
     );
@@ -452,15 +497,19 @@ export class BillingService {
         planId: subscription.metadata?.planId,
         stripePriceId: this.extractPriceIdFromSubscription(subscription),
         stripeSubscriptionId: subscription.id,
-        status: this.mapSubscriptionStatus(subscription.status),
+        status: this.mapSubscriptionStatus(subscription),
         currentPeriodStart: period.start,
         currentPeriodEnd: period.end,
         customerEmail: subscription.metadata?.customerEmail,
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? new Date().toISOString()
           : null,
         endedAt: subscription.ended_at
           ? new Date(subscription.ended_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? period.end ?? null
           : null,
       },
     );
@@ -778,7 +827,13 @@ export class BillingService {
     };
   }
 
-  private mapSubscriptionStatus(status: string): 'active' | 'canceled' {
-    return status === 'canceled' ? 'canceled' : 'active';
+  private mapSubscriptionStatus(
+    subscription: Stripe.Subscription,
+  ): 'active' | 'canceled' {
+    if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
+      return 'canceled';
+    }
+
+    return 'active';
   }
 }
