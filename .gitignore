@@ -2,4 +2,4 @@
 .prod
 secrets/*
 !secrets/.gitkeep
-log/*
+log/*logs/
