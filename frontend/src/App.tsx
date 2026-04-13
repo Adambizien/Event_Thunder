@@ -25,8 +25,10 @@ import AdminTicketTransactions from './pages/admin/TicketTransactions';
 import AdminUsers from './pages/admin/Users';
 import AdminEventCategories from './pages/admin/EventCategories';
 import AdminEvents from './pages/admin/Events';
+import AdminSocialPosts from './pages/admin/SocialPosts';
 import EventDetails from './pages/events/EventDetails';
 import EventsList from './pages/events/EventsList';
+import ConfirmPost from './pages/posts/ConfirmPost';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
 import Subscription from './pages/sub/Subscription';
@@ -149,6 +151,7 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/events" element={<EventsList />} />
         <Route path="/events/:id" element={<EventDetails />} />
+        <Route path="/posts/confirm" element={<ConfirmPost />} />
         <Route 
           path="/login" 
           element={<Login onLogin={handleLogin} />}
@@ -204,6 +207,7 @@ function AppContent() {
           <Route index element={<AdminDashboard />} />
           <Route path="plans" element={<AdminPlans />} />
           <Route path="events" element={<AdminEvents />} />
+          <Route path="social-posts" element={<AdminSocialPosts />} />
           <Route path="event-categories" element={<AdminEventCategories />} />
           <Route path="subscription-transactions" element={<AdminSubscriptionTransactions />} />
           <Route path="ticket-transactions" element={<AdminTicketTransactions />} />

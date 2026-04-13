@@ -3,6 +3,8 @@ import UniformTable from './UniformTable';
 import type { SubscriptionType } from '../types/SubscriptionTypes';
 import { formatCountdown } from '../utils/subscriptionAccess';
 
+const INITIAL_NOW_MS = Date.now();
+
 type ActionMessage = {
   type: 'success' | 'error';
   text: string;
@@ -104,7 +106,7 @@ const SubscriptionDetailsContent = ({
   transactionsEmptyLabel,
   canceledEmptyLabel,
 }: SubscriptionDetailsContentProps) => {
-  const [nowMs, setNowMs] = useState(Date.now());
+  const [nowMs, setNowMs] = useState(INITIAL_NOW_MS);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

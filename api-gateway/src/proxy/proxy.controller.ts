@@ -61,6 +61,36 @@ export class ProxyController {
       return true;
     }
 
+    if (path === '/api/posts/public' && method === 'GET') {
+      return true;
+    }
+
+    if (/^\/api\/posts\/[^/]+$/.test(path) && method === 'GET') {
+      return true;
+    }
+
+    if (/^\/api\/posts\/[^/]+\/confirm$/.test(path) && method === 'POST') {
+      return true;
+    }
+
+    if (
+      /^\/api\/posts\/[^/]+\/publish-manual$/.test(path) &&
+      method === 'POST'
+    ) {
+      return true;
+    }
+
+    if (
+      /^\/api\/posts\/[^/]+\/cancel-manual$/.test(path) &&
+      method === 'POST'
+    ) {
+      return true;
+    }
+
+    if (path === '/api/posts/internal/dispatch-due' && method === 'POST') {
+      return true;
+    }
+
     if (path === '/api/events/public' && method === 'GET') {
       return true;
     }
@@ -89,7 +119,8 @@ export class ProxyController {
     const method = this.getMethod(req);
     return (
       (/^\/api\/events\/[^/]+$/.test(path) && method === 'GET') ||
-      (/^\/api\/comments\/events\/[^/]+$/.test(path) && method === 'GET')
+      (/^\/api\/comments\/events\/[^/]+$/.test(path) && method === 'GET') ||
+      (/^\/api\/posts\/[^/]+$/.test(path) && method === 'GET')
     );
   }
 

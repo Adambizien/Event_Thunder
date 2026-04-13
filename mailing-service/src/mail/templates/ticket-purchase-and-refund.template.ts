@@ -50,9 +50,11 @@ export class TicketPurchaseAndRefundTemplate {
       payload.receiptUrl ||
       '';
     const subject =
-      payload.subject || `${this.productName} - Merci pour votre achat de tickets`;
+      payload.subject ||
+      `${this.productName} - Merci pour votre achat de tickets`;
     const emailTitle = payload.emailTitle || 'Merci pour votre achat';
-    const emailSubtitle = payload.emailSubtitle || 'Vos tickets sont confirmés.';
+    const emailSubtitle =
+      payload.emailSubtitle || 'Vos tickets sont confirmés.';
     const introText =
       payload.introText ||
       'Merci pour votre commande. Voici les informations essentielles à conserver.';
@@ -85,9 +87,10 @@ export class TicketPurchaseAndRefundTemplate {
         const qrData = encodeURIComponent(
           ticket.qrCode ?? ticket.ticketNumber ?? '',
         );
-        const qrImg = showQrCodes && qrData
-          ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${qrData}" alt="QR code ticket" width="140" height="140" style="display: block; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); margin-top: 10px;" />`
-          : '';
+        const qrImg =
+          showQrCodes && qrData
+            ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${qrData}" alt="QR code ticket" width="140" height="140" style="display: block; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); margin-top: 10px;" />`
+            : '';
         return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; background: rgba(255, 255, 255, 0.05); margin-bottom: 10px;">
           <tr>
             <td style="padding: 12px;">

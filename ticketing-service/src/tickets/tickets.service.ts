@@ -517,7 +517,9 @@ export class TicketsService {
         id: purchase.id,
         eventId: purchase.items[0]?.ticket_type?.event_id ?? null,
         paidAt: purchase.paid_at ? purchase.paid_at.toISOString() : null,
-        createdAt: purchase.created_at ? purchase.created_at.toISOString() : null,
+        createdAt: purchase.created_at
+          ? purchase.created_at.toISOString()
+          : null,
         statusLabel: this.toStatusLabel(purchase.status),
         totalAmount: Number(purchase.total_amount ?? 0),
         currency: purchase.currency,
@@ -707,7 +709,9 @@ export class TicketsService {
     }
 
     if (purchase.status !== TicketPurchaseStatus.paid) {
-      throw new BadRequestException('Seuls les achats payés sont remboursables');
+      throw new BadRequestException(
+        'Seuls les achats payés sont remboursables',
+      );
     }
 
     const eventId = purchase.items[0]?.ticket_type?.event_id;
@@ -826,7 +830,10 @@ export class TicketsService {
         await tx.ticketType.update({
           where: { id: item.ticket_type_id },
           data: {
-            sold_quantity: Math.max(0, ticketType.sold_quantity - item.quantity),
+            sold_quantity: Math.max(
+              0,
+              ticketType.sold_quantity - item.quantity,
+            ),
           },
         });
       }

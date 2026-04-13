@@ -34,6 +34,7 @@ services:
       SUBSCRIPTION_SERVICE_URL: ${SUBSCRIPTION_SERVICE_URL}
       EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
       COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL}
+      POST_SERVICE_URL: ${POST_SERVICE_URL}
       TICKETING_SERVICE_URL: ${TICKETING_SERVICE_URL}
     ports:
       - "${API_GATEWAY_PORT}:3000"
@@ -44,6 +45,7 @@ services:
       - subscription-service
       - event-service
       - comment-service
+      - post-service
       - ticketing-service
 
   # Auth Service
@@ -129,6 +131,33 @@ services:
       - postgres_password
     depends_on:
       postgres:
+        condition: service_healthy
+
+  # Post Service
+  post-service:
+    build: ./post-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${POST_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      POST_CRON_SECRET_FILE: /run/secrets/post_cron_secret
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+      - post_cron_secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   # Subscription Service:
@@ -266,3 +295,5 @@ secrets:
     file: ./secrets/google_client_secret.txt
   resend_api_key:
     file: ./secrets/resend_api_key.txt
+  post_cron_secret:
+    file: ./secrets/post_cron_secret.txt

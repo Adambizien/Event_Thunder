@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
 const OrganizerLayout = () => {
@@ -11,10 +11,6 @@ const OrganizerLayout = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
-
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location.pathname]);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy text-white">

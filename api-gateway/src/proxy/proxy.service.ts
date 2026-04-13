@@ -50,6 +50,9 @@ export class ProxyService {
     if (originalUrl.startsWith('/api/comments')) {
       return process.env.COMMENT_SERVICE_URL || 'http://comment-service:3000';
     }
+    if (originalUrl.startsWith('/api/posts')) {
+      return process.env.POST_SERVICE_URL || 'http://post-service:3000';
+    }
     if (originalUrl.startsWith('/api/ticketing')) {
       return (
         process.env.TICKETING_SERVICE_URL || 'http://ticketing-service:3000'
@@ -77,6 +80,7 @@ export class ProxyService {
       params: req.query,
       data: bodyData,
       validateStatus: () => true,
+      maxRedirects: 0,
       timeout: this.resolveTimeoutMs(req.originalUrl),
       maxContentLength: Infinity,
       maxBodyLength: Infinity,

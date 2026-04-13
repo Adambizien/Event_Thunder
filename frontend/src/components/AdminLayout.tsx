@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
 const AdminLayout = () => {
@@ -9,6 +9,7 @@ const AdminLayout = () => {
     { path: '/admin', label: 'Tableau de bord' },
     { path: '/admin/plans', label: 'Gestion des plans' },
     { path: '/admin/events', label: "Création d'événements" },
+    { path: '/admin/social-posts', label: 'Posts réseaux sociaux' },
     { path: '/admin/event-categories', label: "Catégories d'événements" },
     {
       path: '/admin/subscription-transactions',
@@ -22,10 +23,6 @@ const AdminLayout = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
-
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location.pathname]);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy text-white">

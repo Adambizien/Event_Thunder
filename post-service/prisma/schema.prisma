@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PostStatus {
+  draft
+  scheduled
+  awaiting_confirmation
+  published
+  archived
+}
+
+enum SocialNetwork {
+  x
+}
+
+enum PostTargetStatus {
+  pending
+  published
+  failed
+  cancelled
+}
+
+enum PostReminderStatus {
+  pending
+  sent
+  cancelled
+}
+
+model Post {
+  id           String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_id     String?                 @db.Uuid
+  user_id      String                  @db.Uuid
+  content      String                  @db.Text
+  status       PostStatus              @default(draft)
+  scheduled_at DateTime?               @db.Timestamp(6)
+  published_at DateTime?               @db.Timestamp(6)
+  created_at   DateTime                @default(now()) @db.Timestamp(6)
+  updated_at   DateTime                @updatedAt @db.Timestamp(6)
+  targets      PostTarget[]
+  reminders    PostReminder[]
+  tokens       PostConfirmationToken[]
+
+  @@index([user_id])
+  @@index([event_id])
+  @@index([status])
+  @@index([scheduled_at])
+  @@map("posts")
+}
+
+model PostTarget {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id          String           @db.Uuid
+  network          SocialNetwork
+  status           PostTargetStatus @default(pending)
+  external_post_id String?          @db.VarChar(255)
+  error_message    String?          @db.VarChar(255)
+  created_at       DateTime         @default(now()) @db.Timestamp(6)
+  published_at     DateTime?        @db.Timestamp(6)
+  post             Post             @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, network])
+  @@index([post_id])
+  @@index([status])
+  @@map("post_targets")
+}
+
+model PostReminder {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id     String             @db.Uuid
+  reminder_at DateTime           @db.Timestamp(6)
+  message     String?            @db.VarChar(255)
+  status      PostReminderStatus @default(pending)
+  created_at  DateTime           @default(now()) @db.Timestamp(6)
+  sent_at     DateTime?          @db.Timestamp(6)
+  post        Post               @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+  @@index([status])
+  @@map("post_reminders")
+}
+
+model PostConfirmationToken {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id     String    @db.Uuid
+  token_hash  String    @unique @db.VarChar(64)
+  expires_at  DateTime  @db.Timestamp(6)
+  consumed_at DateTime? @db.Timestamp(6)
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  post        Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+  @@index([expires_at])
+  @@map("post_confirmation_tokens")
+}
+

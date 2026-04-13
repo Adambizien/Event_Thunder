@@ -37,8 +37,9 @@ SUBSCRIPTION_DATABASE="$(read_env_var SUBSCRIPTION_DATABASE)"
 TICKETING_DATABASE="$(read_env_var TICKETING_DATABASE)"
 EVENT_DATABASE="$(read_env_var EVENT_DATABASE)"
 COMMENT_DATABASE="$(read_env_var COMMENT_DATABASE)"
+POST_DATABASE="$(read_env_var POST_DATABASE)"
 
-required_vars=(POSTGRES_PORT USER_DATABASE SUBSCRIPTION_DATABASE TICKETING_DATABASE EVENT_DATABASE COMMENT_DATABASE)
+required_vars=(POSTGRES_PORT USER_DATABASE SUBSCRIPTION_DATABASE TICKETING_DATABASE EVENT_DATABASE COMMENT_DATABASE POST_DATABASE)
 for var_name in "${required_vars[@]}"; do
   if [ -z "${!var_name:-}" ]; then
     echo "[ERROR] Variable $var_name manquante dans .env"
@@ -94,7 +95,11 @@ echo "[7/8] Migration Prisma ticketing-service..."
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${TICKETING_DATABASE}?schema=public" \
   npm --prefix ticketing-service run prisma:migrate:deploy
 
-echo "[8/8] Build + démarrage de toute la stack..."
+echo "[8/9] Migration Prisma post-service..."
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${POSTGRES_PORT}/${POST_DATABASE}?schema=public" \
+  npm --prefix post-service run prisma:migrate:deploy
+
+echo "[9/9] Build + démarrage de toute la stack..."
 docker compose up -d --build
 
 echo ""

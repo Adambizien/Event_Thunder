@@ -69,6 +69,16 @@ type AuthPasswordResetPayload = {
   expiresInMinutes?: number;
 };
 
+type PostConfirmationRequestedPayload = {
+  email?: string;
+  username?: string;
+  postId?: string;
+  confirmationUrl?: string;
+  scheduledAt?: string;
+  networks?: string[];
+  contentPreview?: string;
+};
+
 @Injectable()
 export class RabbitmqConsumerService
   implements OnModuleInit, OnApplicationShutdown
@@ -87,6 +97,7 @@ export class RabbitmqConsumerService
     'billing.ticket.payment.refunded',
     'auth.mail.welcome',
     'auth.mail.password-reset',
+    'post.mail.confirmation.requested',
   ];
   private readonly retryDelayMs: number;
   private reconnectTimer?: NodeJS.Timeout;
@@ -206,6 +217,12 @@ export class RabbitmqConsumerService
         await this.handleAuthPasswordReset(payload as AuthPasswordResetPayload);
       }
 
+      if (message.fields.routingKey === 'post.mail.confirmation.requested') {
+        await this.handlePostConfirmationRequested(
+          payload as PostConfirmationRequestedPayload,
+        );
+      }
+
       this.channel.ack(message);
     } catch (error) {
       this.logger.error(
@@ -316,7 +333,9 @@ export class RabbitmqConsumerService
 
   private async handleTicketRefunded(payload: TicketRefundedPayload) {
     if (!payload.stripePaymentIntentId) {
-      this.logger.warn('billing.ticket.payment.refunded sans stripePaymentIntentId');
+      this.logger.warn(
+        'billing.ticket.payment.refunded sans stripePaymentIntentId',
+      );
       return;
     }
 
@@ -351,7 +370,9 @@ export class RabbitmqConsumerService
       ),
       eventId: enriched.eventId,
       amountTotal:
-        typeof payload.amount === 'number' ? payload.amount : enriched.amountTotal,
+        typeof payload.amount === 'number'
+          ? payload.amount
+          : enriched.amountTotal,
       currency: payload.currency ?? enriched.currency,
       ticketCount: enriched.ticketCount,
       buyerFirstname: enriched.buyerFirstname,
@@ -643,6 +664,29 @@ export class RabbitmqConsumerService
       resetUrl: payload.resetUrl,
       username,
       expiresInMinutes: payload.expiresInMinutes,
+    });
+  }
+
+  private async handlePostConfirmationRequested(
+    payload: PostConfirmationRequestedPayload,
+  ) {
+    if (!payload.email || !payload.confirmationUrl || !payload.postId) {
+      this.logger.warn(
+        'post.mail.confirmation.requested incomplet (email, confirmationUrl, postId requis)',
+      );
+      return;
+    }
+
+    await this.mailService.sendPostConfirmationRequested({
+      email: payload.email,
+      username: payload.username,
+      postId: payload.postId,
+      confirmationUrl: payload.confirmationUrl,
+      scheduledAt: payload.scheduledAt,
+      networks: Array.isArray(payload.networks)
+        ? payload.networks.map((network) => String(network))
+        : [],
+      contentPreview: payload.contentPreview,
     });
   }
 

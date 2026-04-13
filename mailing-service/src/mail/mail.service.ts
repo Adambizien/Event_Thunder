@@ -53,6 +53,16 @@ type TicketPurchaseThanksInput = {
 
 type TicketRefundSuccessInput = TicketPurchaseThanksInput;
 
+type PostConfirmationRequestedInput = {
+  email: string;
+  username?: string;
+  postId: string;
+  confirmationUrl: string;
+  scheduledAt?: string;
+  networks?: string[];
+  contentPreview?: string;
+};
+
 @Injectable()
 export class MailService {
   private readonly resend: Resend;
@@ -208,6 +218,53 @@ export class MailService {
       to: input.email,
       subject: template.subject,
       html: template.html,
+    });
+  }
+
+  async sendPostConfirmationRequested(input: PostConfirmationRequestedInput) {
+    const username = input.username ?? input.email.split('@')[0];
+    const scheduledText = input.scheduledAt
+      ? new Date(input.scheduledAt).toLocaleString('fr-FR')
+      : 'maintenant';
+    const networks = Array.isArray(input.networks)
+      ? input.networks.map((network) => network.toUpperCase()).join(' et ')
+      : 'reseaux selectionnes';
+
+    const html = `
+      <!doctype html>
+      <html lang="fr">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Confirmation de publication</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 24px; color: #111827;">
+          <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden;">
+            <div style="background: #0f766e; color: #ffffff; padding: 20px 24px;">
+              <h1 style="margin: 0; font-size: 20px;">Confirmation de publication</h1>
+            </div>
+            <div style="padding: 20px 24px;">
+              <p>Bonjour ${username},</p>
+              <p>Votre post planifie pour <strong>${scheduledText}</strong> est pret a etre publie sur <strong>${networks}</strong>.</p>
+              ${
+                input.contentPreview
+                  ? `<p style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px;"><em>${input.contentPreview}</em></p>`
+                  : ''
+              }
+              <p style="margin-top: 22px;">
+                <a href="${input.confirmationUrl}" style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 12px 16px; border-radius: 8px; font-weight: 600;">Confirmer et publier</a>
+              </p>
+              <p style="font-size: 12px; color: #6b7280; margin-top: 18px;">Post ID: ${input.postId}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: input.email,
+      subject: `${this.productName} - Confirmation de publication`,
+      html,
     });
   }
 

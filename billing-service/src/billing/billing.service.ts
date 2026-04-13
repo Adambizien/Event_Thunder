@@ -159,7 +159,8 @@ export class BillingService {
       throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
     }
 
-    const existing = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+    const existing =
+      await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
 
     if (existing.status === 'canceled') {
       throw new BadRequestException(
@@ -475,12 +476,12 @@ export class BillingService {
           ? new Date(subscription.canceled_at * 1000).toISOString()
           : subscription.cancel_at_period_end
             ? new Date().toISOString()
-          : null,
+            : null,
         endedAt: subscription.ended_at
           ? new Date(subscription.ended_at * 1000).toISOString()
           : subscription.cancel_at_period_end
-            ? period.end ?? null
-          : null,
+            ? (period.end ?? null)
+            : null,
       },
     );
   }
@@ -505,12 +506,12 @@ export class BillingService {
           ? new Date(subscription.canceled_at * 1000).toISOString()
           : subscription.cancel_at_period_end
             ? new Date().toISOString()
-          : null,
+            : null,
         endedAt: subscription.ended_at
           ? new Date(subscription.ended_at * 1000).toISOString()
           : subscription.cancel_at_period_end
-            ? period.end ?? null
-          : null,
+            ? (period.end ?? null)
+            : null,
       },
     );
   }
@@ -792,17 +793,20 @@ export class BillingService {
     invoicePdfUrl?: string | null;
     receiptUrl?: string | null;
   }): Promise<void> {
-    await this.rabbitmqPublisher.publishWithRetry('billing.ticket.payment.refunded', {
-      stripePaymentIntentId: payload.stripePaymentIntentId,
-      stripeRefundId: payload.stripeRefundId,
-      amount: payload.amount,
-      currency: payload.currency,
-      reason: payload.reason,
-      refundedAt: payload.refundedAt ?? new Date().toISOString(),
-      hostedInvoiceUrl: payload.hostedInvoiceUrl ?? null,
-      invoicePdfUrl: payload.invoicePdfUrl ?? null,
-      receiptUrl: payload.receiptUrl ?? null,
-    });
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.ticket.payment.refunded',
+      {
+        stripePaymentIntentId: payload.stripePaymentIntentId,
+        stripeRefundId: payload.stripeRefundId,
+        amount: payload.amount,
+        currency: payload.currency,
+        reason: payload.reason,
+        refundedAt: payload.refundedAt ?? new Date().toISOString(),
+        hostedInvoiceUrl: payload.hostedInvoiceUrl ?? null,
+        invoicePdfUrl: payload.invoicePdfUrl ?? null,
+        receiptUrl: payload.receiptUrl ?? null,
+      },
+    );
   }
 
   private extractPriceIdFromSubscription(
@@ -830,7 +834,10 @@ export class BillingService {
   private mapSubscriptionStatus(
     subscription: Stripe.Subscription,
   ): 'active' | 'canceled' {
-    if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
+    if (
+      subscription.status === 'canceled' ||
+      subscription.cancel_at_period_end
+    ) {
       return 'canceled';
     }
 

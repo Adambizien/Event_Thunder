@@ -173,7 +173,10 @@ export class BillingController {
   @Post('tickets/refund')
   @UseGuards(AuthGuard)
   async createTicketRefund(@Body() dto: CreateTicketRefundDto) {
-    this.ensureNonEmptyString(dto.stripePaymentIntentId, 'stripePaymentIntentId');
+    this.ensureNonEmptyString(
+      dto.stripePaymentIntentId,
+      'stripePaymentIntentId',
+    );
     if (
       dto.reason !== undefined &&
       dto.reason !== 'duplicate' &&
