@@ -5,15 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  PostStatus,
-  PostTargetStatus,
-  SocialNetwork,
-  type Post,
-} from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 import { RabbitmqPublisherService } from '../rabbitmq/rabbitmq-publisher.service';
 import { readSecret } from '../utils/secret.util';
 
@@ -22,6 +17,14 @@ type UserLookup = {
   email?: string;
   firstName?: string;
   lastName?: string;
+};
+
+type PostForReminder = {
+  id: string;
+  user_id: string;
+  content: string;
+  scheduled_at: Date | null;
+  targets: Array<{ network: 'x' }>;
 };
 
 @Injectable()
@@ -55,7 +58,7 @@ export class PostsService {
       );
     }
 
-    const status = scheduledAt ? PostStatus.scheduled : PostStatus.draft;
+    const status = scheduledAt ? 'scheduled' : 'draft';
 
     return this.prisma.post.create({
       data: {
@@ -67,7 +70,7 @@ export class PostsService {
         targets: {
           create: dto.networks.map((network) => ({
             network,
-            status: PostTargetStatus.pending,
+            status: 'pending',
           })),
         },
       },
@@ -98,7 +101,7 @@ export class PostsService {
   listPublic() {
     return this.prisma.post.findMany({
       where: {
-        status: PostStatus.published,
+        status: 'published',
       },
       include: {
         targets: true,
@@ -131,7 +134,7 @@ export class PostsService {
     const isOwner = userId === post.user_id;
     const isAdmin = userRole === 'Admin';
 
-    if (!isOwner && !isAdmin && post.status !== PostStatus.published) {
+    if (!isOwner && !isAdmin && post.status !== 'published') {
       throw new ForbiddenException('Post inaccessible');
     }
 
@@ -146,7 +149,7 @@ export class PostsService {
     const now = new Date();
     const duePosts = await this.prisma.post.findMany({
       where: {
-        status: PostStatus.scheduled,
+        status: 'scheduled',
         scheduled_at: {
           lte: now,
         },
@@ -260,7 +263,7 @@ export class PostsService {
     await this.prisma.post.update({
       where: { id: dbToken.post.id },
       data: {
-        status: PostStatus.published,
+        status: 'published',
         published_at: now,
       },
     });
@@ -268,7 +271,7 @@ export class PostsService {
     await this.prisma.postTarget.updateMany({
       where: { post_id: dbToken.post.id },
       data: {
-        status: PostTargetStatus.published,
+        status: 'published',
         published_at: now,
         external_post_id: 'manual_x_publish',
         error_message: null,
@@ -318,10 +321,7 @@ export class PostsService {
       throw new ForbiddenException('Suppression non autorisee');
     }
 
-    if (
-      post.status === PostStatus.published ||
-      post.status === PostStatus.archived
-    ) {
+    if (post.status === 'published' || post.status === 'archived') {
       throw new BadRequestException(
         'Seuls les posts non publies peuvent etre supprimes',
       );
@@ -332,9 +332,107 @@ export class PostsService {
     return { message: 'Post supprime' };
   }
 
-  private async sendConfirmationEmail(
-    post: Post & { targets: { network: SocialNetwork }[] },
-  ) {
+  async updateMine(postId: string, userId: string, dto: UpdatePostDto) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        user_id: true,
+        status: true,
+        content: true,
+        event_id: true,
+        scheduled_at: true,
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post introuvable');
+    }
+
+    if (post.user_id !== userId) {
+      throw new ForbiddenException('Modification non autorisee');
+    }
+
+    if (
+      post.status === 'published' ||
+      post.status === 'archived' ||
+      post.status === 'awaiting_confirmation'
+    ) {
+      throw new BadRequestException('Ce post ne peut pas etre modifie');
+    }
+
+    const hasAnyUpdate =
+      dto.content !== undefined ||
+      dto.event_id !== undefined ||
+      dto.scheduled_at !== undefined ||
+      dto.networks !== undefined;
+
+    if (!hasAnyUpdate) {
+      throw new BadRequestException('Aucune modification fournie');
+    }
+
+    let nextScheduledAt = post.scheduled_at;
+    if (dto.scheduled_at !== undefined) {
+      if (dto.scheduled_at === null) {
+        nextScheduledAt = null;
+      } else {
+        const scheduledAtDate = new Date(dto.scheduled_at);
+        if (Number.isNaN(scheduledAtDate.getTime())) {
+          throw new BadRequestException('Date de planification invalide');
+        }
+
+        if (scheduledAtDate <= new Date()) {
+          throw new BadRequestException(
+            'La date planifiee doit etre dans le futur',
+          );
+        }
+
+        nextScheduledAt = scheduledAtDate;
+      }
+    }
+
+    const nextStatus = nextScheduledAt ? 'scheduled' : 'draft';
+    const nextContent = dto.content ?? post.content;
+
+    if (!nextContent.trim()) {
+      throw new BadRequestException('Le contenu du post est requis');
+    }
+
+    const nextEventId =
+      dto.event_id === undefined ? post.event_id : dto.event_id;
+
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.networks) {
+        await tx.postTarget.deleteMany({ where: { post_id: postId } });
+      }
+
+      const updatedPost = await tx.post.update({
+        where: { id: postId },
+        data: {
+          content: nextContent,
+          event_id: nextEventId,
+          scheduled_at: nextScheduledAt,
+          status: nextStatus,
+          published_at: null,
+          targets: dto.networks
+            ? {
+                create: dto.networks.map((network) => ({
+                  network,
+                  status: 'pending',
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          targets: true,
+        },
+      });
+
+      return updatedPost;
+    });
+  }
+
+  private async sendConfirmationEmail(post: PostForReminder) {
     const existingReminder = await this.prisma.postReminder.findFirst({
       where: {
         post_id: post.id,
@@ -396,7 +494,7 @@ export class PostsService {
         id: post.id,
       },
       data: {
-        status: PostStatus.awaiting_confirmation,
+        status: 'awaiting_confirmation',
       },
     });
 
@@ -473,7 +571,7 @@ export class PostsService {
     await this.prisma.post.update({
       where: { id: postId },
       data: {
-        status: PostStatus.archived,
+        status: 'archived',
         published_at: null,
       },
     });
@@ -481,7 +579,7 @@ export class PostsService {
     await this.prisma.postTarget.updateMany({
       where: { post_id: postId },
       data: {
-        status: PostTargetStatus.cancelled,
+        status: 'cancelled',
         published_at: null,
         external_post_id: null,
         error_message: reason.slice(0, 255),

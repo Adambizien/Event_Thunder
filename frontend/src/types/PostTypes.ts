@@ -50,3 +50,10 @@ export type CreatePostPayload = {
   scheduled_at?: string;
   networks: SocialNetwork[];
 };
+
+export type UpdatePostPayload = {
+  event_id?: string;
+  content?: string;
+  scheduled_at?: string;
+  networks?: SocialNetwork[];
+};

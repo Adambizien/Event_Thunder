@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Headers,
+  Patch,
   Param,
   ParseUUIDPipe,
   Post,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { ConfirmPostDto } from './dto/confirm-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 import { PostsService } from './posts.service';
 
 @Controller('api/posts')
@@ -47,6 +49,19 @@ export class PostsController {
     }
 
     return this.postsService.create(userId, dto);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', new ParseUUIDPipe()) postId: string,
+    @Body() dto: UpdatePostDto,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('Connexion requise');
+    }
+
+    return this.postsService.updateMine(postId, userId, dto);
   }
 
   @Post(':id/confirm')

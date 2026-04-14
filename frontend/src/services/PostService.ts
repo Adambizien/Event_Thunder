@@ -2,6 +2,7 @@ import api from './api';
 import type {
   CreatePostPayload,
   PostItem,
+  UpdatePostPayload,
 } from '../types/PostTypes';
 
 export const postService = {
@@ -13,6 +14,11 @@ export const postService = {
 
   async createPost(payload: CreatePostPayload): Promise<PostItem> {
     const response = await api.post('/api/posts', payload);
+    return response.data as PostItem;
+  },
+
+  async updatePost(postId: string, payload: UpdatePostPayload): Promise<PostItem> {
+    const response = await api.patch(`/api/posts/${postId}`, payload);
     return response.data as PostItem;
   },
 
