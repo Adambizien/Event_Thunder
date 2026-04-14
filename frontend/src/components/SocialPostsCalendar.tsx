@@ -19,6 +19,22 @@ const statusLabel: Record<PostStatus, string> = {
   archived: 'Annule',
 };
 
+const statusCardStyle: Record<PostStatus, string> = {
+  draft: 'border-white/20 bg-white/5 text-white/80',
+  scheduled: 'border-white/30 bg-white/10 text-white',
+  awaiting_confirmation: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
+  published: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
+  archived: 'border-red-500/40 bg-red-500/15 text-red-100',
+};
+
+const statusBadgeStyle: Record<PostStatus, string> = {
+  draft: 'border-white/30 bg-white/10 text-white',
+  scheduled: 'border-white/40 bg-white/20 text-white',
+  awaiting_confirmation: 'border-amber-400/50 bg-amber-400/20 text-amber-100',
+  published: 'border-emerald-400/50 bg-emerald-400/20 text-emerald-100',
+  archived: 'border-red-500/50 bg-red-500/20 text-red-100',
+};
+
 const toLocalDayKey = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -81,6 +97,10 @@ const formatTime = (value?: string | null) => {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+};
+
+const formatWeekdayShort = (value: Date) => {
+  return new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(value);
 };
 
 const truncate = (value: string, maxLength: number) => {
@@ -181,7 +201,7 @@ const SocialPostsCalendar = ({
           {formatMonthYear(calendarMonth)}
         </div>
 
-        <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div className="hidden grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-400 md:grid">
           {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((weekday) => (
             <div key={weekday} className="rounded-md border border-white/10 bg-black/20 px-2 py-2">
               {weekday}
@@ -189,7 +209,7 @@ const SocialPostsCalendar = ({
           ))}
         </div>
 
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
           {monthDays.map((day) => {
             const dayKey = toLocalDayKey(day);
             const dayPosts = postsByDay.get(dayKey) ?? [];
@@ -210,12 +230,17 @@ const SocialPostsCalendar = ({
                     : 'border-white/10 bg-black/10 opacity-60'
                 } ${isClickable ? 'cursor-pointer transition hover:border-thunder-gold/50 hover:bg-black/30' : ''}`}
               >
-                <div className="mb-2 text-sm font-semibold text-white">{day.getDate()}</div>
+                <div className="mb-2 flex items-center justify-between text-sm font-semibold text-white">
+                  <span>{day.getDate()}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-gray-400 md:hidden">
+                    {formatWeekdayShort(day)}
+                  </span>
+                </div>
                 <div className="space-y-2">
                   {dayPosts.slice(0, 3).map((post) => (
                     <div
                       key={post.id}
-                      className="w-full rounded-md border border-thunder-gold/40 bg-thunder-gold/15 px-2 py-1 text-left text-xs text-thunder-gold"
+                      className={`w-full rounded-md border px-2 py-1 text-left text-xs ${statusCardStyle[post.status]}`}
                     >
                       <div className="font-semibold">{formatTime(post.scheduled_at)}</div>
                       <div>{truncate(post.content, 46)}</div>
@@ -249,7 +274,9 @@ const SocialPostsCalendar = ({
                 <article key={post.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full border border-thunder-gold/40 bg-thunder-gold/20 px-3 py-1 text-xs font-semibold text-thunder-gold">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeStyle[post.status]}`}
+                      >
                         {statusLabel[post.status]}
                       </span>
                       <span className="text-sm font-semibold text-white">
