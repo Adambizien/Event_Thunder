@@ -60,6 +60,6 @@ export type CreatePostPayload = {
 export type UpdatePostPayload = {
   event_id?: string;
   content?: string;
-  scheduled_at?: string;
+  scheduled_at?: string | null;
   networks?: SocialNetwork[];
 };

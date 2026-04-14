@@ -7,6 +7,7 @@ type SocialPostFormModalProps = {
   isOpen: boolean;
   isEditing: boolean;
   events: EventItem[];
+  postMode: 'draft' | 'scheduled';
   content: string;
   eventId: string;
   scheduledAt: string;
@@ -17,6 +18,7 @@ type SocialPostFormModalProps = {
   onSubmit: (e: FormEvent) => void;
   onContentChange: (value: string) => void;
   onEventIdChange: (value: string) => void;
+  onPostModeChange: (value: 'draft' | 'scheduled') => void;
   onScheduledAtChange: (value: string) => void;
   onNetworksChange: (networks: SocialNetwork[]) => void;
 };
@@ -25,6 +27,7 @@ const SocialPostFormModal = ({
   isOpen,
   isEditing,
   events,
+  postMode,
   content,
   eventId,
   scheduledAt,
@@ -35,6 +38,7 @@ const SocialPostFormModal = ({
   onSubmit,
   onContentChange,
   onEventIdChange,
+  onPostModeChange,
   onScheduledAtChange,
   onNetworksChange,
 }: SocialPostFormModalProps) => {
@@ -52,6 +56,25 @@ const SocialPostFormModal = ({
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-300">Statut</label>
+          <select
+            value={postMode}
+            onChange={(e) => onPostModeChange(e.target.value as 'draft' | 'scheduled')}
+            className="w-full rounded border border-white/20 bg-white/10 px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+          >
+            <option value="draft" className="bg-thunder-dark text-white">
+              Brouillon
+            </option>
+            <option value="scheduled" className="bg-thunder-dark text-white">
+              Programme
+            </option>
+          </select>
+          <p className="mt-1 text-xs text-gray-400">
+            En brouillon, aucun e-mail de confirmation n'est envoye.
+          </p>
+        </div>
+
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-300">Contenu</label>
           <textarea
@@ -89,17 +112,19 @@ const SocialPostFormModal = ({
           </select>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-300">
-            Date de planification
-          </label>
-          <input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => onScheduledAtChange(e.target.value)}
-            className="w-full rounded border border-white/20 bg-white/10 px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-          />
-        </div>
+        {postMode === 'scheduled' && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-300">
+              Date de planification
+            </label>
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => onScheduledAtChange(e.target.value)}
+              className="w-full rounded border border-white/20 bg-white/10 px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+            />
+          </div>
+        )}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-300">Reseau</label>
@@ -129,6 +154,8 @@ const SocialPostFormModal = ({
               ? 'Sauvegarde...'
               : isEditing
               ? 'Modifier le post'
+              : postMode === 'draft'
+              ? 'Enregistrer le brouillon'
               : 'Programmer le post'}
           </button>
           <button

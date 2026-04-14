@@ -22,6 +22,93 @@ const toDateInputValue = (date: Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const statusLabel: Record<PostItem['status'], string> = {
+  draft: 'Brouillon',
+  scheduled: 'Programme',
+  awaiting_confirmation: 'En attente de confirmation',
+  published: 'Publie',
+  archived: 'Annule',
+};
+
+const statusBadgeClass: Record<PostItem['status'], string> = {
+  draft: 'border-white/30 bg-white/10 text-white',
+  scheduled: 'border-white/40 bg-white/20 text-white',
+  awaiting_confirmation: 'border-amber-400/50 bg-amber-400/20 text-amber-100',
+  published: 'border-emerald-400/50 bg-emerald-400/20 text-emerald-100',
+  archived: 'border-red-500/50 bg-red-500/20 text-red-100',
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
+const findConfirmationSentAt = (post: PostItem) => {
+  const reminder = post.reminders?.find((entry) =>
+    entry.message?.toLowerCase().includes('confirmation'),
+  );
+  const dateValue = reminder?.sent_at ?? reminder?.created_at;
+  if (!dateValue) {
+    return null;
+  }
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+};
+
+const getExpirationDate = (post: PostItem) => {
+  const sentAt = findConfirmationSentAt(post);
+  if (!sentAt) {
+    return null;
+  }
+
+  return new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
+};
+
+const formatRemainingTime = (ms: number) => {
+  if (ms <= 0) {
+    return 'Expire';
+  }
+
+  const totalMinutes = Math.ceil(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours <= 0) {
+    return `${minutes} min`;
+  }
+
+  return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+};
+
+const getOwnerFullName = (post: PostItem) => {
+  const fullName = `${post.owner?.firstName ?? ''} ${post.owner?.lastName ?? ''}`.trim();
+  return fullName || '-';
+};
+
+const getOwnerEmail = (post: PostItem) => {
+  return post.owner?.email?.trim() || '-';
+};
+
+const getOwnerId = (post: PostItem) => {
+  return post.owner?.id || post.user_id || '-';
+};
+
 
 
 
@@ -38,9 +125,11 @@ const AdminSocialPosts = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterQuery, setFilterQuery] = useState('');
   const [filterDate, setFilterDate] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
 
   const [content, setContent] = useState('');
   const [eventId, setEventId] = useState('');
+  const [postMode, setPostMode] = useState<'draft' | 'scheduled'>('scheduled');
   const [scheduledAt, setScheduledAt] = useState(() => {
     const base = new Date();
     base.setMinutes(base.getMinutes() + 30);
@@ -138,6 +227,7 @@ const AdminSocialPosts = () => {
     setEditingPostId(post.id);
     setContent(post.content);
     setEventId(post.event_id ?? '');
+    setPostMode(post.scheduled_at ? 'scheduled' : 'draft');
     const base = post.scheduled_at ? new Date(post.scheduled_at) : new Date();
     if (!post.scheduled_at) {
       base.setMinutes(base.getMinutes() + 30);
@@ -171,6 +261,7 @@ const AdminSocialPosts = () => {
   const resetForm = () => {
     setContent('');
     setEventId('');
+    setPostMode('scheduled');
     const base = new Date();
     base.setMinutes(base.getMinutes() + 30);
     setScheduledAt(toDateInputValue(base));
@@ -195,15 +286,18 @@ const AdminSocialPosts = () => {
       return;
     }
 
-    const scheduledDate = new Date(scheduledAt);
-    if (Number.isNaN(scheduledDate.getTime())) {
-      setFormError('Date de planification invalide.');
-      return;
-    }
+    let scheduledDate: Date | null = null;
+    if (postMode === 'scheduled') {
+      scheduledDate = new Date(scheduledAt);
+      if (Number.isNaN(scheduledDate.getTime())) {
+        setFormError('Date de planification invalide.');
+        return;
+      }
 
-    if (scheduledDate <= new Date()) {
-      setFormError('La date de planification doit etre dans le futur.');
-      return;
+      if (scheduledDate <= new Date()) {
+        setFormError('La date de planification doit etre dans le futur.');
+        return;
+      }
     }
 
     try {
@@ -215,21 +309,29 @@ const AdminSocialPosts = () => {
       if (editingPostId) {
         const updatePayload: UpdatePostPayload = {
           content: cleanedContent,
-          scheduled_at: scheduledDate.toISOString(),
+          scheduled_at: scheduledDate ? scheduledDate.toISOString() : null,
           networks: selectedNetworks,
           event_id: eventId || undefined,
         };
         await postService.updatePost(editingPostId, updatePayload);
-        setSuccess('Post modifie avec succes.');
+        setSuccess(
+          postMode === 'draft'
+            ? 'Brouillon modifie avec succes.'
+            : 'Post programme modifie avec succes.',
+        );
       } else {
         const payload: CreatePostPayload = {
           content: cleanedContent,
-          scheduled_at: scheduledDate.toISOString(),
+          scheduled_at: scheduledDate ? scheduledDate.toISOString() : undefined,
           networks: selectedNetworks,
           event_id: eventId || undefined,
         };
         await postService.createPost(payload);
-        setSuccess('Post programme avec succes. Un e-mail de confirmation sera envoye a l heure planifiee.');
+        setSuccess(
+          postMode === 'draft'
+            ? 'Brouillon cree avec succes. Aucun e-mail de confirmation n est envoye.'
+            : 'Post programme avec succes. Un e-mail de confirmation sera envoye a l heure planifiee.',
+        );
       }
 
       closeFormModal();
@@ -303,6 +405,7 @@ const AdminSocialPosts = () => {
         isOpen={showFormModal}
         isEditing={Boolean(editingPostId)}
         events={events}
+        postMode={postMode}
         content={content}
         eventId={eventId}
         scheduledAt={scheduledAt}
@@ -313,12 +416,41 @@ const AdminSocialPosts = () => {
         onSubmit={handleSubmit}
         onContentChange={setContent}
         onEventIdChange={setEventId}
+        onPostModeChange={setPostMode}
         onScheduledAtChange={setScheduledAt}
         onNetworksChange={setSelectedNetworks}
       />
 
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
         <div className="flex flex-wrap items-end gap-4">
+          <div className="min-w-[220px]">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Affichage
+            </label>
+            <div className="flex overflow-hidden rounded-lg border border-white/20 bg-black/30">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`flex-1 px-3 py-2 text-sm transition ${
+                  viewMode === 'table' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
+                }`}
+              >
+                Tableau
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('calendar')}
+                className={`flex-1 px-3 py-2 text-sm transition ${
+                  viewMode === 'calendar'
+                    ? 'bg-white/20 text-white'
+                    : 'text-gray-300 hover:bg-white/10'
+                }`}
+              >
+                Calendrier
+              </button>
+            </div>
+          </div>
+
           <div className="min-w-[180px]">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
               Statut
@@ -376,15 +508,135 @@ const AdminSocialPosts = () => {
         </div>
       </section>
 
-      <SocialPostsCalendar
-        posts={filteredPosts}
-        eventNameById={eventNameById}
-        onEditPost={openEditModal}
-        onDeletePost={handleDeletePost}
-        canEditPost={canEditPost}
-        canDeletePost={canDeletePost}
-        deletingPostId={deletingPostId}
-      />
+      {viewMode === 'table' ? (
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 className="text-xl font-semibold text-white">Liste des posts</h2>
+            <span className="text-sm text-gray-300">{filteredPosts.length} resultat(s)</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-[980px] w-full border-collapse text-left text-sm text-gray-200">
+              <thead>
+                <tr className="border-b border-white/15 text-xs uppercase tracking-wide text-gray-400">
+                  <th className="px-3 py-3">Programmation</th>
+                  <th className="px-3 py-3">Contenu</th>
+                  <th className="px-3 py-3">Details</th>
+                  <th className="px-3 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPosts.map((post) => {
+                  const editingAllowed = canEditPost(post);
+                  const deletingAllowed = canDeletePost(post);
+                  const eventName = post.event_id
+                    ? eventNameById.get(post.event_id) ?? post.event_id
+                    : '-';
+                  const networks =
+                    post.targets.length > 0
+                      ? post.targets.map((target) => target.network.toUpperCase()).join(', ')
+                      : '-';
+                  const cancellationReason =
+                    post.status === 'archived'
+                      ? post.targets.find((target) => target.error_message)?.error_message
+                      : null;
+                  const expiresAt = getExpirationDate(post);
+                  const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
+                  const ownerFullName = getOwnerFullName(post);
+                  const ownerEmail = getOwnerEmail(post);
+                  const ownerId = getOwnerId(post);
+
+                  return (
+                    <tr key={post.id} className="border-b border-white/10 align-top">
+                      <td className="px-3 py-3">
+                        <div className="space-y-2">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeClass[post.status]}`}
+                          >
+                            {statusLabel[post.status]}
+                          </span>
+                          <p className="text-xs text-gray-300">Planifie le: {formatDateTime(post.scheduled_at)}</p>
+                          <p className="text-xs text-gray-400">Cree le: {formatDateTime(post.created_at)}</p>
+                          <p className="text-xs text-gray-400">Mis a jour le: {formatDateTime(post.updated_at)}</p>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <p className="whitespace-pre-wrap text-sm text-gray-100">{post.content}</p>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="space-y-1 text-xs text-gray-200">
+                          <p>Type: {networks}</p>
+                          <p>Evenement: {eventName}</p>
+                          <p>Nom complet: {ownerFullName}</p>
+                          <p>Email: {ownerEmail}</p>
+                          <p>ID: {ownerId}</p>
+                          {post.status === 'published' && (
+                            <p>Publie le: {formatDateTime(post.published_at)}</p>
+                          )}
+                          {post.status === 'archived' && (
+                            <p>Annule le: {formatDateTime(post.updated_at)}</p>
+                          )}
+                          {post.status === 'archived' && cancellationReason && (
+                            <p>Raison: {cancellationReason}</p>
+                          )}
+                          {expiresAt &&
+                            post.status === 'archived' &&
+                            remainingMs !== null &&
+                            remainingMs <= 0 && (
+                              <p>Expire le: {formatDateTime(expiresAt.toISOString())}</p>
+                            )}
+                          {post.status === 'awaiting_confirmation' &&
+                            expiresAt &&
+                            remainingMs !== null && (
+                              <>
+                                <p>Expiration: {formatDateTime(expiresAt.toISOString())}</p>
+                                <p>Temps restant: {formatRemainingTime(remainingMs)}</p>
+                              </>
+                            )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(post)}
+                            disabled={!editingAllowed}
+                            className="rounded-md border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePost(post)}
+                            disabled={!deletingAllowed || deletingPostId === post.id}
+                            className="rounded-md border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-200 transition hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {deletingPostId === post.id ? 'Suppression...' : 'Supprimer'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredPosts.length === 0 && (
+            <p className="mt-4 text-sm text-gray-300">Aucun post trouve avec ces filtres.</p>
+          )}
+        </section>
+      ) : (
+        <SocialPostsCalendar
+          posts={filteredPosts}
+          eventNameById={eventNameById}
+          onEditPost={openEditModal}
+          onDeletePost={handleDeletePost}
+          canEditPost={canEditPost}
+          canDeletePost={canDeletePost}
+          deletingPostId={deletingPostId}
+        />
+      )}
     </div>
   );
 };
