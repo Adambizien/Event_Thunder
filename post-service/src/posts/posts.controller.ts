@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Headers,
   Patch,
@@ -31,6 +32,15 @@ export class PostsController {
     }
 
     return this.postsService.listMine(userId);
+  }
+
+  @Get('admin')
+  getAllForAdmin(@Headers('x-user-role') userRole?: string) {
+    if (userRole !== 'Admin') {
+      throw new ForbiddenException('Accès administrateur requis');
+    }
+
+    return this.postsService.listAllForAdmin();
   }
 
   @Get(':id')

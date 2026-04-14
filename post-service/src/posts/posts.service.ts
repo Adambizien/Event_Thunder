@@ -98,6 +98,41 @@ export class PostsService {
     });
   }
 
+  async listAllForAdmin() {
+    const posts = await this.prisma.post.findMany({
+      include: {
+        targets: true,
+        reminders: {
+          orderBy: {
+            created_at: 'desc',
+          },
+          take: 3,
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    const uniqueUserIds = Array.from(
+      new Set(posts.map((post) => post.user_id).filter(Boolean)),
+    );
+
+    const ownerEntries = await Promise.all(
+      uniqueUserIds.map(async (userId) => {
+        const user = await this.fetchUser(userId);
+        return [userId, user] as const;
+      }),
+    );
+
+    const ownerById = new Map(ownerEntries);
+
+    return posts.map((post) => ({
+      ...post,
+      owner: ownerById.get(post.user_id) ?? null,
+    }));
+  }
+
   listPublic() {
     return this.prisma.post.findMany({
       where: {

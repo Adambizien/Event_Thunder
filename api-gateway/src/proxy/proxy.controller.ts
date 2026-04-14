@@ -191,6 +191,10 @@ export class ProxyController {
       return true;
     }
 
+    if (path === '/api/posts/admin' && method === 'GET') {
+      return true;
+    }
+
     if (
       /^\/api\/ticketing\/events\/[^/]+\/types$/.test(path) &&
       method === 'PUT'

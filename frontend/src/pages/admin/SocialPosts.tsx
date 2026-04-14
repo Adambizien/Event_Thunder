@@ -35,6 +35,9 @@ const AdminSocialPosts = () => {
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterQuery, setFilterQuery] = useState('');
+  const [filterDate, setFilterDate] = useState('');
 
   const [content, setContent] = useState('');
   const [eventId, setEventId] = useState('');
@@ -54,6 +57,53 @@ const AdminSocialPosts = () => {
       ),
     [events],
   );
+
+  const toLocalDayKey = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const filteredPosts = useMemo(() => {
+    const query = filterQuery.trim().toLowerCase();
+    return posts.filter((post) => {
+      if (filterStatus !== 'all' && post.status !== filterStatus) {
+        return false;
+      }
+
+      if (filterDate) {
+        const scheduledDate = post.scheduled_at ? new Date(post.scheduled_at) : null;
+        if (!scheduledDate || Number.isNaN(scheduledDate.getTime())) {
+          return false;
+        }
+        if (toLocalDayKey(scheduledDate) !== filterDate) {
+          return false;
+        }
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const owner = post.owner;
+      const ownerFullName = `${owner?.firstName ?? ''} ${owner?.lastName ?? ''}`.trim();
+      const eventName = post.event_id ? eventNameById.get(post.event_id) ?? '' : '';
+
+      const haystack = [
+        post.content,
+        post.user_id,
+        owner?.id ?? '',
+        owner?.email ?? '',
+        ownerFullName,
+        eventName,
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [eventNameById, filterDate, filterQuery, filterStatus, posts]);
 
   const canEditPost = (post: PostItem) => {
     return post.status === 'draft' || post.status === 'scheduled';
@@ -102,7 +152,7 @@ const AdminSocialPosts = () => {
     try {
       const [loadedEvents, loadedPosts] = await Promise.all([
         eventService.fetchEvents(),
-        postService.fetchMyPosts(),
+        postService.fetchAdminPosts().catch(() => postService.fetchMyPosts()),
       ]);
       setEvents(loadedEvents);
       setPosts(loadedPosts);
@@ -267,8 +317,67 @@ const AdminSocialPosts = () => {
         onNetworksChange={setSelectedNetworks}
       />
 
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="min-w-[180px]">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Statut
+            </label>
+            <select
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+              className="w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-sm text-white"
+            >
+              <option value="all">Tous</option>
+              <option value="draft">Brouillon</option>
+              <option value="scheduled">Programmé</option>
+              <option value="awaiting_confirmation">En attente de confirmation</option>
+              <option value="published">Publié</option>
+              <option value="archived">Annulé</option>
+            </select>
+          </div>
+
+          <div className="flex-1 min-w-[220px]">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Recherche
+            </label>
+            <input
+              type="text"
+              value={filterQuery}
+              onChange={(event) => setFilterQuery(event.target.value)}
+              placeholder="Nom, email, contenu, évènement..."
+              className="w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-gray-500"
+            />
+          </div>
+
+          <div className="min-w-[180px]">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Date
+            </label>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(event) => setFilterDate(event.target.value)}
+              className="w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-sm text-white"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setFilterStatus('all');
+              setFilterQuery('');
+              setFilterDate('');
+            }}
+            className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/20"
+          >
+            Réinitialiser
+          </button>
+        </div>
+      </section>
+
       <SocialPostsCalendar
-        posts={posts}
+        posts={filteredPosts}
         eventNameById={eventNameById}
         onEditPost={openEditModal}
         onDeletePost={handleDeletePost}

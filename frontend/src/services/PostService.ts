@@ -12,6 +12,12 @@ export const postService = {
     return Array.isArray(data) ? (data as PostItem[]) : [];
   },
 
+  async fetchAdminPosts(): Promise<PostItem[]> {
+    const response = await api.get('/api/posts/admin');
+    const data = response.data;
+    return Array.isArray(data) ? (data as PostItem[]) : [];
+  },
+
   async createPost(payload: CreatePostPayload): Promise<PostItem> {
     const response = await api.post('/api/posts', payload);
     return response.data as PostItem;

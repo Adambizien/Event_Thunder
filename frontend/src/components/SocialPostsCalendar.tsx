@@ -164,6 +164,19 @@ const truncate = (value: string, maxLength: number) => {
   return `${value.slice(0, maxLength - 1)}...`;
 };
 
+const getOwnerFullName = (post: PostItem) => {
+  const fullName = `${post.owner?.firstName ?? ''} ${post.owner?.lastName ?? ''}`.trim();
+  return fullName || '-';
+};
+
+const getOwnerEmail = (post: PostItem) => {
+  return post.owner?.email?.trim() || '-';
+};
+
+const getOwnerId = (post: PostItem) => {
+  return post.owner?.id || post.user_id || '-';
+};
+
 const SocialPostsCalendar = ({
   posts,
   eventNameById,
@@ -299,6 +312,9 @@ const SocialPostsCalendar = ({
                     >
                       <div className="font-semibold">{formatTime(post.scheduled_at)}</div>
                       <div>{truncate(post.content, 46)}</div>
+                      <div className="mt-1 truncate text-[11px] text-gray-200">
+                        {getOwnerEmail(post)}
+                      </div>
                     </div>
                   ))}
                   {dayPosts.length > 3 && (
@@ -327,6 +343,9 @@ const SocialPostsCalendar = ({
               const eventName = post.event_id
                 ? eventNameById?.get(post.event_id) ?? post.event_id
                 : '-';
+              const ownerFullName = getOwnerFullName(post);
+              const ownerEmail = getOwnerEmail(post);
+              const ownerId = getOwnerId(post);
               const networks =
                 post.targets.length > 0
                   ? post.targets.map((target) => target.network.toUpperCase()).join(', ')
@@ -382,6 +401,9 @@ const SocialPostsCalendar = ({
                   <div className="mt-3 grid gap-2 text-xs text-gray-200 sm:grid-cols-2">
                     <p>Type: {networks}</p>
                     <p>Événement: {eventName}</p>
+                    <p>Nom complet: {ownerFullName}</p>
+                    <p>Email: {ownerEmail}</p>
+                    <p className="sm:col-span-2">ID: {ownerId}</p>
                     {post.status === 'published' && (
                       <p>Publié le: {formatDateTime(post.published_at)}</p>
                     )}

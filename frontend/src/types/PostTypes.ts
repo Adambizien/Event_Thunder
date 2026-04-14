@@ -34,6 +34,12 @@ export type PostItem = {
   id: string;
   event_id?: string | null;
   user_id: string;
+  owner?: {
+    id: string;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
   content: string;
   status: PostStatus;
   scheduled_at?: string | null;
