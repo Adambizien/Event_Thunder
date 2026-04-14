@@ -4,6 +4,7 @@ import Modal from './Modal';
 
 type SocialPostsCalendarProps = {
   posts: PostItem[];
+  eventNameById?: Map<string, string>;
   onEditPost: (post: PostItem) => void;
   onDeletePost: (post: PostItem) => void;
   canEditPost: (post: PostItem) => boolean;
@@ -99,8 +100,61 @@ const formatTime = (value?: string | null) => {
   }).format(date);
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
 const formatWeekdayShort = (value: Date) => {
   return new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(value);
+};
+
+const findConfirmationSentAt = (post: PostItem) => {
+  const reminder = post.reminders?.find((entry) =>
+    entry.message?.toLowerCase().includes('confirmation'),
+  );
+  const dateValue = reminder?.sent_at ?? reminder?.created_at;
+  if (!dateValue) {
+    return null;
+  }
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date;
+};
+
+const getExpirationDate = (post: PostItem) => {
+  const sentAt = findConfirmationSentAt(post);
+  if (!sentAt) {
+    return null;
+  }
+  return new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
+};
+
+const formatRemainingTime = (ms: number) => {
+  if (ms <= 0) {
+    return 'Expiré';
+  }
+
+  const totalMinutes = Math.ceil(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) {
+    return `${minutes} min`;
+  }
+  return `${hours}h ${String(minutes).padStart(2, '0')}m`;
 };
 
 const truncate = (value: string, maxLength: number) => {
@@ -112,6 +166,7 @@ const truncate = (value: string, maxLength: number) => {
 
 const SocialPostsCalendar = ({
   posts,
+  eventNameById,
   onEditPost,
   onDeletePost,
   canEditPost,
@@ -269,6 +324,19 @@ const SocialPostsCalendar = ({
             {selectedDayPosts.map((post) => {
               const editingAllowed = canEditPost(post);
               const deletingAllowed = canDeletePost(post);
+              const eventName = post.event_id
+                ? eventNameById?.get(post.event_id) ?? post.event_id
+                : '-';
+              const networks =
+                post.targets.length > 0
+                  ? post.targets.map((target) => target.network.toUpperCase()).join(', ')
+                  : '-';
+              const cancellationReason =
+                post.status === 'archived'
+                  ? post.targets.find((target) => target.error_message)?.error_message
+                  : null;
+              const expiresAt = getExpirationDate(post);
+              const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
 
               return (
                 <article key={post.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -310,6 +378,34 @@ const SocialPostsCalendar = ({
                   </div>
 
                   <p className="whitespace-pre-wrap text-sm text-gray-200">{post.content}</p>
+
+                  <div className="mt-3 grid gap-2 text-xs text-gray-200 sm:grid-cols-2">
+                    <p>Type: {networks}</p>
+                    <p>Événement: {eventName}</p>
+                    {post.status === 'published' && (
+                      <p>Publié le: {formatDateTime(post.published_at)}</p>
+                    )}
+                    {post.status === 'archived' && (
+                      <p>Annulé le: {formatDateTime(post.updated_at)}</p>
+                    )}
+                    {post.status === 'archived' && cancellationReason && (
+                      <p className="sm:col-span-2">Raison: {cancellationReason}</p>
+                    )}
+                    {expiresAt &&
+                      post.status === 'archived' &&
+                      remainingMs !== null &&
+                      remainingMs <= 0 && (
+                        <p>Expiré le: {formatDateTime(expiresAt.toISOString())}</p>
+                      )}
+                    {post.status === 'awaiting_confirmation' &&
+                      expiresAt &&
+                      remainingMs !== null && (
+                        <>
+                          <p>Expiration: {formatDateTime(expiresAt.toISOString())}</p>
+                          <p>Temps restant: {formatRemainingTime(remainingMs)}</p>
+                        </>
+                      )}
+                  </div>
                 </article>
               );
             })}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import SocialPostFormModal from '../../components/SocialPostFormModal';
 import SocialPostsCalendar from '../../components/SocialPostsCalendar';
@@ -46,6 +46,14 @@ const AdminSocialPosts = () => {
   const [selectedNetworks, setSelectedNetworks] = useState<SocialNetwork[]>([
     'x',
   ]);
+
+  const eventNameById = useMemo(
+    () =>
+      new Map(
+        events.map((event) => [event.id, event.title] as const),
+      ),
+    [events],
+  );
 
   const canEditPost = (post: PostItem) => {
     return post.status === 'draft' || post.status === 'scheduled';
@@ -261,6 +269,7 @@ const AdminSocialPosts = () => {
 
       <SocialPostsCalendar
         posts={posts}
+        eventNameById={eventNameById}
         onEditPost={openEditModal}
         onDeletePost={handleDeletePost}
         canEditPost={canEditPost}
