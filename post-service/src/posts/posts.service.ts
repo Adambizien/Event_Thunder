@@ -241,6 +241,7 @@ export class PostsService {
         dbToken.id,
         dbToken.post.id,
         'Annule automatiquement: token de confirmation expire',
+        'expired',
       );
       throw new BadRequestException(
         'Token de confirmation expire. Publication annulee.',
@@ -284,6 +285,7 @@ export class PostsService {
         dbToken.id,
         dbToken.post.id,
         'Annule automatiquement: token de confirmation expire',
+        'expired',
       );
       throw new BadRequestException(
         'Token de confirmation expire. Publication annulee.',
@@ -337,6 +339,7 @@ export class PostsService {
       dbToken.id,
       postId,
       'Annule manuellement depuis la page de confirmation',
+      'archived',
     );
 
     return { message: 'Publication annulee.' };
@@ -595,6 +598,7 @@ export class PostsService {
     tokenId: string,
     postId: string,
     reason: string,
+    nextStatus: 'archived' | 'expired',
   ) {
     const now = new Date();
 
@@ -606,7 +610,7 @@ export class PostsService {
     await this.prisma.post.update({
       where: { id: postId },
       data: {
-        status: 'archived',
+        status: nextStatus as any,
         published_at: null,
       },
     });

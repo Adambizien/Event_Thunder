@@ -16,6 +16,7 @@ const statusLabel: Record<PostStatus, string> = {
   draft: 'Brouillon',
   scheduled: 'Programme',
   awaiting_confirmation: 'En attente de confirmation',
+  expired: 'Expire',
   published: 'Publie',
   archived: 'Annule',
 };
@@ -24,6 +25,7 @@ const statusCardStyle: Record<PostStatus, string> = {
   draft: 'border-white/20 bg-white/5 text-white/80',
   scheduled: 'border-white/30 bg-white/10 text-white',
   awaiting_confirmation: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
+  expired: 'border-orange-500/40 bg-orange-500/15 text-orange-100',
   published: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
   archived: 'border-red-500/40 bg-red-500/15 text-red-100',
 };
@@ -32,6 +34,7 @@ const statusBadgeStyle: Record<PostStatus, string> = {
   draft: 'border-white/30 bg-white/10 text-white',
   scheduled: 'border-white/40 bg-white/20 text-white',
   awaiting_confirmation: 'border-amber-400/50 bg-amber-400/20 text-amber-100',
+  expired: 'border-orange-500/50 bg-orange-500/20 text-orange-100',
   published: 'border-emerald-400/50 bg-emerald-400/20 text-emerald-100',
   archived: 'border-red-500/50 bg-red-500/20 text-red-100',
 };
@@ -409,6 +412,9 @@ const SocialPostsCalendar = ({
                     )}
                     {post.status === 'archived' && (
                       <p>Annulé le: {formatDateTime(post.updated_at)}</p>
+                    )}
+                    {post.status === 'expired' && (
+                      <p>Expiré le: {formatDateTime(post.updated_at)}</p>
                     )}
                     {post.status === 'archived' && cancellationReason && (
                       <p className="sm:col-span-2">Raison: {cancellationReason}</p>

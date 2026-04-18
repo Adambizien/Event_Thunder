@@ -4,6 +4,7 @@ export type PostStatus =
   | 'draft'
   | 'scheduled'
   | 'awaiting_confirmation'
+  | 'expired'
   | 'published'
   | 'archived';
 

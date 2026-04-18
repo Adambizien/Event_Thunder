@@ -11,6 +11,7 @@ enum PostStatus {
   draft
   scheduled
   awaiting_confirmation
+  expired
   published
   archived
 }

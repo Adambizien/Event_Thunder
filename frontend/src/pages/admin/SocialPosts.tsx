@@ -26,6 +26,7 @@ const statusLabel: Record<PostItem['status'], string> = {
   draft: 'Brouillon',
   scheduled: 'Programme',
   awaiting_confirmation: 'En attente de confirmation',
+  expired: 'Expire',
   published: 'Publie',
   archived: 'Annule',
 };
@@ -34,8 +35,19 @@ const statusBadgeClass: Record<PostItem['status'], string> = {
   draft: 'border-white/30 bg-white/10 text-white',
   scheduled: 'border-white/40 bg-white/20 text-white',
   awaiting_confirmation: 'border-amber-400/50 bg-amber-400/20 text-amber-100',
+  expired: 'border-orange-500/50 bg-orange-500/20 text-orange-100',
   published: 'border-emerald-400/50 bg-emerald-400/20 text-emerald-100',
   archived: 'border-red-500/50 bg-red-500/20 text-red-100',
+};
+
+const CONTENT_PREVIEW_LENGTH = 180;
+
+const truncateContent = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength - 3)}...`;
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -78,6 +90,26 @@ const getExpirationDate = (post: PostItem) => {
   }
 
   return new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
+};
+
+const normalizeExpiredStatus = (posts: PostItem[]): PostItem[] => {
+  const now = Date.now();
+
+  return posts.map((post) => {
+    if (post.status !== 'awaiting_confirmation') {
+      return post;
+    }
+
+    const expiresAt = getExpirationDate(post);
+    if (!expiresAt || expiresAt.getTime() > now) {
+      return post;
+    }
+
+    return {
+      ...post,
+      status: 'expired' as const,
+    };
+  });
 };
 
 const formatRemainingTime = (ms: number) => {
@@ -125,7 +157,8 @@ const AdminSocialPosts = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterQuery, setFilterQuery] = useState('');
   const [filterDate, setFilterDate] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(new Set());
 
   const [content, setContent] = useState('');
   const [eventId, setEventId] = useState('');
@@ -245,7 +278,7 @@ const AdminSocialPosts = () => {
         postService.fetchAdminPosts().catch(() => postService.fetchMyPosts()),
       ]);
       setEvents(loadedEvents);
-      setPosts(loadedPosts);
+      setPosts(normalizeExpiredStatus(loadedPosts));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -430,12 +463,12 @@ const AdminSocialPosts = () => {
             <div className="flex overflow-hidden rounded-lg border border-white/20 bg-black/30">
               <button
                 type="button"
-                onClick={() => setViewMode('table')}
+                onClick={() => setViewMode('list')}
                 className={`flex-1 px-3 py-2 text-sm transition ${
-                  viewMode === 'table' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
+                  viewMode === 'list' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
                 }`}
               >
-                Tableau
+                Liste
               </button>
               <button
                 type="button"
@@ -464,6 +497,7 @@ const AdminSocialPosts = () => {
               <option value="draft">Brouillon</option>
               <option value="scheduled">Programmé</option>
               <option value="awaiting_confirmation">En attente de confirmation</option>
+              <option value="expired">Expiré</option>
               <option value="published">Publié</option>
               <option value="archived">Annulé</option>
             </select>
@@ -508,118 +542,120 @@ const AdminSocialPosts = () => {
         </div>
       </section>
 
-      {viewMode === 'table' ? (
+      {viewMode === 'list' ? (
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-xl font-semibold text-white">Liste des posts</h2>
             <span className="text-sm text-gray-300">{filteredPosts.length} resultat(s)</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[980px] w-full border-collapse text-left text-sm text-gray-200">
-              <thead>
-                <tr className="border-b border-white/15 text-xs uppercase tracking-wide text-gray-400">
-                  <th className="px-3 py-3">Programmation</th>
-                  <th className="px-3 py-3">Contenu</th>
-                  <th className="px-3 py-3">Details</th>
-                  <th className="px-3 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPosts.map((post) => {
-                  const editingAllowed = canEditPost(post);
-                  const deletingAllowed = canDeletePost(post);
-                  const eventName = post.event_id
-                    ? eventNameById.get(post.event_id) ?? post.event_id
-                    : '-';
-                  const networks =
-                    post.targets.length > 0
-                      ? post.targets.map((target) => target.network.toUpperCase()).join(', ')
-                      : '-';
-                  const cancellationReason =
-                    post.status === 'archived'
-                      ? post.targets.find((target) => target.error_message)?.error_message
-                      : null;
-                  const expiresAt = getExpirationDate(post);
-                  const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
-                  const ownerFullName = getOwnerFullName(post);
-                  const ownerEmail = getOwnerEmail(post);
-                  const ownerId = getOwnerId(post);
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {filteredPosts.map((post) => {
+              const editingAllowed = canEditPost(post);
+              const deletingAllowed = canDeletePost(post);
+              const eventName = post.event_id
+                ? eventNameById.get(post.event_id) ?? post.event_id
+                : '-';
+              const networks =
+                post.targets.length > 0
+                  ? post.targets.map((target) => target.network.toUpperCase()).join(', ')
+                  : '-';
+              const cancellationReason =
+                post.status === 'archived' || post.status === 'expired'
+                  ? post.targets.find((target) => target.error_message)?.error_message
+                  : null;
+              const expiresAt = getExpirationDate(post);
+              const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
+              const ownerFullName = getOwnerFullName(post);
+              const ownerEmail = getOwnerEmail(post);
+              const ownerId = getOwnerId(post);
+              const isExpanded = expandedPostIds.has(post.id);
+              const isLongContent = post.content.length > CONTENT_PREVIEW_LENGTH;
+              const displayedContent =
+                isExpanded || !isLongContent
+                  ? post.content
+                  : truncateContent(post.content, CONTENT_PREVIEW_LENGTH);
 
-                  return (
-                    <tr key={post.id} className="border-b border-white/10 align-top">
-                      <td className="px-3 py-3">
-                        <div className="space-y-2">
-                          <span
-                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeClass[post.status]}`}
-                          >
-                            {statusLabel[post.status]}
-                          </span>
-                          <p className="text-xs text-gray-300">Planifie le: {formatDateTime(post.scheduled_at)}</p>
-                          <p className="text-xs text-gray-400">Cree le: {formatDateTime(post.created_at)}</p>
-                          <p className="text-xs text-gray-400">Mis a jour le: {formatDateTime(post.updated_at)}</p>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="whitespace-pre-wrap text-sm text-gray-100">{post.content}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="space-y-1 text-xs text-gray-200">
-                          <p>Type: {networks}</p>
-                          <p>Evenement: {eventName}</p>
-                          <p>Nom complet: {ownerFullName}</p>
-                          <p>Email: {ownerEmail}</p>
-                          <p>ID: {ownerId}</p>
-                          {post.status === 'published' && (
-                            <p>Publie le: {formatDateTime(post.published_at)}</p>
-                          )}
-                          {post.status === 'archived' && (
-                            <p>Annule le: {formatDateTime(post.updated_at)}</p>
-                          )}
-                          {post.status === 'archived' && cancellationReason && (
-                            <p>Raison: {cancellationReason}</p>
-                          )}
-                          {expiresAt &&
-                            post.status === 'archived' &&
-                            remainingMs !== null &&
-                            remainingMs <= 0 && (
-                              <p>Expire le: {formatDateTime(expiresAt.toISOString())}</p>
-                            )}
-                          {post.status === 'awaiting_confirmation' &&
-                            expiresAt &&
-                            remainingMs !== null && (
-                              <>
-                                <p>Expiration: {formatDateTime(expiresAt.toISOString())}</p>
-                                <p>Temps restant: {formatRemainingTime(remainingMs)}</p>
-                              </>
-                            )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(post)}
-                            disabled={!editingAllowed}
-                            className="rounded-md border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePost(post)}
-                            disabled={!deletingAllowed || deletingPostId === post.id}
-                            className="rounded-md border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-200 transition hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {deletingPostId === post.id ? 'Suppression...' : 'Supprimer'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              return (
+                <article key={post.id} className="rounded-xl border border-white/10 bg-black/25 p-4">
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeClass[post.status]}`}
+                      >
+                        {statusLabel[post.status]}
+                      </span>
+                      <p className="text-xs text-gray-300">Planifie le: {formatDateTime(post.scheduled_at)}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(post)}
+                        disabled={!editingAllowed}
+                        className="rounded-md border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePost(post)}
+                        disabled={!deletingAllowed || deletingPostId === post.id}
+                        className="rounded-md border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-200 transition hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {deletingPostId === post.id ? 'Suppression...' : 'Supprimer'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="whitespace-pre-wrap text-sm text-gray-100">{displayedContent}</p>
+                  {isLongContent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExpandedPostIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(post.id)) {
+                            next.delete(post.id);
+                          } else {
+                            next.add(post.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="mt-2 text-sm font-semibold text-thunder-gold underline underline-offset-2 decoration-thunder-gold hover:text-thunder-gold-light"
+                    >
+                      {isExpanded ? 'Voir moins' : 'Voir plus'}
+                    </button>
+                  )}
+
+                  <div className="mt-4 grid gap-2 text-xs text-gray-200 sm:grid-cols-2">
+                    <p>Type: {networks}</p>
+                    <p>Evenement: {eventName}</p>
+                    <p>Nom complet: {ownerFullName}</p>
+                    <p>Email: {ownerEmail}</p>
+                    <p className="sm:col-span-2">ID: {ownerId}</p>
+                    <p>Cree le: {formatDateTime(post.created_at)}</p>
+                    <p>Mis a jour le: {formatDateTime(post.updated_at)}</p>
+                    {post.status === 'published' && (
+                      <p>Publie le: {formatDateTime(post.published_at)}</p>
+                    )}
+                    {post.status === 'archived' && (
+                      <p>Annule le: {formatDateTime(post.updated_at)}</p>
+                    )}
+                    {post.status === 'expired' && (
+                      <p>Expire le: {formatDateTime(post.updated_at)}</p>
+                    )}
+                    {cancellationReason && <p className="sm:col-span-2">Raison: {cancellationReason}</p>}
+                    {post.status === 'awaiting_confirmation' && expiresAt && remainingMs !== null && (
+                      <>
+                        <p>Expiration: {formatDateTime(expiresAt.toISOString())}</p>
+                        <p>Temps restant: {formatRemainingTime(remainingMs)}</p>
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           {filteredPosts.length === 0 && (
