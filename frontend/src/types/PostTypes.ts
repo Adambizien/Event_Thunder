@@ -64,3 +64,15 @@ export type UpdatePostPayload = {
   scheduled_at?: string | null;
   networks?: SocialNetwork[];
 };
+
+export type GeneratePostTextPayload = {
+  prompt: string;
+  event_id?: string;
+};
+
+export type GeneratePostTextResponse = {
+  content: string;
+  remainingGenerations: number;
+  limit: number;
+  availableAt: string;
+};

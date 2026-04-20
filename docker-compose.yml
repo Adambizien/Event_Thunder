@@ -145,7 +145,11 @@ services:
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       USER_SERVICE_URL: ${USER_SERVICE_URL}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
       FRONTEND_URL: ${FRONTEND_URL}
+      AI_API_URL: ${AI_API_URL}
+      AI_API_KEY_FILE: /run/secrets/ai_api_key
+      AI_MODEL: ${AI_MODEL}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       RABBITMQ_EXCHANGE: billing.events
       POST_CRON_SECRET_FILE: /run/secrets/post_cron_secret
@@ -154,6 +158,7 @@ services:
       - postgres_user
       - postgres_password
       - post_cron_secret
+      - ai_api_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -297,3 +302,5 @@ secrets:
     file: ./secrets/resend_api_key.txt
   post_cron_secret:
     file: ./secrets/post_cron_secret.txt
+  ai_api_key:
+    file: ./secrets/ai_api_key.txt

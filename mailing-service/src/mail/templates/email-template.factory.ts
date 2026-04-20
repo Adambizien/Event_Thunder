@@ -1,17 +1,20 @@
 import { EmailTemplate } from '../interfaces/email.interface';
 import { PasswordResetTemplate } from './password-reset.template';
+import { PostConfirmationTemplate } from './post-confirmation.template';
 import { SubscriptionThanksTemplate } from './subscription-thanks.template';
 import { TicketPurchaseAndRefundTemplate } from './ticket-purchase-and-refund.template';
 import { WelcomeTemplate } from './welcome.template';
 
 export class EmailTemplateFactory {
   private readonly passwordResetTemplate: PasswordResetTemplate;
+  private readonly postConfirmationTemplate: PostConfirmationTemplate;
   private readonly subscriptionThanksTemplate: SubscriptionThanksTemplate;
   private readonly ticketPurchaseTemplate: TicketPurchaseAndRefundTemplate;
   private readonly welcomeTemplate: WelcomeTemplate;
 
   constructor(private readonly productName: string) {
     this.passwordResetTemplate = new PasswordResetTemplate(productName);
+    this.postConfirmationTemplate = new PostConfirmationTemplate(productName);
     this.subscriptionThanksTemplate = new SubscriptionThanksTemplate(
       productName,
     );
@@ -40,6 +43,21 @@ export class EmailTemplateFactory {
     activationUrl?: string;
   }): EmailTemplate {
     return this.welcomeTemplate.create(payload);
+  }
+
+  /**
+   * Genere le template de confirmation de publication de post
+   */
+  createPostConfirmationTemplate(payload: {
+    username: string;
+    postId: string;
+    confirmationUrl: string;
+    scheduledText: string;
+    networks: string;
+    contentPreview?: string;
+    eventUrl?: string;
+  }): EmailTemplate {
+    return this.postConfirmationTemplate.create(payload);
   }
 
   /**

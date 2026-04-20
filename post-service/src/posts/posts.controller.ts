@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { ConfirmPostDto } from './dto/confirm-post.dto';
+import { GeneratePostTextDto } from './dto/generate-post-text.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostsService } from './posts.service';
 
@@ -59,6 +60,19 @@ export class PostsController {
     }
 
     return this.postsService.create(userId, dto);
+  }
+
+  @Post('generate-text')
+  generateText(
+    @Body() dto: GeneratePostTextDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-role') userRole?: string,
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('Connexion requise');
+    }
+
+    return this.postsService.generateText(userId, dto, userRole);
   }
 
   @Patch(':id')

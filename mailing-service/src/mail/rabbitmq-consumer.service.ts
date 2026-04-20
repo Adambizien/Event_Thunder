@@ -77,6 +77,7 @@ type PostConfirmationRequestedPayload = {
   scheduledAt?: string;
   networks?: string[];
   contentPreview?: string;
+  eventUrl?: string;
 };
 
 @Injectable()
@@ -687,6 +688,7 @@ export class RabbitmqConsumerService
         ? payload.networks.map((network) => String(network))
         : [],
       contentPreview: payload.contentPreview,
+      eventUrl: payload.eventUrl,
     });
   }
 

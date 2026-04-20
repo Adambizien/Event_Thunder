@@ -8,6 +8,7 @@ import {
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { GeneratePostTextDto } from './dto/generate-post-text.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { RabbitmqPublisherService } from '../rabbitmq/rabbitmq-publisher.service';
 import { readSecret } from '../utils/secret.util';
@@ -22,17 +23,39 @@ type UserLookup = {
 type PostForReminder = {
   id: string;
   user_id: string;
+  event_id?: string | null;
   content: string;
   scheduled_at: Date | null;
   targets: Array<{ network: 'x' }>;
+};
+
+type EventLookup = {
+  id: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  address?: string;
+  start_date?: string;
+  end_date?: string;
+  status?: string;
+  category?: {
+    name?: string;
+  };
 };
 
 @Injectable()
 export class PostsService {
   private readonly logger = new Logger(PostsService.name);
   private readonly userServiceUrl: string;
+  private readonly eventServiceUrl: string;
+  private readonly aiApiUrl: string;
+  private readonly aiApiKey?: string;
+  private readonly aiModel: string;
   private readonly frontendUrl: string;
   private readonly cronSecret: string;
+  private readonly aiGenerationLimit = 5;
+  private readonly aiGenerationWindowMs = 60 * 60 * 1000;
+  private readonly aiGenerationHistory = new Map<string, number[]>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -40,8 +63,54 @@ export class PostsService {
   ) {
     this.userServiceUrl =
       process.env.USER_SERVICE_URL ?? 'http://user-service:3000';
+    this.eventServiceUrl =
+      process.env.EVENT_SERVICE_URL ?? 'http://event-service:3000';
+    this.aiApiUrl =
+      process.env.AI_API_URL ?? 'https://api.groq.com/openai/v1/chat/completions';
+    this.aiApiKey = readSecret('AI_API_KEY');
+    this.aiModel = process.env.AI_MODEL ?? 'llama-3.1-8b-instant';
     this.frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
     this.cronSecret = readSecret('POST_CRON_SECRET') ?? '';
+  }
+
+  async generateText(
+    userId: string,
+    dto: GeneratePostTextDto,
+    userRole?: string,
+  ) {
+    if (!this.aiApiKey) {
+      throw new BadRequestException(
+        'Generation IA indisponible: AI_API_KEY non configuree.',
+      );
+    }
+
+    const quota = this.consumeAiQuota(userId);
+    try {
+      const event = dto.event_id
+        ? await this.fetchEvent(dto.event_id, userId, userRole)
+        : null;
+
+      if (dto.event_id && !event) {
+        throw new BadRequestException('Evenement introuvable ou inaccessible.');
+      }
+
+      const generatedText = await this.requestAiTextGeneration(dto.prompt, event);
+      if (!generatedText) {
+        throw new BadRequestException(
+          'Impossible de generer un texte avec l IA pour le moment.',
+        );
+      }
+
+      return {
+        content: generatedText,
+        remainingGenerations: quota.remaining,
+        limit: this.aiGenerationLimit,
+        availableAt: quota.availableAt,
+      };
+    } catch (error) {
+      this.rollbackAiQuota(userId, quota.usedAt);
+      throw error;
+    }
   }
 
   async create(userId: string, dto: CreatePostDto) {
@@ -59,12 +128,16 @@ export class PostsService {
     }
 
     const status = scheduledAt ? 'scheduled' : 'draft';
+    const contentWithEventLink = this.withEventLinkInContent(
+      dto.content,
+      dto.event_id,
+    );
 
     return this.prisma.post.create({
       data: {
         user_id: userId,
         event_id: dto.event_id,
-        content: dto.content,
+        content: contentWithEventLink,
         status,
         scheduled_at: scheduledAt,
         targets: {
@@ -438,6 +511,10 @@ export class PostsService {
 
     const nextEventId =
       dto.event_id === undefined ? post.event_id : dto.event_id;
+    const contentWithEventLink = this.withEventLinkInContent(
+      nextContent,
+      nextEventId,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.networks) {
@@ -447,7 +524,7 @@ export class PostsService {
       const updatedPost = await tx.post.update({
         where: { id: postId },
         data: {
-          content: nextContent,
+          content: contentWithEventLink,
           event_id: nextEventId,
           scheduled_at: nextScheduledAt,
           status: nextStatus,
@@ -592,6 +669,290 @@ export class PostsService {
   private buildXIntentUrl(content: string): string {
     const params = new URLSearchParams({ text: content });
     return `https://twitter.com/intent/tweet?${params.toString()}`;
+  }
+
+  private buildEventUrl(eventId?: string | null): string | undefined {
+    if (!eventId || eventId.trim().length === 0) {
+      return undefined;
+    }
+
+    return `${this.frontendUrl.replace(/\/$/, '')}/events/${encodeURIComponent(eventId)}`;
+  }
+
+  private withEventLinkInContent(content: string, eventId?: string | null) {
+    const eventUrl = this.buildEventUrl(eventId);
+    if (!eventUrl) {
+      return content;
+    }
+
+    if (content.includes(eventUrl)) {
+      return content;
+    }
+
+    const trimmed = content.trimEnd();
+    if (!trimmed) {
+      return eventUrl;
+    }
+
+    return `${trimmed}\n\n${eventUrl}`;
+  }
+
+  private consumeAiQuota(userId: string) {
+    const now = Date.now();
+    const windowStart = now - this.aiGenerationWindowMs;
+    const history = (this.aiGenerationHistory.get(userId) ?? []).filter(
+      (timestamp) => timestamp >= windowStart,
+    );
+
+    if (history.length >= this.aiGenerationLimit) {
+      const retryAt = history[0] + this.aiGenerationWindowMs;
+      const retryInMinutes = Math.ceil((retryAt - now) / 60000);
+      throw new BadRequestException(
+        `Limite atteinte: ${this.aiGenerationLimit} generations par heure. Reessaie dans ${retryInMinutes} minute(s).`,
+      );
+    }
+
+    history.push(now);
+    this.aiGenerationHistory.set(userId, history);
+
+    return {
+      usedAt: now,
+      remaining: this.aiGenerationLimit - history.length,
+      availableAt: new Date(history[0] + this.aiGenerationWindowMs).toISOString(),
+    };
+  }
+
+  private rollbackAiQuota(userId: string, usedAt: number) {
+    const history = this.aiGenerationHistory.get(userId);
+    if (!history || history.length === 0) {
+      return;
+    }
+
+    const index = history.lastIndexOf(usedAt);
+    if (index >= 0) {
+      history.splice(index, 1);
+    }
+
+    if (history.length === 0) {
+      this.aiGenerationHistory.delete(userId);
+      return;
+    }
+
+    this.aiGenerationHistory.set(userId, history);
+  }
+
+  private async fetchEvent(
+    eventId: string,
+    userId?: string,
+    userRole?: string,
+  ): Promise<EventLookup | null> {
+    try {
+      const headers: Record<string, string> = {};
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      if (userRole) {
+        headers['x-user-role'] = userRole;
+      }
+
+      const response = await fetch(`${this.eventServiceUrl}/api/events/${eventId}`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as EventLookup;
+      if (!payload?.id) {
+        return null;
+      }
+
+      return payload;
+    } catch {
+      return null;
+    }
+  }
+
+  private async requestAiTextGeneration(
+    prompt: string,
+    event: EventLookup | null,
+  ): Promise<string | null> {
+    const enrichedPrompt = this.buildAiPrompt(prompt, event);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.aiApiKey}`,
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const response = await fetch(this.aiApiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: this.aiModel,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Tu es un assistant de redaction de posts reseaux sociaux en francais. Retourne uniquement le texte final du post, sans explication.',
+            },
+            {
+              role: 'user',
+              content: enrichedPrompt,
+            },
+          ],
+          temperature: 0.8,
+          max_tokens: 400,
+        }),
+        signal: controller.signal,
+      });
+
+      const raw = await response.text();
+      if (!response.ok) {
+        const parsedError = this.safeParseJson(raw);
+        const providerMessage = this.extractProviderErrorMessage(parsedError, raw);
+        this.logger.warn(
+          `Provider IA en echec (status=${response.status}): ${providerMessage}`,
+        );
+        throw new BadRequestException(
+          `Provider IA en erreur (${response.status}): ${providerMessage}`,
+        );
+      }
+
+      const parsed = this.safeParseJson(raw);
+      const output = this.extractGeneratedText(parsed, raw);
+      if (!output) {
+        return null;
+      }
+
+      return output.slice(0, 5000).trim();
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name?: string }).name === 'AbortError'
+      ) {
+        throw new BadRequestException(
+          'Timeout du provider IA (plus de 20s). Reessaie dans quelques instants.',
+        );
+      }
+
+      throw new BadRequestException(
+        `Erreur reseau vers le provider IA: ${
+          error instanceof Error ? error.message : 'inconnue'
+        }`,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private extractProviderErrorMessage(parsed: unknown, raw: string): string {
+    if (parsed && typeof parsed === 'object') {
+      const payload = parsed as Record<string, unknown>;
+      const error = payload.error;
+      if (error && typeof error === 'object') {
+        const message = (error as { message?: unknown }).message;
+        if (typeof message === 'string' && message.trim().length > 0) {
+          return message.trim();
+        }
+      }
+
+      const message = payload.message;
+      if (typeof message === 'string' && message.trim().length > 0) {
+        return message.trim();
+      }
+    }
+
+    const compact = raw.replace(/\s+/g, ' ').trim();
+    if (compact.length === 0) {
+      return 'reponse vide';
+    }
+
+    return compact.slice(0, 220);
+  }
+
+  private buildAiPrompt(prompt: string, event: EventLookup | null): string {
+    const eventContext = event
+      ? [
+          `Titre: ${event.title ?? '-'}`,
+          `Description: ${event.description ?? '-'}`,
+          `Lieu: ${event.location ?? '-'}`,
+          `Adresse: ${event.address ?? '-'}`,
+          `Debut: ${event.start_date ?? '-'}`,
+          `Fin: ${event.end_date ?? '-'}`,
+          `Statut: ${event.status ?? '-'}`,
+          `Categorie: ${event.category?.name ?? '-'}`,
+          `Lien evenement: ${this.buildEventUrl(event.id) ?? '-'}`,
+        ].join('\n')
+      : 'Aucun evenement selectionne.';
+
+    return [
+      'Tu es un assistant de redaction pour des posts reseaux sociaux.',
+      'Ecris en francais, ton naturel, clair et engageant.',
+      'Retourne uniquement le texte final du post, sans explication.',
+      '',
+      `Demande utilisateur: ${prompt}`,
+      '',
+      'Contexte evenement:',
+      eventContext,
+    ].join('\n');
+  }
+
+  private safeParseJson(raw: string): unknown {
+    try {
+      return JSON.parse(raw) as unknown;
+    } catch {
+      return null;
+    }
+  }
+
+  private extractGeneratedText(parsed: unknown, fallbackRaw: string): string | null {
+    if (typeof parsed === 'string' && parsed.trim().length > 0) {
+      return parsed.trim();
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      const payload = parsed as Record<string, unknown>;
+      const directKeys = ['text', 'content', 'result', 'output', 'message'];
+      for (const key of directKeys) {
+        const value = payload[key];
+        if (typeof value === 'string' && value.trim().length > 0) {
+          return value.trim();
+        }
+      }
+
+      const choices = payload.choices;
+      if (Array.isArray(choices)) {
+        for (const choice of choices) {
+          if (!choice || typeof choice !== 'object') {
+            continue;
+          }
+          const content = (choice as { message?: { content?: unknown } }).message?.content;
+          if (typeof content === 'string' && content.trim().length > 0) {
+            return content.trim();
+          }
+          const text = (choice as { text?: unknown }).text;
+          if (typeof text === 'string' && text.trim().length > 0) {
+            return text.trim();
+          }
+        }
+      }
+    }
+
+    if (fallbackRaw.trim().length > 0 && !fallbackRaw.trim().startsWith('{')) {
+      return fallbackRaw.trim();
+    }
+
+    return null;
   }
 
   private async cancelPostFromToken(

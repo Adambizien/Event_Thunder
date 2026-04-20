@@ -1,6 +1,8 @@
 import api from './api';
 import type {
   CreatePostPayload,
+  GeneratePostTextPayload,
+  GeneratePostTextResponse,
   PostItem,
   UpdatePostPayload,
 } from '../types/PostTypes';
@@ -63,6 +65,13 @@ export const postService = {
   async deletePost(postId: string): Promise<{ message?: string }> {
     const response = await api.delete(`/api/posts/${postId}`);
     return response.data as { message?: string };
+  },
+
+  async generatePostText(
+    payload: GeneratePostTextPayload,
+  ): Promise<GeneratePostTextResponse> {
+    const response = await api.post('/api/posts/generate-text', payload);
+    return response.data as GeneratePostTextResponse;
   },
 
 };

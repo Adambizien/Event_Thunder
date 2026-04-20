@@ -13,10 +13,16 @@ type SocialPostFormModalProps = {
   scheduledAt: string;
   selectedNetworks: SocialNetwork[];
   submitting: boolean;
+  generatingText: boolean;
+  aiPrompt: string;
+  aiFeedback: string | null;
+  aiFeedbackType: 'success' | 'error' | null;
   formError: string | null;
   onClose: () => void;
   onSubmit: (e: FormEvent) => void;
+  onGenerateText: () => void;
   onContentChange: (value: string) => void;
+  onAiPromptChange: (value: string) => void;
   onEventIdChange: (value: string) => void;
   onPostModeChange: (value: 'draft' | 'scheduled') => void;
   onScheduledAtChange: (value: string) => void;
@@ -33,10 +39,16 @@ const SocialPostFormModal = ({
   scheduledAt,
   selectedNetworks,
   submitting,
+  generatingText,
+  aiPrompt,
+  aiFeedback,
+  aiFeedbackType,
   formError,
   onClose,
   onSubmit,
+  onGenerateText,
   onContentChange,
+  onAiPromptChange,
   onEventIdChange,
   onPostModeChange,
   onScheduledAtChange,
@@ -71,7 +83,7 @@ const SocialPostFormModal = ({
             </option>
           </select>
           <p className="mt-1 text-xs text-gray-400">
-            En brouillon, aucun e-mail de confirmation n'est envoye.
+            En brouillon, aucun e-mail de confirmation n'est envoyé
           </p>
         </div>
 
@@ -88,9 +100,41 @@ const SocialPostFormModal = ({
           <p className="mt-1 text-xs text-gray-400">{content.length}/5000</p>
         </div>
 
+        <div className="rounded-xl border border-white/15 bg-black/20 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <label className="text-sm font-medium text-gray-300">Assistant IA (groq)</label>
+            <button
+              type="button"
+              onClick={onGenerateText}
+              disabled={generatingText || submitting}
+              className="rounded-md border border-thunder-gold/50 bg-thunder-gold/20 px-3 py-1.5 text-xs font-semibold text-thunder-gold transition hover:bg-thunder-gold/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {generatingText ? 'Generation...' : 'Generer le texte'}
+            </button>
+          </div>
+          <textarea
+            value={aiPrompt}
+            onChange={(e) => onAiPromptChange(e.target.value)}
+            placeholder="Ex: Écris un post engageant pour promouvoir mon événement selectionné, en mettant en avant les points forts et en incitant les gens à s'inscrire."
+            rows={3}
+            maxLength={1200}
+            className="w-full rounded border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-gray-400">{aiPrompt.length}/1200</p>
+          {aiFeedback && (
+            <p
+              className={`mt-2 text-xs ${
+                aiFeedbackType === 'error' ? 'text-red-300' : 'text-emerald-300'
+              }`}
+            >
+              {aiFeedback}
+            </p>
+          )}
+        </div>
+
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-300">
-            Evenement (optionnel)
+            Événement (optionnel)
           </label>
           <select
             value={eventId}
@@ -98,7 +142,7 @@ const SocialPostFormModal = ({
             className="w-full rounded border border-white/20 bg-white/10 px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
           >
             <option value="" className="bg-thunder-dark text-white">
-              Aucun evenement
+              Aucun événement
             </option>
             {events.map((event) => (
               <option
@@ -127,7 +171,7 @@ const SocialPostFormModal = ({
         )}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-300">Reseau</label>
+          <label className="mb-2 block text-sm font-medium text-gray-300">Réseaux sociaux</label>
           <label className="inline-flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-2 text-sm text-gray-200">
             <input
               type="checkbox"

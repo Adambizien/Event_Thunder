@@ -159,6 +159,10 @@ const AdminSocialPosts = () => {
   const [filterDate, setFilterDate] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(new Set());
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generatingText, setGeneratingText] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+  const [aiFeedbackType, setAiFeedbackType] = useState<'success' | 'error' | null>(null);
 
   const [content, setContent] = useState('');
   const [eventId, setEventId] = useState('');
@@ -249,6 +253,8 @@ const AdminSocialPosts = () => {
     setShowFormModal(false);
     resetForm();
     setFormError(null);
+    setAiFeedback(null);
+    setAiFeedbackType(null);
   };
 
   const openEditModal = (post: PostItem) => {
@@ -268,6 +274,9 @@ const AdminSocialPosts = () => {
     setScheduledAt(toDateInputValue(base));
     setSelectedNetworks(post.targets.length > 0 ? [post.targets[0].network] : ['x']);
     setFormError(null);
+    setAiPrompt('');
+    setAiFeedback(null);
+    setAiFeedbackType(null);
     setShowFormModal(true);
   };
 
@@ -300,6 +309,44 @@ const AdminSocialPosts = () => {
     setScheduledAt(toDateInputValue(base));
     setSelectedNetworks(['x']);
     setEditingPostId(null);
+    setAiPrompt('');
+    setAiFeedback(null);
+    setAiFeedbackType(null);
+  };
+
+  const handleGenerateText = async () => {
+    if (generatingText) {
+      return;
+    }
+
+    const cleanedPrompt = aiPrompt.trim();
+    if (!cleanedPrompt) {
+      setAiFeedback('Ajoute un prompt pour lancer la generation.');
+      setAiFeedbackType('error');
+      return;
+    }
+
+    try {
+      setGeneratingText(true);
+      setAiFeedback(null);
+      setAiFeedbackType(null);
+
+      const result = await postService.generatePostText({
+        prompt: cleanedPrompt,
+        event_id: eventId || undefined,
+      });
+
+      setContent(result.content);
+      setAiFeedback(
+        `Texte genere. Il te reste ${result.remainingGenerations}/${result.limit} generation(s) sur la periode d'une heure.`,
+      );
+      setAiFeedbackType('success');
+    } catch (err) {
+      setAiFeedback(err instanceof Error ? err.message : 'Erreur de generation IA.');
+      setAiFeedbackType('error');
+    } finally {
+      setGeneratingText(false);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -444,10 +491,16 @@ const AdminSocialPosts = () => {
         scheduledAt={scheduledAt}
         selectedNetworks={selectedNetworks}
         submitting={submitting}
+        generatingText={generatingText}
+        aiPrompt={aiPrompt}
+        aiFeedback={aiFeedback}
+        aiFeedbackType={aiFeedbackType}
         formError={formError}
         onClose={closeFormModal}
         onSubmit={handleSubmit}
+        onGenerateText={handleGenerateText}
         onContentChange={setContent}
+        onAiPromptChange={setAiPrompt}
         onEventIdChange={setEventId}
         onPostModeChange={setPostMode}
         onScheduledAtChange={setScheduledAt}
@@ -630,12 +683,12 @@ const AdminSocialPosts = () => {
 
                   <div className="mt-4 grid gap-2 text-xs text-gray-200 sm:grid-cols-2">
                     <p>Type: {networks}</p>
-                    <p>Evenement: {eventName}</p>
+                    <p>Événement: {eventName}</p>
                     <p>Nom complet: {ownerFullName}</p>
                     <p>Email: {ownerEmail}</p>
                     <p className="sm:col-span-2">ID: {ownerId}</p>
-                    <p>Cree le: {formatDateTime(post.created_at)}</p>
-                    <p>Mis a jour le: {formatDateTime(post.updated_at)}</p>
+                    <p>Créé le: {formatDateTime(post.created_at)}</p>
+                    <p>Mis à jour le: {formatDateTime(post.updated_at)}</p>
                     {post.status === 'published' && (
                       <p>Publie le: {formatDateTime(post.published_at)}</p>
                     )}
