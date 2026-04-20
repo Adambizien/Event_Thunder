@@ -99,7 +99,7 @@ const AdminPlans = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce plan ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimér ce plan ?')) return;
     setDeletingPlanId(id);
     try {
       await planService.deletePlan(id);

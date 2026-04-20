@@ -46,7 +46,7 @@ export class EmailTemplateFactory {
   }
 
   /**
-   * Genere le template de confirmation de publication de post
+   * Génère le template de confirmation de publication de post
    */
   createPostConfirmationTemplate(payload: {
     username: string;
@@ -61,7 +61,7 @@ export class EmailTemplateFactory {
   }
 
   /**
-   * Genere le template de remerciement abonnement
+   * Génère le template de remerciement abonnement
    */
   createSubscriptionThanksTemplate(payload: {
     username: string;
@@ -75,7 +75,7 @@ export class EmailTemplateFactory {
   }
 
   /**
-   * Genere le template de remerciement achat tickets
+   * Génère le template de remerciement achat tickets
    */
   createTicketPurchaseTemplate(payload: {
     subject?: string;

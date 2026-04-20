@@ -20,7 +20,7 @@ const formatDate = (value: string) => {
 const getStatusBanner = (status: EventItem['status']) => {
   if (status === 'published') {
     return {
-      text: 'Cet evenement est en cours',
+      text: 'Cet événement est en cours',
       className: 'border-emerald-500/50 bg-emerald-500/20 text-emerald-200',
       badge: 'En cours',
     };
@@ -28,22 +28,22 @@ const getStatusBanner = (status: EventItem['status']) => {
 
   if (status === 'canceled') {
     return {
-      text: 'Cet evenement est annule',
+      text: 'Cet événement est annulé',
       className: 'border-red-500/50 bg-red-500/30 text-red-200',
-      badge: 'Annule',
+      badge: 'Annulé',
     };
   }
 
   if (status === 'completed') {
     return {
-      text: 'Cet evenement est termine',
+      text: 'Cet événement est terminé',
       className: 'border-blue-500/50 bg-blue-500/20 text-blue-200',
-      badge: 'Termine',
+      badge: 'Terminé',
     };
   }
 
   return {
-    text: 'Cet evenement est en brouillon',
+    text: 'Cet événement est en brouillon',
     className: 'border-amber-500/50 bg-amber-500/20 text-amber-200',
     badge: 'Brouillon',
   };
@@ -126,7 +126,7 @@ const EventDetails = () => {
   useEffect(() => {
     const fetchDetails = async () => {
       if (!id) {
-        setError('Evenement introuvable');
+        setError('Événement introuvable');
         setLoading(false);
         setCommentsLoading(false);
         return;
@@ -152,8 +152,8 @@ const EventDetails = () => {
         setCommentsError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erreur inconnue';
-        if (message.toLowerCase().includes('inaccessible')) {
-          setError('Cet evenement est inaccessible');
+        if (message.toLowerCase().includes('inaccèssible')) {
+          setError('Cet événement est inaccèssible');
         } else {
           setError(message);
         }
@@ -189,7 +189,7 @@ const EventDetails = () => {
 
     const content = newComment.trim();
     if (!content) {
-      setCommentsError('Le commentaire ne peut pas etre vide');
+      setCommentsError('Le commentaire ne peut pas être vide');
       return;
     }
 
@@ -333,7 +333,7 @@ const EventDetails = () => {
       <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-12">
         <div className="max-w-4xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
           <span className="spinner mr-2 align-middle"></span>
-          Chargement de l'evenement...
+          Chargement de l'événement...
         </div>
       </div>
     );
@@ -344,7 +344,7 @@ const EventDetails = () => {
       <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-12">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="rounded-2xl border border-red-500/50 bg-red-500/30 p-6 text-red-200 shadow-2xl backdrop-blur-lg">
-            {error || 'Evenement introuvable'}
+            {error || 'Événement introuvable'}
           </div>
           <Link
             to="/"
@@ -385,7 +385,7 @@ const EventDetails = () => {
                 {banner.badge}
               </span>
               <span className="rounded-full border border-white/30 bg-black/30 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
-                {event.category?.name || 'Sans categorie'}
+                {event.category?.name || 'Sans catégorie'}
               </span>
             </div>
 
@@ -412,7 +412,7 @@ const EventDetails = () => {
 
         <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-6 md:p-8 shadow-2xl backdrop-blur-lg">
-            <h2 className="text-2xl font-bold text-thunder-gold mb-4">A propos de cet evenement</h2>
+            <h2 className="text-2xl font-bold text-thunder-gold mb-4">À propos de cet événement</h2>
             <p className="text-gray-200 whitespace-pre-line leading-7">
               {event.description}
             </p>
@@ -434,7 +434,7 @@ const EventDetails = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-400">Date de debut</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-400">Date de début</p>
                   <p className="text-white">{formatDate(event.start_date)}</p>
                 </div>
 
@@ -446,7 +446,7 @@ const EventDetails = () => {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg">
-              <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Etat de l'evenement</p>
+              <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">État de l'événement</p>
               <p className="text-white font-semibold">{banner.text}</p>
             </div>
 
@@ -624,7 +624,7 @@ const EventDetails = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               {!isAuthenticated ? (
                 <p className="text-sm text-gray-300">
-                  Vous devez etre connecte pour commenter et aimer.
+                  Vous devez être connecté pour commenter et aimer.
                 </p>
               ) : (
                 <p className="text-sm text-gray-400">
@@ -637,7 +637,7 @@ const EventDetails = () => {
                 disabled={!isAuthenticated || submittingComment}
                 className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
               >
-                {submittingComment ? 'Envoi...' : 'Publier'}
+                {submittingComment ? 'Envoi...' : 'Publiér'}
               </button>
             </div>
           </form>

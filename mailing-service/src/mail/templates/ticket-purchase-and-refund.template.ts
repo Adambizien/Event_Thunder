@@ -62,7 +62,7 @@ export class TicketPurchaseAndRefundTemplate {
       payload.footerText ||
       "Pensez à présenter vos tickets (QR code) lors de l'entrée à l'événement.";
     const ctaLabel = payload.ctaLabel || 'Voir la facture';
-    const eventCtaLabel = payload.eventCtaLabel || "Voir l'evenement";
+    const eventCtaLabel = payload.eventCtaLabel || "Voir l'événement";
     const showQrCodes = payload.showQrCodes ?? true;
     const purchaseDateText = this.formatDateTime(payload.purchaseDate);
     const purchaseStatus = payload.statusLabel ?? 'Paiement confirmé';

@@ -183,7 +183,7 @@ const AdminUsers = () => {
   }, [fetchUsers]);
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimér cet utilisateur ?')) return;
     try {
       await userService.deleteUser(userId);
       setError(null);

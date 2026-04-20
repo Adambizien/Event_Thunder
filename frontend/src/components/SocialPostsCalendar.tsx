@@ -14,11 +14,11 @@ type SocialPostsCalendarProps = {
 
 const statusLabel: Record<PostStatus, string> = {
   draft: 'Brouillon',
-  scheduled: 'Programme',
+  scheduled: 'Programmé',
   awaiting_confirmation: 'En attente de confirmation',
   expired: 'Expire',
-  published: 'Publie',
-  archived: 'Annule',
+  published: 'Publié',
+  archived: 'Annulé',
 };
 
 const statusCardStyle: Record<PostStatus, string> = {
@@ -333,7 +333,7 @@ const SocialPostsCalendar = ({
       <Modal
         isOpen={selectedDay !== null}
         onClose={() => setSelectedDay(null)}
-        title={selectedDay ? `Posts programmes - ${formatDayTitle(selectedDay)}` : 'Posts programmes'}
+        title={selectedDay ? `Posts programmés - ${formatDayTitle(selectedDay)}` : 'Posts programmés'}
         size="lg"
       >
         {selectedDayPosts.length === 0 ? (

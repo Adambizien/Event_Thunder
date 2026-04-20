@@ -290,7 +290,7 @@ const Subscription = () => {
           state: {
             transactionMessage: {
               type: 'error' as const,
-              text: 'Session utilisateur invalide. Reconnectez-vous.',
+              text: 'Session utilisateur invalide. Reconnectéz-vous.',
             },
           },
         });
@@ -463,7 +463,7 @@ const Subscription = () => {
     const userId = user?.id;
 
     if (!userId) {
-      setError('Session utilisateur invalide. Reconnectez-vous.');
+      setError('Session utilisateur invalide. Reconnectéz-vous.');
       return;
     }
 
@@ -508,7 +508,7 @@ const Subscription = () => {
     const userId = user?.id;
 
     if (!userId) {
-      setError('Session utilisateur invalide. Reconnectez-vous.');
+      setError('Session utilisateur invalide. Reconnectéz-vous.');
       return;
     }
 
@@ -628,7 +628,7 @@ const Subscription = () => {
               )}
               <div className="w-full mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                 <p>
-                  <span className="text-gray-400">Evenements max:</span> {maxEventsLabel}
+                  <span className="text-gray-400">Événements max:</span> {maxEventsLabel}
                 </p>
                 <p>
                   <span className="text-gray-400">Posts max:</span> {maxPostsLabel}

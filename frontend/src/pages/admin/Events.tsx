@@ -320,7 +320,7 @@ const AdminEvents = () => {
 
       const currentRow = prev[index];
       if (currentRow?.id && currentRow.soldQuantity > 0) {
-        setFormError('Suppression impossible: ce ticket a deja des achats associes');
+        setFormError('Suppression impossible: ce ticket a déjà des achats associés');
         return prev;
       }
 
@@ -357,7 +357,7 @@ const AdminEvents = () => {
 
       if (hasSoldTickets) {
         setSuccess(null);
-        setError('Suppression impossible: des tickets ont deja ete vendus pour cet evenement');
+        setError('Suppression impossible: des tickets ont déjà été vendus pour cet événement');
         return;
       }
     } catch (err) {
@@ -365,7 +365,7 @@ const AdminEvents = () => {
       return;
     }
 
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimér cet événement ?')) return;
 
     try {
       setDeletingEventId(id);
@@ -1012,8 +1012,8 @@ const AdminEvents = () => {
               onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
               className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
             >
-              <option value="desc">Date de debut (plus recente)</option>
-              <option value="asc">Date de debut (plus ancienne)</option>
+              <option value="desc">Date de début (plus recente)</option>
+              <option value="asc">Date de début (plus ancienne)</option>
             </select>
           </div>
         </div>
@@ -1091,17 +1091,17 @@ const AdminEvents = () => {
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">
               {events.length === 0
-                ? 'Aucun evenement disponible'
-                : 'Aucun evenement ne correspond a votre recherche'}
+                ? 'Aucun événement disponible'
+                : 'Aucun événement ne correspond à votre recherche'}
             </p>
           </div>
         ) : (
           <UniformTable
             headers={[
               'Titre',
-              'Categorie',
+              'Catégorie',
               'Lieu',
-              'Debut',
+              'Début',
               'Fin',
               'Types de ticket',
               'Tickets vendus',

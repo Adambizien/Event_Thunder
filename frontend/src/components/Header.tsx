@@ -247,7 +247,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                         onClick={handleLogout}
                           className="w-full text-left px-2 py-2 rounded-lg text-sm bg-red-500/35 hover:bg-red-500/45 text-red-100 transition-colors"
                       >
-                        Se déconnecter
+                        Se déconnectér
                       </button>
                     </div>
                   </div>
@@ -288,7 +288,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                     onClick={handleLogout}
                     className="mt-2 w-full text-left font-semibold px-4 py-2 rounded-lg text-red-100 bg-red-500/35 hover:bg-red-500/45 transition-colors"
                   >
-                    Se déconnecter
+                    Se déconnectér
                   </button>
                 </div>
               </>

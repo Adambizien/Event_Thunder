@@ -51,9 +51,9 @@ const statusOptions: EventStatus[] = ['draft', 'published', 'canceled', 'complet
 
 const statusLabels: Record<EventStatus, string> = {
   draft: 'Brouillon',
-  published: 'Publie',
-  canceled: 'Annule',
-  completed: 'Termine',
+  published: 'Publié',
+  canceled: 'Annulé',
+  completed: 'Terminé',
 };
 
 const EventFormModal = ({
@@ -91,7 +91,7 @@ const EventFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? "Modifier l'evenement" : 'Creer un nouvel evenement'}
+      title={isEditing ? "Modifier l'événement" : 'Créer un nouvel événement'}
       size="lg"
     >
       {formError && (
@@ -121,19 +121,19 @@ const EventFormModal = ({
             required
             rows={4}
             className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-            placeholder="Decrivez votre evenement"
+            placeholder="Décrivez votre événement"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Categorie</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Catégorie</label>
           <select
             value={categoryId}
             onChange={(e) => onCategoryChange(e.target.value)}
             required
             className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
           >
-            {categories.length === 0 && <option value="">Aucune categorie</option>}
+            {categories.length === 0 && <option value="">Aucune catégorie</option>}
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -182,7 +182,7 @@ const EventFormModal = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Date de debut</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Date de début</label>
           <input
             type="datetime-local"
             value={startDate}
@@ -218,7 +218,7 @@ const EventFormModal = ({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Billetterie</p>
-              <p className="text-xs text-gray-400">Definissez les types de tickets vendus pour cet evenement</p>
+              <p className="text-xs text-gray-400">Définissez les types de tickets vendus pour cet événement</p>
             </div>
             <button
               type="button"
@@ -258,7 +258,7 @@ const EventFormModal = ({
                   disabled={ticketTypes.length <= 1 || (Boolean(ticketType.id) && ticketType.soldQuantity > 0)}
                   title={
                     Boolean(ticketType.id) && ticketType.soldQuantity > 0
-                      ? 'Suppression impossible: ce ticket a deja des achats'
+                      ? 'Suppression impossible: ce ticket a déjà des achats'
                       : undefined
                   }
                   className="ml-auto bg-red-500/25 hover:bg-red-500/30 border border-red-500/40 text-red-200 px-3 py-2 rounded text-xs disabled:opacity-50"
@@ -269,7 +269,7 @@ const EventFormModal = ({
 
               {Boolean(ticketType.id) && ticketType.soldQuantity > 0 && (
                 <p className="text-xs text-amber-300">
-                  Ce ticket ne peut pas etre supprime car des achats existent deja.
+                  Ce ticket ne peut pas être supprimé car des achats existent déjà.
                 </p>
               )}
 
@@ -343,7 +343,7 @@ const EventFormModal = ({
             disabled={submitting || categories.length === 0}
             className="flex-1 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/15"
           >
-            {submitting ? 'Sauvegarde...' : isEditing ? "Modifier l'evenement" : "Creer l'evenement"}
+            {submitting ? 'Sauvegarde...' : isEditing ? "Modifier l'événement" : "Créer l'événement"}
           </button>
           <button
             type="button"

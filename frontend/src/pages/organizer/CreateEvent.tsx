@@ -54,10 +54,10 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
 
       try {
         const subscriptions = await subscriptionService.getUserSubscriptions(user.id);
-        const accessState = getOrganizerAccessState(subscriptions);
-        setHasActiveSubscription(accessState.hasAccess || Boolean(user.planId));
-        setIsGracePeriod(accessState.isGracePeriod);
-        setGracePeriodEnd(accessState.gracePeriodEnd);
+        const accèssState = getOrganizerAccessState(subscriptions);
+        setHasActiveSubscription(accèssState.hasAccess || Boolean(user.planId));
+        setIsGracePeriod(accèssState.isGracePeriod);
+        setGracePeriodEnd(accèssState.gracePeriodEnd);
       } catch {
         setHasActiveSubscription(Boolean(user.planId));
         setIsGracePeriod(false);
@@ -137,7 +137,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
     setSuccess(null);
 
     if (!hasActiveSubscription) {
-      setFormError("Vous devez avoir un abonnement actif pour creer un evenement.");
+      setFormError("Vous devez avoir un abonnement actif pour créer un événement.");
       return;
     }
 
@@ -150,12 +150,12 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
     }
 
     if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
-      setFormError('La date de fin doit etre posterieure a la date de debut.');
+      setFormError('La date de fin doit être postérieure à la date de début.');
       return;
     }
 
     if (!categoryId) {
-      setFormError('Veuillez choisir une categorie.');
+      setFormError('Veuillez choisir une catégorie.');
       return;
     }
 
@@ -175,10 +175,10 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
     try {
       setSubmitting(true);
       await eventService.createEvent(payload);
-      setSuccess('Evenement cree avec succes.');
+      setSuccess('Événement créé avec succès.');
       resetForm();
     } catch {
-      setFormError("Erreur lors de la creation de l'evenement.");
+      setFormError("Erreur lors de la création de l'événement.");
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +187,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
   if (loadingAccess) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
-        Verification de votre abonnement...
+        Vérification de votre abonnement...
       </div>
     );
   }
@@ -195,21 +195,21 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="Creation d'evenement"
-        subtitle="Publiez votre prochain evenement depuis votre espace organisateur"
+        title="Création d'événement"
+        subtitle="Publiéz votre prochain événement depuis votre espace organisateur"
       />
 
       {isGracePeriod && gracePeriodEnd && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/15 p-6 shadow-2xl backdrop-blur-lg">
-          <h2 className="text-lg font-bold text-amber-200">Abonnement annule: acces temporaire</h2>
+          <h2 className="text-lg font-bold text-amber-200">Abonnement annule: accès temporaire</h2>
           <p className="mt-2 text-amber-100/90">
-            Vous ne serez bientot plus abonne et devrez renouveler l'abonnement, mais vous gardez l'acces a la creation d'evenement pour l'instant.
+            Vous ne serez bientôt plus abonné et devrez renouveler l'abonnement, mais vous gardez l'accès à la création d'événement pour l'instant.
           </p>
           <p className="mt-3 font-mono text-xl text-amber-100">
             {formatCountdown(gracePeriodEnd, nowMs)}
           </p>
           <p className="mt-2 text-sm text-amber-100/80">
-            Fin de periode: {new Date(gracePeriodEnd).toLocaleString('fr-FR')}
+            Fin de période: {new Date(gracePeriodEnd).toLocaleString('fr-FR')}
           </p>
         </div>
       )}
@@ -218,7 +218,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/15 p-6 shadow-2xl backdrop-blur-lg">
           <h2 className="text-xl font-bold text-amber-200">Abonnement requis</h2>
           <p className="mt-2 text-amber-100/90">
-            Vous devez etre abonne a un plan actif pour acceder a la creation d'evenement.
+            Vous devez être abonné à un plan actif pour accéder à la création d'événement.
           </p>
           <Link
             to="/subscription"
@@ -262,12 +262,12 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
                 required
                 rows={4}
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="Decrivez votre evenement"
+                placeholder="Décrivez votre événement"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Categorie</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Catégorie</label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
@@ -275,7 +275,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
                 disabled={loadingCategories || categories.length === 0}
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
-                {categories.length === 0 && <option value="">Aucune categorie disponible</option>}
+                {categories.length === 0 && <option value="">Aucune catégorie disponible</option>}
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -292,7 +292,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
                 <option value="draft">Brouillon</option>
-                <option value="published">Publie</option>
+                <option value="published">Publié</option>
               </select>
             </div>
 
@@ -321,7 +321,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Date de debut</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Date de début</label>
               <input
                 type="datetime-local"
                 value={startDate}
@@ -359,7 +359,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
                 disabled={submitting || categories.length === 0 || loadingCategories}
                 className="w-full bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Creation en cours...' : "Creer l'evenement"}
+                {submitting ? 'Création en cours...' : "Créer l'événement"}
               </button>
             </div>
           </form>

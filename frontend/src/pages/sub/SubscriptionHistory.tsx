@@ -24,7 +24,7 @@ const SubscriptionHistory = () => {
         const user = authService.getStoredUser();
 
         if (!user?.id) {
-          setError('Session utilisateur invalide. Reconnectez-vous.');
+          setError('Session utilisateur invalide. Reconnectéz-vous.');
           setSubscriptions([]);
           return;
         }
@@ -74,7 +74,7 @@ const SubscriptionHistory = () => {
     const userId = user?.id;
 
     if (!userId) {
-      setError('Session utilisateur invalide. Reconnectez-vous.');
+      setError('Session utilisateur invalide. Reconnectéz-vous.');
       return;
     }
 
@@ -135,7 +135,7 @@ const SubscriptionHistory = () => {
     const userId = user?.id;
 
     if (!userId) {
-      setError('Session utilisateur invalide. Reconnectez-vous.');
+      setError('Session utilisateur invalide. Reconnectéz-vous.');
       return;
     }
 

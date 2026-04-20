@@ -94,7 +94,7 @@ const AdminEventCategories = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimér cette catégorie ?')) return;
 
     setDeletingCategoryId(id);
     try {

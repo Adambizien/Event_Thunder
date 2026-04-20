@@ -47,7 +47,7 @@ const EventCommentsModal = ({
           Chargement des commentaires...
         </div>
       ) : eventComments.length === 0 ? (
-        <p className="text-gray-300">Aucun commentaire pour cet evenement.</p>
+        <p className="text-gray-300">Aucun commentaire pour cet événement.</p>
       ) : (
         <div className="space-y-4">
           {eventComments.map((comment) => {

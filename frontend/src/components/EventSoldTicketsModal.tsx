@@ -51,7 +51,7 @@ const EventSoldTicketsModal = ({
           {soldTicketsError}
         </div>
       ) : soldTicketPurchaseCards.length === 0 ? (
-        <p className="text-gray-300">Aucun ticket vendu pour cet evenement.</p>
+        <p className="text-gray-300">Aucun ticket vendu pour cet événement.</p>
       ) : (
         <div className="space-y-3">
           <div>
@@ -61,13 +61,13 @@ const EventSoldTicketsModal = ({
               value={soldTicketsSearchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
               className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white focus:border-thunder-gold focus:outline-none"
-              placeholder="Nom ticket, numero, acheteur, nom, email..."
+              placeholder="Nom ticket, numéro, acheteur, nom, email..."
             />
           </div>
 
           {!hasSearchResults ? (
             <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
-              Aucun ticket ne correspond a votre recherche.
+              Aucun ticket ne correspond à votre recherche.
             </p>
           ) : (
             <div className="max-h-[56vh] overflow-y-auto pr-1">
@@ -81,8 +81,8 @@ const EventSoldTicketsModal = ({
                 canRefundPurchase={(purchase) =>
                   String(purchase.status ?? '').toLowerCase() === 'paid'
                 }
-                emptyMessage="Aucun ticket vendu pour cet evenement."
-                emptySearchMessage="Aucun ticket ne correspond a votre recherche."
+                emptyMessage="Aucun ticket vendu pour cet événement."
+                emptySearchMessage="Aucun ticket ne correspond à votre recherche."
               />
             </div>
           )}

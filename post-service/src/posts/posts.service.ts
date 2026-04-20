@@ -80,7 +80,7 @@ export class PostsService {
   ) {
     if (!this.aiApiKey) {
       throw new BadRequestException(
-        'Generation IA indisponible: AI_API_KEY non configuree.',
+        'Génération IA indisponible: AI_API_KEY non configurée.',
       );
     }
 
@@ -91,13 +91,13 @@ export class PostsService {
         : null;
 
       if (dto.event_id && !event) {
-        throw new BadRequestException('Evenement introuvable ou inaccessible.');
+        throw new BadRequestException('Événement introuvable ou inaccèssible.');
       }
 
       const generatedText = await this.requestAiTextGeneration(dto.prompt, event);
       if (!generatedText) {
         throw new BadRequestException(
-          'Impossible de generer un texte avec l IA pour le moment.',
+          "Impossible de générer un texte avec l'IA pour le moment.",
         );
       }
 
@@ -123,7 +123,7 @@ export class PostsService {
 
     if (scheduledAt && scheduledAt <= new Date()) {
       throw new BadRequestException(
-        'La date planifiee doit etre dans le futur',
+        'La date planifiée doit être dans le futur',
       );
     }
 
@@ -243,7 +243,7 @@ export class PostsService {
     const isAdmin = userRole === 'Admin';
 
     if (!isOwner && !isAdmin && post.status !== 'published') {
-      throw new ForbiddenException('Post inaccessible');
+      throw new ForbiddenException('Post inaccèssible');
     }
 
     return post;
@@ -305,7 +305,7 @@ export class PostsService {
     });
 
     if (!dbToken) {
-      throw new BadRequestException('Token de confirmation invalide ou expire');
+      throw new BadRequestException('Token de confirmation invalide ou expiré');
     }
 
     const now = new Date();
@@ -313,11 +313,11 @@ export class PostsService {
       await this.cancelPostFromToken(
         dbToken.id,
         dbToken.post.id,
-        'Annule automatiquement: token de confirmation expire',
+        'Annulé automatiquement: token de confirmation expiré',
         'expired',
       );
       throw new BadRequestException(
-        'Token de confirmation expire. Publication annulee.',
+        'Token de confirmation expiré. Publication annulée.',
       );
     }
 
@@ -326,7 +326,7 @@ export class PostsService {
     return {
       post: dbToken.post,
       message:
-        'Confirmation validee. Choisis ensuite Publier sur X ou Annuler.',
+        'Confirmation validee. Choisis ensuite Publiér sur X ou Annuler.',
       xIntentUrl,
     };
   }
@@ -349,7 +349,7 @@ export class PostsService {
     });
 
     if (!dbToken) {
-      throw new BadRequestException('Token de confirmation invalide ou expire');
+      throw new BadRequestException('Token de confirmation invalide ou expiré');
     }
 
     const now = new Date();
@@ -357,11 +357,11 @@ export class PostsService {
       await this.cancelPostFromToken(
         dbToken.id,
         dbToken.post.id,
-        'Annule automatiquement: token de confirmation expire',
+        'Annulé automatiquement: token de confirmation expiré',
         'expired',
       );
       throw new BadRequestException(
-        'Token de confirmation expire. Publication annulee.',
+        'Token de confirmation expiré. Publication annulée.',
       );
     }
 
@@ -389,7 +389,7 @@ export class PostsService {
     });
 
     return {
-      message: 'Post marque comme envoye. Redirection vers X.',
+      message: 'Post marqué comme envoyé. Redirection vers X.',
       xIntentUrl: this.buildXIntentUrl(dbToken.post.content),
     };
   }
@@ -405,17 +405,17 @@ export class PostsService {
     });
 
     if (!dbToken) {
-      throw new BadRequestException('Token de confirmation invalide ou expire');
+      throw new BadRequestException('Token de confirmation invalide ou expiré');
     }
 
     await this.cancelPostFromToken(
       dbToken.id,
       postId,
-      'Annule manuellement depuis la page de confirmation',
+      'Annulé manuellement depuis la page de confirmation',
       'archived',
     );
 
-    return { message: 'Publication annulee.' };
+    return { message: 'Publication annulée.' };
   }
 
   async deleteMine(postId: string, userId: string) {
@@ -434,13 +434,13 @@ export class PostsService {
 
     if (post.status === 'published' || post.status === 'archived') {
       throw new BadRequestException(
-        'Seuls les posts non publies peuvent etre supprimes',
+        'Seuls les posts non publiés peuvent être supprimés',
       );
     }
 
     await this.prisma.post.delete({ where: { id: postId } });
 
-    return { message: 'Post supprime' };
+    return { message: 'Post supprimé' };
   }
 
   async updateMine(postId: string, userId: string, dto: UpdatePostDto) {
@@ -469,7 +469,7 @@ export class PostsService {
       post.status === 'archived' ||
       post.status === 'awaiting_confirmation'
     ) {
-      throw new BadRequestException('Ce post ne peut pas etre modifie');
+      throw new BadRequestException('Ce post ne peut pas être modifié');
     }
 
     const hasAnyUpdate =
@@ -494,7 +494,7 @@ export class PostsService {
 
         if (scheduledAtDate <= new Date()) {
           throw new BadRequestException(
-            'La date planifiee doit etre dans le futur',
+            'La date planifiée doit être dans le futur',
           );
         }
 
@@ -583,7 +583,7 @@ export class PostsService {
       data: {
         post_id: post.id,
         reminder_at: new Date(),
-        message: 'Email de confirmation envoye',
+        message: 'Email de confirmation envoyé',
         status: 'sent',
         sent_at: new Date(),
       },
@@ -708,7 +708,7 @@ export class PostsService {
       const retryAt = history[0] + this.aiGenerationWindowMs;
       const retryInMinutes = Math.ceil((retryAt - now) / 60000);
       throw new BadRequestException(
-        `Limite atteinte: ${this.aiGenerationLimit} generations par heure. Reessaie dans ${retryInMinutes} minute(s).`,
+        `Limite atteinte: ${this.aiGenerationLimit} générations par heure. Réessaie dans ${retryInMinutes} minute(s).`,
       );
     }
 
@@ -797,7 +797,7 @@ export class PostsService {
             {
               role: 'system',
               content:
-                'Tu es un assistant de redaction de posts reseaux sociaux en francais. Retourne uniquement le texte final du post, sans explication.',
+                'Tu es un assistant de redaction de posts réseaux sociaux en français. Retourne uniquement le texte final du post, sans explication.',
             },
             {
               role: 'user',
@@ -841,7 +841,7 @@ export class PostsService {
         (error as { name?: string }).name === 'AbortError'
       ) {
         throw new BadRequestException(
-          'Timeout du provider IA (plus de 20s). Reessaie dans quelques instants.',
+          'Timeout du provider IA (plus de 20s). Réessaie dans quelques instants.',
         );
       }
 
@@ -890,19 +890,19 @@ export class PostsService {
           `Debut: ${event.start_date ?? '-'}`,
           `Fin: ${event.end_date ?? '-'}`,
           `Statut: ${event.status ?? '-'}`,
-          `Categorie: ${event.category?.name ?? '-'}`,
-          `Lien evenement: ${this.buildEventUrl(event.id) ?? '-'}`,
+          `Catégorie: ${event.category?.name ?? '-'}`,
+          `Lien événement: ${this.buildEventUrl(event.id) ?? '-'}`,
         ].join('\n')
-      : 'Aucun evenement selectionne.';
+      : 'Aucun événement sélectionné.';
 
     return [
-      'Tu es un assistant de redaction pour des posts reseaux sociaux.',
-      'Ecris en francais, ton naturel, clair et engageant.',
+      'Tu es un assistant de redaction pour des posts réseaux sociaux.',
+      'Écris en français, ton naturel, clair et engageant.',
       'Retourne uniquement le texte final du post, sans explication.',
       '',
       `Demande utilisateur: ${prompt}`,
       '',
-      'Contexte evenement:',
+      'Contexte événement:',
       eventContext,
     ].join('\n');
   }

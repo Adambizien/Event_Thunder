@@ -79,7 +79,7 @@ const SocialPostFormModal = ({
               Brouillon
             </option>
             <option value="scheduled" className="bg-thunder-dark text-white">
-              Programme
+              Programmé
             </option>
           </select>
           <p className="mt-1 text-xs text-gray-400">
@@ -92,7 +92,7 @@ const SocialPostFormModal = ({
           <textarea
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
-            placeholder="Ecris ton post ici..."
+            placeholder="Écris ton post ici..."
             maxLength={5000}
             rows={5}
             className="w-full rounded border border-white/20 bg-white/10 px-4 py-2 text-white placeholder:text-gray-400 focus:border-thunder-gold focus:outline-none"
@@ -109,7 +109,7 @@ const SocialPostFormModal = ({
               disabled={generatingText || submitting}
               className="rounded-md border border-thunder-gold/50 bg-thunder-gold/20 px-3 py-1.5 text-xs font-semibold text-thunder-gold transition hover:bg-thunder-gold/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {generatingText ? 'Generation...' : 'Generer le texte'}
+              {generatingText ? 'Génération...' : 'Générer le texte'}
             </button>
           </div>
           <textarea

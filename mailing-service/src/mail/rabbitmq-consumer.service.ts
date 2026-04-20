@@ -155,7 +155,7 @@ export class RabbitmqConsumerService
       });
 
       this.connection.on('close', () => {
-        this.logger.warn('Connexion RabbitMQ fermee. Reconnexion...');
+        this.logger.warn('Connexion RabbitMQ fermée. Reconnexion...');
         this.channel = undefined;
         this.connection = undefined;
         this.scheduleReconnect();
@@ -169,7 +169,7 @@ export class RabbitmqConsumerService
       });
     } catch (error) {
       this.logger.error(
-        'Connexion RabbitMQ impossible. Les emails billing ne seront pas consommes.',
+        'Connexion RabbitMQ impossible. Les emails billing ne seront pas consommés.',
         error instanceof Error ? error.stack : undefined,
       );
       this.scheduleReconnect();
@@ -318,7 +318,7 @@ export class RabbitmqConsumerService
       buyerFirstname: enriched?.buyerFirstname ?? buyerFirstname,
       buyerLastname: enriched?.buyerLastname ?? buyerLastname,
       buyerEmail: enriched?.buyerEmail ?? payload.customerEmail,
-      statusLabel: enriched?.statusLabel ?? 'Paiement confirme',
+      statusLabel: enriched?.statusLabel ?? 'Paiement confirmé',
       purchaseDate:
         enriched?.purchaseDate ?? payload.createdAt ?? payload.paidAt,
       purchaseId: enriched?.purchaseId,
@@ -457,7 +457,7 @@ export class RabbitmqConsumerService
       };
     } catch (error) {
       this.logger.warn(
-        `Impossible de recuperer l'utilisateur par email: ${
+        `Impossible de récupérer l'utilisateur par email: ${
           error instanceof Error ? error.message : 'erreur inconnue'
         }`,
       );
@@ -605,7 +605,7 @@ export class RabbitmqConsumerService
         purchaseId: purchase.id,
         purchaseDate: purchase.paidAt ?? purchase.createdAt ?? undefined,
         eventId: purchase.eventId ?? undefined,
-        statusLabel: purchase.statusLabel ?? 'Paiement confirme',
+        statusLabel: purchase.statusLabel ?? 'Paiement confirmé',
         amountTotal: Number(purchase.totalAmount ?? 0),
         currency: purchase.currency ?? 'EUR',
         ticketCount: tickets.length,
@@ -617,7 +617,7 @@ export class RabbitmqConsumerService
       };
     } catch (error) {
       this.logger.warn(
-        `Impossible de recuperer les infos ticketing: ${
+        `Impossible de récupérer les infos ticketing: ${
           error instanceof Error ? error.message : 'erreur inconnue'
         }`,
       );

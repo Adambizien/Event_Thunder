@@ -267,7 +267,7 @@ const Register = ({ onRegister }: RegisterProps) => {
               className={`ml-1 ${loading ? 'opacity-50 cursor-not-allowed' : 'btn-secondary'}`}
               onClick={(e) => loading && e.preventDefault()}
             >
-              Se connecter
+              Se connectér
             </Link>
           </p>
         </div>

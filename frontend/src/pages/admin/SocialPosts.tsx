@@ -24,11 +24,11 @@ const toDateInputValue = (date: Date) => {
 
 const statusLabel: Record<PostItem['status'], string> = {
   draft: 'Brouillon',
-  scheduled: 'Programme',
+  scheduled: 'Programmé',
   awaiting_confirmation: 'En attente de confirmation',
   expired: 'Expire',
-  published: 'Publie',
-  archived: 'Annule',
+  published: 'Publié',
+  archived: 'Annulé',
 };
 
 const statusBadgeClass: Record<PostItem['status'], string> = {
@@ -259,7 +259,7 @@ const AdminSocialPosts = () => {
 
   const openEditModal = (post: PostItem) => {
     if (!canEditPost(post)) {
-      setError('Ce post ne peut plus etre modifie.');
+      setError('Ce post ne peut plus être modifié.');
       return;
     }
 
@@ -321,7 +321,7 @@ const AdminSocialPosts = () => {
 
     const cleanedPrompt = aiPrompt.trim();
     if (!cleanedPrompt) {
-      setAiFeedback('Ajoute un prompt pour lancer la generation.');
+      setAiFeedback('Ajoute un prompt pour lancer la génération.');
       setAiFeedbackType('error');
       return;
     }
@@ -338,11 +338,11 @@ const AdminSocialPosts = () => {
 
       setContent(result.content);
       setAiFeedback(
-        `Texte genere. Il te reste ${result.remainingGenerations}/${result.limit} generation(s) sur la periode d'une heure.`,
+        `Texte généré. Il te reste ${result.remainingGenerations}/${result.limit} génération(s) sur la période d'une heure.`,
       );
       setAiFeedbackType('success');
     } catch (err) {
-      setAiFeedback(err instanceof Error ? err.message : 'Erreur de generation IA.');
+      setAiFeedback(err instanceof Error ? err.message : 'Erreur de génération IA.');
       setAiFeedbackType('error');
     } finally {
       setGeneratingText(false);
@@ -375,7 +375,7 @@ const AdminSocialPosts = () => {
       }
 
       if (scheduledDate <= new Date()) {
-        setFormError('La date de planification doit etre dans le futur.');
+        setFormError('La date de planification doit être dans le futur.');
         return;
       }
     }
@@ -396,8 +396,8 @@ const AdminSocialPosts = () => {
         await postService.updatePost(editingPostId, updatePayload);
         setSuccess(
           postMode === 'draft'
-            ? 'Brouillon modifie avec succes.'
-            : 'Post programme modifie avec succes.',
+            ? 'Brouillon modifié avec succès.'
+            : 'Post programmé modifié avec succès.',
         );
       } else {
         const payload: CreatePostPayload = {
@@ -409,8 +409,8 @@ const AdminSocialPosts = () => {
         await postService.createPost(payload);
         setSuccess(
           postMode === 'draft'
-            ? 'Brouillon cree avec succes. Aucun e-mail de confirmation n est envoye.'
-            : 'Post programme avec succes. Un e-mail de confirmation sera envoye a l heure planifiee.',
+            ? "Brouillon créé avec succès. Aucun e-mail de confirmation n'est envoyé."
+            : "Post programmé avec succès. Un e-mail de confirmation sera envoyé à l'heure planifiée.",
         );
       }
 
@@ -690,10 +690,10 @@ const AdminSocialPosts = () => {
                     <p>Créé le: {formatDateTime(post.created_at)}</p>
                     <p>Mis à jour le: {formatDateTime(post.updated_at)}</p>
                     {post.status === 'published' && (
-                      <p>Publie le: {formatDateTime(post.published_at)}</p>
+                      <p>Publié le: {formatDateTime(post.published_at)}</p>
                     )}
                     {post.status === 'archived' && (
-                      <p>Annule le: {formatDateTime(post.updated_at)}</p>
+                      <p>Annulé le: {formatDateTime(post.updated_at)}</p>
                     )}
                     {post.status === 'expired' && (
                       <p>Expire le: {formatDateTime(post.updated_at)}</p>

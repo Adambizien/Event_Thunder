@@ -95,7 +95,7 @@ const TicketPurchaseCards = ({
         >
           {String(purchase.status ?? '').toLowerCase() === 'refunded' && (
             <p className="mb-3 rounded-md border border-amber-300/40 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-100">
-              Cet achat a ete rembourse. Les tickets associes sont desactives.
+              Cet achat a été remboursé. Les tickets associés sont désactivés.
             </p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -194,7 +194,7 @@ const TicketPurchaseCards = ({
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <h3 className="mb-2 font-semibold text-white">Billets generes</h3>
+              <h3 className="mb-2 font-semibold text-white">Billets générés</h3>
               <div className="space-y-2">
                 {purchase.tickets.map((ticket) => (
                   <div key={ticket.id} className="rounded-lg border border-white/10 bg-white/5 p-3">

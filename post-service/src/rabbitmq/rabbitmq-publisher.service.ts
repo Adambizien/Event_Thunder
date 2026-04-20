@@ -48,7 +48,7 @@ export class RabbitmqPublisherService
       });
 
       this.connection.on('close', () => {
-        this.logger.warn('Connexion RabbitMQ fermee. Reconnexion...');
+        this.logger.warn('Connexion RabbitMQ fermée. Reconnexion...');
         this.channel = undefined;
         this.connection = undefined;
         this.scheduleReconnect();
@@ -62,7 +62,7 @@ export class RabbitmqPublisherService
       });
     } catch (error) {
       this.logger.error(
-        'Connexion RabbitMQ impossible. Les mails de confirmation ne seront pas publies.',
+        'Connexion RabbitMQ impossible. Les mails de confirmation ne seront pas publiés.',
         error instanceof Error ? error.stack : undefined,
       );
       this.scheduleReconnect();

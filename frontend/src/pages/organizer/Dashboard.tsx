@@ -38,14 +38,14 @@ const OrganizerDashboard = ({ user }: OrganizerDashboardProps) => {
         ]);
 
         const ownEvents = allEvents.filter((event) => event.creator_id === user.id);
-        const accessState = getOrganizerAccessState(subscriptions);
+        const accèssState = getOrganizerAccessState(subscriptions);
 
         setEvents(ownEvents);
-        setHasActiveSubscription(accessState.hasAccess || Boolean(user.planId));
-        setIsGracePeriod(accessState.isGracePeriod);
-        setGracePeriodEnd(accessState.gracePeriodEnd);
+        setHasActiveSubscription(accèssState.hasAccess || Boolean(user.planId));
+        setIsGracePeriod(accèssState.isGracePeriod);
+        setGracePeriodEnd(accèssState.gracePeriodEnd);
       } catch {
-        setError('Impossible de charger les donnees organisateur.');
+        setError('Impossible de charger les données organisateur.');
         setEvents([]);
         setHasActiveSubscription(Boolean(user.planId));
         setIsGracePeriod(false);
@@ -124,7 +124,7 @@ const OrganizerDashboard = ({ user }: OrganizerDashboardProps) => {
     <div className="space-y-8">
       <AdminPageHeader
         title="Tableau de bord organisateur"
-        subtitle="Pilotez vos evenements et votre acces au plan abonne"
+        subtitle="Pilotez vos événements et votre accès au plan abonné"
       />
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
@@ -148,26 +148,26 @@ const OrganizerDashboard = ({ user }: OrganizerDashboardProps) => {
 
       {isGracePeriod && gracePeriodEnd && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/15 p-6 shadow-2xl backdrop-blur-lg">
-          <h2 className="text-lg font-bold text-amber-200">Abonnement annule: acces temporaire</h2>
+          <h2 className="text-lg font-bold text-amber-200">Abonnement annule: accès temporaire</h2>
           <p className="mt-2 text-amber-100/90">
-            Vous ne serez bientot plus abonne et devrez renouveler l'abonnement, mais vous avez encore acces aux privileges pour l'instant.
+            Vous ne serez bientôt plus abonné et devrez renouveler l'abonnement, mais vous avez encore accès aux privilèges pour l'instant.
           </p>
           <p className="mt-3 font-mono text-xl text-amber-100">
             {formatCountdown(gracePeriodEnd, nowMs)}
           </p>
           <p className="mt-2 text-sm text-amber-100/80">
-            Fin de periode: {new Date(gracePeriodEnd).toLocaleString('fr-FR')}
+            Fin de période: {new Date(gracePeriodEnd).toLocaleString('fr-FR')}
           </p>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-          <p className="text-gray-300 text-sm mb-1">Total evenements</p>
+          <p className="text-gray-300 text-sm mb-1">Total événements</p>
           <p className="text-3xl font-bold text-white">{stats.total}</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-          <p className="text-gray-300 text-sm mb-1">Publies</p>
+          <p className="text-gray-300 text-sm mb-1">Publiés</p>
           <p className="text-3xl font-bold text-white">{stats.published}</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
@@ -175,11 +175,11 @@ const OrganizerDashboard = ({ user }: OrganizerDashboardProps) => {
           <p className="text-3xl font-bold text-white">{stats.draft}</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-          <p className="text-gray-300 text-sm mb-1">Termines</p>
+          <p className="text-gray-300 text-sm mb-1">Terminés</p>
           <p className="text-3xl font-bold text-white">{stats.completed}</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
-          <p className="text-gray-300 text-sm mb-1">Annules</p>
+          <p className="text-gray-300 text-sm mb-1">Annulés</p>
           <p className="text-3xl font-bold text-white">{stats.canceled}</p>
         </div>
       </div>
@@ -187,14 +187,14 @@ const OrganizerDashboard = ({ user }: OrganizerDashboardProps) => {
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
         <h2 className="text-lg font-semibold text-white">Actions rapides</h2>
         <p className="mt-2 text-sm text-gray-300">
-          Creez un nouvel evenement depuis la section dediee.
+          Créez un nouvel événement depuis la section dediee.
         </p>
         <div className="mt-4">
           <Link
             to="/organizer/create-event"
             className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 font-semibold text-white transition-colors hover:bg-white/20"
           >
-            Aller a la creation d'evenement
+            Aller à la création d'événement
           </Link>
         </div>
       </div>

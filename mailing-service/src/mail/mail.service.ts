@@ -229,7 +229,7 @@ export class MailService {
       : 'maintenant';
     const networks = Array.isArray(input.networks)
       ? input.networks.map((network) => network.toUpperCase()).join(' et ')
-      : 'reseaux selectionnes';
+      : 'réseaux sélectionnés';
     const template = this.templateFactory.createPostConfirmationTemplate({
       username,
       postId: input.postId,

@@ -26,8 +26,8 @@ const TopRevenueCard = ({ mode, items, currency }: TopRevenueCardProps) => {
     mode === 'subscription' ? 'Top Plans' : 'Top Types de Ticket';
   const subtitle =
     mode === 'subscription'
-      ? 'Classement des ventes encaissees par plan de service.'
-      : 'Classement des ventes encaissees par type de ticket.';
+      ? 'Classement des ventes encaissées par plan de service.'
+      : 'Classement des ventes encaissées par type de ticket.';
   const countLabel = mode === 'subscription' ? 'transaction(s)' : 'ticket(s)';
 
   return (
@@ -39,7 +39,7 @@ const TopRevenueCard = ({ mode, items, currency }: TopRevenueCardProps) => {
 
       {cappedItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-8 text-center text-gray-400">
-          Aucun paiement encaisse sur cette periode.
+          Aucun paiement encaissé sur cette période.
         </div>
       ) : (
         <div className="space-y-4">

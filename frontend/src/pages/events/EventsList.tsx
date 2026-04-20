@@ -16,8 +16,8 @@ const formatDate = (value: string) => {
 const statusLabel: Record<EventItem['status'], string> = {
   draft: 'Brouillon',
   published: 'En cours',
-  canceled: 'Annule',
-  completed: 'Termine',
+  canceled: 'Annulé',
+  completed: 'Terminé',
 };
 
 const EventsList = () => {
@@ -91,7 +91,7 @@ const EventsList = () => {
       <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-12">
         <div className="max-w-6xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
           <span className="spinner mr-2 align-middle"></span>
-          Chargement des evenements...
+          Chargement des événements...
         </div>
       </div>
     );
@@ -101,8 +101,8 @@ const EventsList = () => {
     <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-12">
       <div className="max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-thunder-gold mb-2">Evenements</h1>
-          <p className="text-gray-300">Decouvrez les evenements en cours et les archives.</p>
+          <h1 className="text-3xl font-bold text-thunder-gold mb-2">Événements</h1>
+          <p className="text-gray-300">Decouvrez les événements en cours et les archives.</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
@@ -139,17 +139,17 @@ const EventsList = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
-                placeholder="Titre, lieu, categorie..."
+                placeholder="Titre, lieu, catégorie..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Categorie</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Catégorie</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
-                <option value="all">Toutes les categories</option>
+                <option value="all">Toutes les catégories</option>
                 {categories.map((category) => (
                   <option key={category} value={category}>
                     {category}
@@ -164,8 +164,8 @@ const EventsList = () => {
                 onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
                 className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
               >
-                <option value="asc">Date de debut (plus proche)</option>
-                <option value="desc">Date de debut (plus lointaine)</option>
+                <option value="asc">Date de début (plus proche)</option>
+                <option value="desc">Date de début (plus lointaine)</option>
               </select>
             </div>
           </div>
@@ -179,7 +179,7 @@ const EventsList = () => {
 
         {filteredEvents.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
-            Aucun evenement trouve pour cette section.
+            Aucun événement trouve pour cette section.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -200,7 +200,7 @@ const EventsList = () => {
 
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">
-                    {event.category?.name || 'Sans categorie'} - {statusLabel[event.status]}
+                    {event.category?.name || 'Sans catégorie'} - {statusLabel[event.status]}
                   </p>
                   <h2 className="text-xl font-bold text-white mb-2">{event.title}</h2>
                   <p className="text-gray-300 text-sm line-clamp-3">{event.description}</p>

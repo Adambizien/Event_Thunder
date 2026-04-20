@@ -40,7 +40,7 @@ const ConfirmPost = () => {
         setMessage(
           error instanceof Error
             ? error.message
-            : 'Impossible de confirmer la publication.',
+            : 'Impossible de confirmér la publication.',
         );
       } finally {
         setLoading(false);
@@ -84,7 +84,7 @@ const ConfirmPost = () => {
       setMessage(
         error instanceof Error
           ? error.message
-          : 'Impossible d annuler la publication.',
+          : "Impossible d'annuler la publication.",
       );
     } finally {
       setActionLoading(false);
@@ -122,7 +122,7 @@ const ConfirmPost = () => {
             disabled={actionLoading}
             className="mb-4 inline-flex items-center rounded-lg border border-sky-400/70 bg-sky-500/20 px-4 py-2 font-semibold text-sky-200 transition hover:bg-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {actionLoading ? 'Traitement...' : 'Publier sur X'}
+            {actionLoading ? 'Traitement...' : 'Publiér sur X'}
           </button>
         )}
 

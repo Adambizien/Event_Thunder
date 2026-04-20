@@ -24,7 +24,7 @@ const RevenueLineChartCard = ({
   subtitle,
   data,
   currency,
-  emptyMessage = 'Aucune donnee disponible pour generer le graphique.',
+  emptyMessage = 'Aucune donnée disponible pour générer le graphique.',
 }: RevenueLineChartCardProps) => {
   const width = 760;
   const height = 300;

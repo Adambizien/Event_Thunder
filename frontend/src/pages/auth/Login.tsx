@@ -170,7 +170,7 @@ const Login = ({ onLogin }: LoginProps) => {
                   Connexion en cours...
                 </>
               ) : (
-                'Se connecter à votre compte'
+                'Se connectér à votre compte'
               )}
             </button>
           </form>
