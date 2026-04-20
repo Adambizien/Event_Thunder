@@ -33,47 +33,63 @@ export class PostConfirmationTemplate {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Confirmation de publication</title>
   </head>
-  <body style="margin: 0; padding: 24px; background: #f4f6fb; color: #111827; font-family: Arial, sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #dde3ef; border-radius: 14px; overflow: hidden;">
+  <body style="font-family: 'Space Grotesk', 'Sora', 'Manrope', Arial, sans-serif; background: linear-gradient(135deg, #095668, #074353); margin: 0; padding: 0; color: #f3f4f6;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #095668, #074353); padding: 32px 0;">
       <tr>
-        <td style="padding: 0; background: linear-gradient(135deg, #0f766e 0%, #0b5c56 100%);">
-          <div style="padding: 24px; color: #ffffff;">
-            <p style="margin: 0 0 6px 0; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; opacity: 0.9;">Event Thunder</p>
-            <h1 style="margin: 0; font-size: 22px; line-height: 1.3;">Confirmation de publication</h1>
-          </div>
-        </td>
-      </tr>
+        <td align="center">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 16px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35); overflow: hidden; backdrop-filter: blur(8px);">
+            <tr>
+              <td style="background: linear-gradient(135deg, #095668, #074353); color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid rgba(255, 176, 32, 0.35);">
+                <p style="margin: 0 0 10px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #ffd24a; font-weight: 700;">${this.productName}</p>
+                <h1 style="margin: 0; font-size: 22px;">Confirmation de publication</h1>
+                <p style="margin: 8px 0 0; font-size: 14px; color: #d1d5db;">Une action est requise pour finaliser votre post</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 32px; color: #f3f4f6;">
+                <p style="font-size: 15px; margin: 0 0 12px;">Bonjour ${escapedUsername},</p>
+                <p style="font-size: 15px; margin: 0 0 16px; color: #e5e7eb; line-height: 1.55;">
+                  Votre post planifié pour <strong>${escapedScheduledText}</strong> est prêt à être publié sur <strong>${escapedNetworks}</strong>.
+                </p>
 
-      <tr>
-        <td style="padding: 24px;">
-          <p style="margin: 0 0 14px 0; font-size: 16px;">Bonjour <strong>${escapedUsername}</strong>,</p>
-          <p style="margin: 0 0 16px 0; color: #374151; line-height: 1.6;">
-            Votre post planifié pour <strong>${escapedScheduledText}</strong> est prêt à être publié sur <strong>${escapedNetworks}</strong>.
-          </p>
+                ${
+                  escapedContentPreview
+                    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; margin: 0 0 16px; background: rgba(255, 255, 255, 0.04);">
+                  <tr>
+                    <td style="padding: 14px 16px;">
+                      <p style="margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af;">Aperçu du contenu</p>
+                      <p style="margin: 0; font-size: 14px; color: #f3f4f6; white-space: pre-wrap; line-height: 1.5;">${escapedContentPreview}</p>
+                    </td>
+                  </tr>
+                </table>`
+                    : ''
+                }
 
-          ${
-            escapedContentPreview
-              ? `<div style="margin: 0 0 16px 0; padding: 14px; border-radius: 10px; border: 1px solid #e5e7eb; background: #f9fafb;"><p style="margin: 0; color: #374151; white-space: pre-wrap;"><em>${escapedContentPreview}</em></p></div>`
-              : ''
-          }
+                ${
+                  escapedEventUrl
+                    ? `<p style="margin: 0 0 18px; font-size: 14px; color: #d1d5db; line-height: 1.5;">
+                  Lien de l'événement : <a href="${escapedEventUrl}" style="color: #ffd24a; text-decoration: none; font-weight: 700; word-break: break-all;">${escapedEventUrl}</a>
+                </p>`
+                    : ''
+                }
 
-          ${
-            escapedEventUrl
-              ? `<p style="margin: 0 0 18px 0; font-size: 14px; color: #374151;">Lien de l'événement: <a href="${escapedEventUrl}" style="color: #0f766e; text-decoration: none; font-weight: 600;">${escapedEventUrl}</a></p>`
-              : ''
-          }
+                <p style="text-align: center; margin: 0 0 20px;">
+                  <a href="${escapedConfirmationUrl}" style="display: inline-block; padding: 14px 22px; background: #ffb020; color: #000000; text-decoration: none; border-radius: 10px; font-weight: 700;">Confirmer et publier</a>
+                </p>
 
-          <p style="margin: 0 0 20px 0;">
-            <a href="${escapedConfirmationUrl}" style="display: inline-block; padding: 12px 18px; background: #0f766e; color: #ffffff; text-decoration: none; border-radius: 9px; font-weight: 700; font-size: 14px;">Confirmer et publier</a>
-          </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 10px; margin: 0 0 14px; background: rgba(0, 0, 0, 0.16);">
+                  <tr>
+                    <td style="padding: 12px 14px; font-size: 12px; color: #9ca3af;">Post ID</td>
+                    <td style="padding: 12px 14px; font-size: 13px; color: #f3f4f6; text-align: right; word-break: break-all;"><strong>${escapedPostId}</strong></td>
+                  </tr>
+                </table>
 
-          <p style="margin: 0; font-size: 12px; color: #6b7280;">Post ID: ${escapedPostId}</p>
-        </td>
-      </tr>
-
-      <tr>
-        <td style="padding: 14px 24px; background: #f8fafc; border-top: 1px solid #e5e7eb;">
-          <p style="margin: 0; font-size: 12px; color: #6b7280;">Ce lien de confirmation est personnel et expire automatiquement.</p>
+                <p style="font-size: 13px; color: #d1d5db; margin: 0; line-height: 1.55;">
+                  Ce lien de confirmation est personnel et expire automatiquement après 24 heures.
+                </p>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>

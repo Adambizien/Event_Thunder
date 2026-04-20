@@ -115,34 +115,37 @@ const ConfirmPost = () => {
               : 'La confirmation est bien prise en compte.'}
         </div>
 
-        {!isError && xIntentUrl && (
-          <button
-            type="button"
-            onClick={handlePublishOnX}
-            disabled={actionLoading}
-            className="mb-4 inline-flex items-center rounded-lg border border-sky-400/70 bg-sky-500/20 px-4 py-2 font-semibold text-sky-200 transition hover:bg-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {actionLoading ? 'Traitement...' : 'Publiér sur X'}
-          </button>
-        )}
-
-        {!isError && xIntentUrl ? (
-          <button
-            type="button"
-            onClick={handleCancelAndBack}
-            disabled={actionLoading}
-            className="inline-flex items-center rounded-lg border border-thunder-gold/70 bg-thunder-gold/20 px-4 py-2 font-semibold text-thunder-gold transition hover:bg-thunder-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Retour à l'administration des posts
-          </button>
-        ) : (
-          <Link
-            to="/admin/social-posts"
-            className="inline-flex items-center rounded-lg border border-thunder-gold/70 bg-thunder-gold/20 px-4 py-2 font-semibold text-thunder-gold transition hover:bg-thunder-gold/30"
-          >
-            Retour à l'administration des posts
-          </Link>
-        )}
+        <div className="mt-8 border-t border-white/10 pt-5">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {!isError && xIntentUrl && (
+              <button
+                type="button"
+                onClick={handlePublishOnX}
+                disabled={actionLoading}
+                className="inline-flex items-center rounded-lg border border-sky-400/70 bg-sky-500/20 px-4 py-2 font-semibold text-sky-200 transition hover:bg-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {actionLoading ? 'Traitement...' : 'Publiér sur X'}
+              </button>
+            )}
+            {!isError && xIntentUrl ? (
+              <button
+                type="button"
+                onClick={handleCancelAndBack}
+                disabled={actionLoading}
+                className="inline-flex items-center rounded-lg border border-thunder-gold/70 bg-thunder-gold/20 px-4 py-2 font-semibold text-thunder-gold transition hover:bg-thunder-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Retour à l'administration des posts
+              </button>
+            ) : (
+              <Link
+                to="/admin/social-posts"
+                className="inline-flex items-center rounded-lg border border-thunder-gold/70 bg-thunder-gold/20 px-4 py-2 font-semibold text-thunder-gold transition hover:bg-thunder-gold/30"
+              >
+                Retour à l'administration des posts
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
