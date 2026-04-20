@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { PostItem, PostStatus } from '../types/PostTypes';
 import Modal from './Modal';
+import SocialPostDetailsCards from './SocialPostDetailsCards';
 
 type SocialPostsCalendarProps = {
   posts: PostItem[];
@@ -103,22 +104,6 @@ const formatTime = (value?: string | null) => {
   }).format(date);
 };
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
-
 const formatWeekdayShort = (value: Date) => {
   return new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(value);
 };
@@ -146,20 +131,6 @@ const getExpirationDate = (post: PostItem) => {
   return new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
 };
 
-const formatRemainingTime = (ms: number) => {
-  if (ms <= 0) {
-    return 'Expiré';
-  }
-
-  const totalMinutes = Math.ceil(ms / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours <= 0) {
-    return `${minutes} min`;
-  }
-  return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-};
-
 const truncate = (value: string, maxLength: number) => {
   if (value.length <= maxLength) {
     return value;
@@ -167,18 +138,11 @@ const truncate = (value: string, maxLength: number) => {
   return `${value.slice(0, maxLength - 1)}...`;
 };
 
-const getOwnerFullName = (post: PostItem) => {
-  const fullName = `${post.owner?.firstName ?? ''} ${post.owner?.lastName ?? ''}`.trim();
-  return fullName || '-';
-};
-
 const getOwnerEmail = (post: PostItem) => {
   return post.owner?.email?.trim() || '-';
 };
 
-const getOwnerId = (post: PostItem) => {
-  return post.owner?.id || post.user_id || '-';
-};
+const CONTENT_PREVIEW_LENGTH = 180;
 
 const SocialPostsCalendar = ({
   posts,
@@ -193,6 +157,7 @@ const SocialPostsCalendar = ({
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(new Set());
 
   const scheduledPosts = useMemo(
     () =>
@@ -314,7 +279,7 @@ const SocialPostsCalendar = ({
                       className={`w-full rounded-md border px-2 py-1 text-left text-xs ${statusCardStyle[post.status]}`}
                     >
                       <div className="font-semibold">{formatTime(post.scheduled_at)}</div>
-                      <div>{truncate(post.content, 46)}</div>
+                      <div className="break-all">{truncate(post.content, 46)}</div>
                       <div className="mt-1 truncate text-[11px] text-gray-200">
                         {getOwnerEmail(post)}
                       </div>
@@ -346,19 +311,22 @@ const SocialPostsCalendar = ({
               const eventName = post.event_id
                 ? eventNameById?.get(post.event_id) ?? post.event_id
                 : '-';
-              const ownerFullName = getOwnerFullName(post);
-              const ownerEmail = getOwnerEmail(post);
-              const ownerId = getOwnerId(post);
               const networks =
                 post.targets.length > 0
                   ? post.targets.map((target) => target.network.toUpperCase()).join(', ')
                   : '-';
               const cancellationReason =
-                post.status === 'archived'
+                post.status === 'archived' || post.status === 'expired'
                   ? post.targets.find((target) => target.error_message)?.error_message
                   : null;
               const expiresAt = getExpirationDate(post);
               const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
+              const isExpanded = expandedPostIds.has(post.id);
+              const isLongContent = post.content.length > CONTENT_PREVIEW_LENGTH;
+              const displayedContent =
+                isExpanded || !isLongContent
+                  ? post.content
+                  : truncate(post.content, CONTENT_PREVIEW_LENGTH);
 
               return (
                 <article key={post.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -399,41 +367,28 @@ const SocialPostsCalendar = ({
                     </div>
                   </div>
 
-                  <p className="whitespace-pre-wrap text-sm text-gray-200">{post.content}</p>
-
-                  <div className="mt-3 grid gap-2 text-xs text-gray-200 sm:grid-cols-2">
-                    <p>Type: {networks}</p>
-                    <p>Événement: {eventName}</p>
-                    <p>Nom complet: {ownerFullName}</p>
-                    <p>Email: {ownerEmail}</p>
-                    <p className="sm:col-span-2">ID: {ownerId}</p>
-                    {post.status === 'published' && (
-                      <p>Publié le: {formatDateTime(post.published_at)}</p>
-                    )}
-                    {post.status === 'archived' && (
-                      <p>Annulé le: {formatDateTime(post.updated_at)}</p>
-                    )}
-                    {post.status === 'expired' && (
-                      <p>Expiré le: {formatDateTime(post.updated_at)}</p>
-                    )}
-                    {post.status === 'archived' && cancellationReason && (
-                      <p className="sm:col-span-2">Raison: {cancellationReason}</p>
-                    )}
-                    {expiresAt &&
-                      post.status === 'archived' &&
-                      remainingMs !== null &&
-                      remainingMs <= 0 && (
-                        <p>Expiré le: {formatDateTime(expiresAt.toISOString())}</p>
-                      )}
-                    {post.status === 'awaiting_confirmation' &&
-                      expiresAt &&
-                      remainingMs !== null && (
-                        <>
-                          <p>Expiration: {formatDateTime(expiresAt.toISOString())}</p>
-                          <p>Temps restant: {formatRemainingTime(remainingMs)}</p>
-                        </>
-                      )}
-                  </div>
+                  <SocialPostDetailsCards
+                    post={post}
+                    content={displayedContent}
+                    contentExpandable={isLongContent}
+                    isContentExpanded={isExpanded}
+                    onToggleContent={() => {
+                      setExpandedPostIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(post.id)) {
+                          next.delete(post.id);
+                        } else {
+                          next.add(post.id);
+                        }
+                        return next;
+                      });
+                    }}
+                    eventName={eventName}
+                    networks={networks}
+                    cancellationReason={cancellationReason}
+                    expiresAt={expiresAt}
+                    remainingMs={remainingMs}
+                  />
                 </article>
               );
             })}

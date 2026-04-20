@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import SocialPostFormModal from '../../components/SocialPostFormModal';
 import SocialPostsCalendar from '../../components/SocialPostsCalendar';
+import SocialPostDetailsCards from '../../components/SocialPostDetailsCards';
 import { eventService } from '../../services/EventService';
 import { postService } from '../../services/PostService';
 import type { EventItem } from '../../types/EventTypes';
@@ -111,38 +112,6 @@ const normalizeExpiredStatus = (posts: PostItem[]): PostItem[] => {
     };
   });
 };
-
-const formatRemainingTime = (ms: number) => {
-  if (ms <= 0) {
-    return 'Expire';
-  }
-
-  const totalMinutes = Math.ceil(ms / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours <= 0) {
-    return `${minutes} min`;
-  }
-
-  return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-};
-
-const getOwnerFullName = (post: PostItem) => {
-  const fullName = `${post.owner?.firstName ?? ''} ${post.owner?.lastName ?? ''}`.trim();
-  return fullName || '-';
-};
-
-const getOwnerEmail = (post: PostItem) => {
-  return post.owner?.email?.trim() || '-';
-};
-
-const getOwnerId = (post: PostItem) => {
-  return post.owner?.id || post.user_id || '-';
-};
-
-
-
 
 const AdminSocialPosts = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -619,9 +588,6 @@ const AdminSocialPosts = () => {
                   : null;
               const expiresAt = getExpirationDate(post);
               const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
-              const ownerFullName = getOwnerFullName(post);
-              const ownerEmail = getOwnerEmail(post);
-              const ownerId = getOwnerId(post);
               const isExpanded = expandedPostIds.has(post.id);
               const isLongContent = post.content.length > CONTENT_PREVIEW_LENGTH;
               const displayedContent =
@@ -660,52 +626,28 @@ const AdminSocialPosts = () => {
                     </div>
                   </div>
 
-                  <p className="whitespace-pre-wrap text-sm text-gray-100">{displayedContent}</p>
-                  {isLongContent && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExpandedPostIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(post.id)) {
-                            next.delete(post.id);
-                          } else {
-                            next.add(post.id);
-                          }
-                          return next;
-                        });
-                      }}
-                      className="mt-2 text-sm font-semibold text-thunder-gold underline underline-offset-2 decoration-thunder-gold hover:text-thunder-gold-light"
-                    >
-                      {isExpanded ? 'Voir moins' : 'Voir plus'}
-                    </button>
-                  )}
-
-                  <div className="mt-4 grid gap-2 text-xs text-gray-200 sm:grid-cols-2">
-                    <p>Type: {networks}</p>
-                    <p>Événement: {eventName}</p>
-                    <p>Nom complet: {ownerFullName}</p>
-                    <p>Email: {ownerEmail}</p>
-                    <p className="sm:col-span-2">ID: {ownerId}</p>
-                    <p>Créé le: {formatDateTime(post.created_at)}</p>
-                    <p>Mis à jour le: {formatDateTime(post.updated_at)}</p>
-                    {post.status === 'published' && (
-                      <p>Publié le: {formatDateTime(post.published_at)}</p>
-                    )}
-                    {post.status === 'archived' && (
-                      <p>Annulé le: {formatDateTime(post.updated_at)}</p>
-                    )}
-                    {post.status === 'expired' && (
-                      <p>Expire le: {formatDateTime(post.updated_at)}</p>
-                    )}
-                    {cancellationReason && <p className="sm:col-span-2">Raison: {cancellationReason}</p>}
-                    {post.status === 'awaiting_confirmation' && expiresAt && remainingMs !== null && (
-                      <>
-                        <p>Expiration: {formatDateTime(expiresAt.toISOString())}</p>
-                        <p>Temps restant: {formatRemainingTime(remainingMs)}</p>
-                      </>
-                    )}
-                  </div>
+                  <SocialPostDetailsCards
+                    post={post}
+                    content={displayedContent}
+                    contentExpandable={isLongContent}
+                    isContentExpanded={isExpanded}
+                    onToggleContent={() => {
+                      setExpandedPostIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(post.id)) {
+                          next.delete(post.id);
+                        } else {
+                          next.add(post.id);
+                        }
+                        return next;
+                      });
+                    }}
+                    eventName={eventName}
+                    networks={networks}
+                    cancellationReason={cancellationReason}
+                    expiresAt={expiresAt}
+                    remainingMs={remainingMs}
+                  />
                 </article>
               );
             })}
