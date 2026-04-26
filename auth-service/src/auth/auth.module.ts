@@ -1,20 +1,24 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
 import { HttpModule } from '@nestjs/axios';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { readSecret } from '../utils/secret.util';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     HttpModule.register({
       timeout: 5000,
       maxRedirects: 5,
     }),
     JwtModule.registerAsync({
       useFactory: () => {
-        const jwtSecret = process.env.JWT_SECRET;
+        const jwtSecret = readSecret('JWT_SECRET');
         if (!jwtSecret) {
           throw new Error('JWT_SECRET is not defined');
         }
@@ -34,7 +38,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, RabbitmqPublisherService],
 })
 export class AuthModule {}

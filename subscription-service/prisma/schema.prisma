@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanInterval {
+  monthly
+  yearly
+}
+
+enum PlanCurrency {
+  EUR
+  USD
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+}
+
+enum PaymentStatus {
+  paid
+  failed
+}
+
+enum PaymentCurrency {
+  EUR
+  USD
+}
+
+model Plan {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String         @db.VarChar(100)
+  price           Decimal        @db.Decimal(10, 2)
+  interval        PlanInterval
+  currency        PlanCurrency   @default(EUR)
+  stripe_price_id String         @unique @db.VarChar
+  max_events      Int            @default(0)
+  max_posts       Int            @default(0)
+  display_order   Int            @default(0)
+  description     String?        @db.Text
+  created_at      DateTime       @default(now()) @db.Timestamp(6)
+  subscriptions   Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                     String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                String             @db.Uuid
+  plan_id                String             @db.Uuid
+  stripe_subscription_id String             @unique @db.VarChar
+  status                 SubscriptionStatus
+  current_period_start   DateTime?          @db.Timestamp(6)
+  current_period_end     DateTime?          @db.Timestamp(6)
+  canceled_at            DateTime?          @db.Timestamp(6)
+  ended_at               DateTime?          @db.Timestamp(6)
+  created_at             DateTime           @default(now()) @db.Timestamp(6)
+  updated_at             DateTime           @updatedAt @db.Timestamp(6)
+  plan                   Plan               @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  payments               PaymentSubHistory[]
+
+  @@map("subscriptions")
+}
+
+model PaymentSubHistory {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscription_id   String          @db.Uuid
+  stripe_invoice_id String          @unique @db.VarChar
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          PaymentCurrency
+  status            PaymentStatus
+  paid_at           DateTime?       @db.Timestamp(6)
+  created_at        DateTime        @default(now()) @db.Timestamp(6)
+  subscription      Subscription    @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+
+  @@map("payments_sub_history")
+}

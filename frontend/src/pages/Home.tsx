@@ -3,105 +3,118 @@ import Logo from '../components/Logo';
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy text-white">
-      {/* Hero Section */}
-      <section className="pt-20 pb-32 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Logo Display */}
-          <div className="mb-8 flex justify-center">
-            <Logo size="lg" />
-          </div>
-          
-          <h1 className="text-6xl md:text-7xl font-black mb-6 leading-tight">
-            <span className="text-thunder-gold">EVENT</span>
-            <br />
-            <span className="text-thunder-yellow">THUNDER</span>
-          </h1>
-          
-          <p className="text-2xl md:text-3xl text-gray-300 mb-4">⚡ Gère tes événements avec la puissance de la foudre</p>
-          
-          <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
-            Plateforme complète de gestion d'événements. Crée, organise et gère tes événements en quelques clics.
-          </p>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy text-white">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 right-[-10%] h-64 w-64 rounded-full bg-thunder-gold/20 blur-3xl" />
+        <div className="absolute top-1/3 left-[-15%] h-72 w-72 rounded-full bg-thunder-orange/15 blur-[110px]" />
+        <div className="absolute bottom-[-8%] right-1/4 h-80 w-80 rounded-full bg-thunder-yellow/10 blur-[120px]" />
+      </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
-            <Link
-              to="/register"
-              className="px-8 py-4 bg-thunder-gold text-black font-bold text-lg rounded-lg hover:bg-thunder-orange transition-all transform hover:scale-105"
-            >
-              Commencer Maintenant
-            </Link>
-            <Link
-              to="/login"
-              className="px-8 py-4 border-2 border-thunder-gold text-thunder-gold font-bold text-lg rounded-lg hover:bg-thunder-gold/10 transition-all"
-            >
-              Se Connecter
-            </Link>
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-left">
+            <div className="mb-6 flex items-center gap-3">
+              <Logo size="md" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.2em] text-gray-200">
+                Plateforme tout-en-un
+              </span>
+            </div>
+
+            <h1 className="text-5xl md:text-6xl font-black leading-tight">
+              <span >Event</span>{' '}
+              <span className="text-[#ffb020]">Thunder</span>
+              <br />
+              La solution ultime pour vos événements
+            </h1>
+
+            <p className="mt-5 text-lg md:text-xl text-gray-300">
+              Créez, pilotez et analysez vos événements avec une interface élégante et rapide. De la création à la billetterie, puis à la communication, tout est intégré.
+            </p>
+
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-semibold text-white transition-all hover:border-white/40 hover:bg-white/10"
+              >
+                Commencer maintenant
+              </Link>
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-gray-400">
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-thunder-gold" />
+                1 000+ organisateurs actifs
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-thunder-yellow" />
+                99,9% de disponibilité
+              </span>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="pb-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-4xl font-black text-center mb-16 text-thunder-yellow">Fonctionnalités</h2>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="card p-8">
-              <div className="text-5xl mb-4">📅</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Création Facile</h3>
-              <p className="text-gray-600">Crée tes événements en quelques secondes avec notre interface intuitive et simple d'utilisation.</p>
+      <section className="relative pb-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+            <div>
+              <p className="text-sm uppercase tracking-[0.4em] text-gray-400">Fonctionnalités</p>
+              <h2 className="text-4xl font-black text-thunder-yellow">Un cockpit complet</h2>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="card p-7 transition-all hover:-translate-y-1 hover:border-white/30">
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-thunder-gold/20 text-thunder-gold">01</div>
+              <h3 className="text-xl font-bold text-white mb-2">Création éclair</h3>
+              <p className="text-gray-300">Des templates modulables pour lancer une expérience de marque en quelques minutes.</p>
             </div>
 
-            {/* Feature 2 */}
-            <div className="card p-8">
-              <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Gestion des Participants</h3>
-              <p className="text-gray-600">Invite des participants, suit les RSVPs et gère les présences simplement.</p>
+            <div className="card p-7 transition-all hover:-translate-y-1 hover:border-white/30">
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-thunder-yellow/20 text-thunder-yellow">02</div>
+              <h3 className="text-xl font-bold text-white mb-2">Parcours invités</h3>
+              <p className="text-gray-300">RSVP, relances et check-in en un seul flux synchronisé, sans friction.</p>
             </div>
 
-            {/* Feature 3 */}
-            <div className="card p-8">
-              <div className="text-5xl mb-4">⚡</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Rapide & Fiable</h3>
-              <p className="text-gray-600">Infrastructure robuste et performante pour vos événements les plus importants.</p>
+            <div className="card p-7 transition-all hover:-translate-y-1 hover:border-white/30">
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-thunder-orange/20 text-thunder-orange">03</div>
+              <h3 className="text-xl font-bold text-white mb-2">Analyse instantanée</h3>
+              <p className="text-gray-300">Suivez le ROI, les ventes et l'engagement en temps réel, sans exporter.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="pb-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-thunder-gold mb-2">1K+</p>
-              <p className="text-gray-400">Utilisateurs actifs</p>
-            </div>
-            <div className="text-center">
-              <p className="text-5xl font-bold text-thunder-yellow mb-2">5K+</p>
-              <p className="text-gray-400">Événements créés</p>
-            </div>
-            <div className="text-center">
-              <p className="text-5xl font-bold text-thunder-orange mb-2">99.9%</p>
-              <p className="text-gray-400">Disponibilité</p>
-            </div>
+      <section className="relative pb-20 px-4">
+        <div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-3">
+          <div className="card p-8 text-center">
+            <p className="text-5xl font-bold text-thunder-gold mb-2">1K+</p>
+            <p className="text-gray-400">Organisateurs actifs</p>
+          </div>
+          <div className="card p-8 text-center">
+            <p className="text-5xl font-bold text-thunder-yellow mb-2">5K+</p>
+            <p className="text-gray-400">Événements créés</p>
+          </div>
+          <div className="card p-8 text-center">
+            <p className="text-5xl font-bold text-thunder-orange mb-2">99.9%</p>
+            <p className="text-gray-400">Disponibilité</p>
           </div>
         </div>
       </section>
 
       {/* CTA Final */}
-      <section className="pb-20 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-thunder-yellow mb-6">Prêt à démarrer ?</h2>
-          <p className="text-gray-300 mb-8">Rejoins des milliers d'utilisateurs qui utilisent Event Thunder pour gérer leurs événements.</p>
+      <section className="relative pb-20 px-4">
+        <div className="max-w-4xl mx-auto text-center card p-10 md:p-12">
+          <h2 className="mt-4 text-3xl md:text-4xl font-bold text-thunder-yellow">Prêt à démarrer</h2>
+          <p className="mt-4 text-gray-300">Rejoignez des milliers d'utilisateurs qui transforment leurs événements en expériences mémorables.</p>
           <Link
             to="/register"
-            className="inline-block px-8 py-4 bg-thunder-gold text-black font-bold text-lg rounded-lg hover:bg-thunder-orange transition-all transform hover:scale-105"
+            className="mt-8 inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-semibold text-white transition-all hover:border-white/40 hover:bg-white/10"
           >
-            Créer un Compte Gratuitement
+            Créer un compte gratuitement
           </Link>
         </div>
       </section>

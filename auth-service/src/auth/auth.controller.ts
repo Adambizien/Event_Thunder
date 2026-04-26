@@ -39,7 +39,6 @@ export class AuthController {
     return this.authService.generateGoogleAuthUrl();
   }
 
-  // Route GET pour le callback Google
   @Get('google/callback')
   async googleAuthCallback(
     @Query('code') code: string,
@@ -77,8 +76,21 @@ export class AuthController {
     token?: string,
     user?: UserPayload,
   ) {
-    const frontendUrl =
-      process.env.FRONTEND_URL || 'http://testa.bizienadam.fr';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const safeFirstName = this.escapeHtml(user?.firstName ?? '');
+    const safeLastName = this.escapeHtml(user?.lastName ?? '');
+    const safeErrorMessage = this.escapeHtml(errorMessage || 'Unknown error');
+    const successPayload = JSON.stringify({
+      type: 'OAUTH_SUCCESS',
+      token,
+      user,
+    });
+    const errorPayload = JSON.stringify({
+      type: 'OAUTH_ERROR',
+      error: errorMessage || 'Unknown error',
+    });
+    const targetOrigin = JSON.stringify(frontendUrl);
+    const safeRedirectUrl = `${frontendUrl}?auth=google&status=error&message=${encodeURIComponent(errorMessage || 'Unknown error')}`;
 
     if (status === 'success' && token && user) {
       const html = `
@@ -88,39 +100,54 @@ export class AuthController {
             <title>Authentication Successful</title>
             <style>
                 body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     display: flex;
                     justify-content: center;
                     align-items: center;
                     height: 100vh;
                     margin: 0;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: radial-gradient(circle at top, #0c6c7d 0%, #095668 50%, #074353 100%);
                     color: white;
                 }
                 .container {
                     text-align: center;
                     padding: 40px;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
                     border-radius: 20px;
                     backdrop-filter: blur(10px);
                 }
-                .success-icon {
-                    font-size: 64px;
-                    margin-bottom: 20px;
+                .badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 6px 12px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(34, 197, 94, 0.5);
+                    background: rgba(34, 197, 94, 0.15);
+                    color: #86efac;
+                    font-weight: 600;
+                    font-size: 13px;
+                    margin-bottom: 18px;
+                }
+                .title {
+                    font-size: 22px;
+                    font-weight: 700;
+                    margin: 0 0 10px 0;
                 }
                 .message {
-                    font-size: 18px;
-                    margin-bottom: 30px;
+                    font-size: 16px;
+                    margin: 0 0 18px 0;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+                .hint {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.6);
                 }
             </style>
             <script>
-                // CORRECTION: Envoyer à testa.bizienadam.fr
                 if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage({
-                        type: 'OAUTH_SUCCESS',
-                        token: '${token}',
-                        user: ${JSON.stringify(user)}
-                    }, '${frontendUrl}');
+                    window.opener.postMessage(${successPayload}, ${targetOrigin});
                     
                     setTimeout(() => {
                         window.close();
@@ -129,13 +156,13 @@ export class AuthController {
             </script>
         </head>
         <body>
-            <div class="container">
-                <div class="success-icon">✅</div>
-                <h1>Authentication Successful!</h1>
-                <p class="message">Welcome, ${user.firstName ?? ''} ${user.lastName ?? ''}!</p>
-                <p>Closing window automatically...</p>
-            </div>
-        </body>
+                <div class="container">
+                    <div class="badge">Accès validé</div>
+                    <h1 class="title">Connexion réussie</h1>
+                    <p class="message">Bienvenue, ${safeFirstName} ${safeLastName}.</p>
+                    <p class="hint">Fermeture automatique…</p>
+                </div>
+            </body>
         </html>
       `;
 
@@ -172,19 +199,14 @@ export class AuthController {
                 }
             </style>
             <script>
-                // CORRECTION: Envoyer à testa.bizienadam.fr
                 if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage({
-                        type: 'OAUTH_ERROR',
-                        error: '${errorMessage}'
-                    }, '${frontendUrl}');
+                    window.opener.postMessage(${errorPayload}, ${targetOrigin});
                     
                     setTimeout(() => {
                         window.close();
                     }, 2000);
                 } else {
-                    // CORRECTION: Rediriger vers testa.bizienadam.fr
-                    window.location.href = '${frontendUrl}?auth=google&status=error&message=${encodeURIComponent(errorMessage || 'Unknown error')}';
+                    window.location.href = '${safeRedirectUrl}';
                 }
             </script>
         </head>
@@ -192,7 +214,7 @@ export class AuthController {
             <div class="container">
                 <div class="error-icon">❌</div>
                 <h1>Authentication Failed</h1>
-                <p>${errorMessage || 'Please try again'}</p>
+                <p>${safeErrorMessage}</p>
                 <p>Closing window...</p>
             </div>
         </body>
@@ -205,7 +227,15 @@ export class AuthController {
     }
   }
 
-  // Route POST pour le callback Google
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
   @Post('google/callback')
   googleAuth(@Body() googleAuthDto: GoogleAuthDto) {
     return this.authService.googleAuth(googleAuthDto);

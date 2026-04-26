@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TicketPurchaseStatus {
+  pending
+  paid
+  failed
+  refunded
+  cancelled
+}
+
+enum TicketCurrency {
+  EUR
+  USD
+}
+
+model TicketType {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_id      String               @db.Uuid
+  name          String               @db.VarChar(120)
+  description   String?              @db.Text
+  price         Decimal              @db.Decimal(10, 2)
+  currency      TicketCurrency       @default(EUR)
+  max_quantity  Int?
+  sold_quantity Int                  @default(0)
+  is_active     Boolean              @default(true)
+  created_at    DateTime             @default(now()) @db.Timestamp(6)
+  updated_at    DateTime             @updatedAt @db.Timestamp(6)
+  items         TicketPurchaseItem[]
+  tickets       Ticket[]
+
+  @@index([event_id, is_active])
+  @@unique([event_id, name])
+  @@map("ticket_types")
+}
+
+model TicketPurchase {
+  id                       String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String               @db.Uuid
+  stripe_payment_intent_id String               @unique @db.VarChar
+  status                   TicketPurchaseStatus @default(pending)
+  total_amount             Decimal              @db.Decimal(10, 2)
+  currency                 TicketCurrency       @default(EUR)
+  paid_at                  DateTime?            @db.Timestamp(6)
+  failed_at                DateTime?            @db.Timestamp(6)
+  refunded_at              DateTime?            @db.Timestamp(6)
+  cancelled_at             DateTime?            @db.Timestamp(6)
+  failure_reason           String?              @db.VarChar(255)
+  created_at               DateTime             @default(now()) @db.Timestamp(6)
+  updated_at               DateTime             @updatedAt @db.Timestamp(6)
+  items                    TicketPurchaseItem[]
+  tickets                  Ticket[]
+
+  @@index([user_id])
+  @@index([status, created_at])
+  @@map("ticket_purchases")
+}
+
+model TicketPurchaseItem {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_purchase_id String         @db.Uuid
+  ticket_type_id     String         @db.Uuid
+  quantity           Int            @default(1)
+  unit_price         Decimal        @db.Decimal(10, 2)
+  currency           TicketCurrency @default(EUR)
+  ticket_type_label  String?        @db.VarChar(120)
+  created_at         DateTime       @default(now()) @db.Timestamp(6)
+  ticket_purchase    TicketPurchase @relation(fields: [ticket_purchase_id], references: [id], onDelete: Cascade)
+  ticket_type        TicketType     @relation(fields: [ticket_type_id], references: [id], onDelete: Restrict)
+
+  @@unique([ticket_purchase_id, ticket_type_id])
+  @@index([ticket_purchase_id])
+  @@index([ticket_type_id])
+  @@map("ticket_purchases_items")
+}
+
+model Ticket {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_purchase_id String         @db.Uuid
+  ticket_type_id     String         @db.Uuid
+  attendee_firstname String         @db.VarChar
+  attendee_lastname  String         @db.VarChar
+  attendee_email     String?        @db.VarChar
+  ticket_number      String         @unique @db.VarChar
+  qr_code            String         @map("QR_code") @db.Text
+  used               Boolean        @default(false)
+  used_at            DateTime?      @db.Timestamp(6)
+  created_at         DateTime       @default(now()) @db.Timestamp(6)
+  updated_at         DateTime       @updatedAt @db.Timestamp(6)
+  ticket_purchase    TicketPurchase @relation(fields: [ticket_purchase_id], references: [id], onDelete: Cascade)
+  ticket_type        TicketType     @relation(fields: [ticket_type_id], references: [id], onDelete: Restrict)
+
+  @@index([ticket_purchase_id])
+  @@index([ticket_type_id])
+  @@index([used, used_at])
+  @@map("tickets")
+}

@@ -20,12 +20,43 @@ type GatewayRequest = Request<
 export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
 
+  private resolveTimeoutMs(originalUrl: string): number {
+    if (originalUrl.startsWith('/api/subscriptions/finalize-plan-change')) {
+      return 30000;
+    }
+
+    return 10000;
+  }
+
   private routeTarget(originalUrl: string) {
     if (originalUrl.startsWith('/api/auth')) {
-      return process.env.AUTH_SERVICE_URL || 'http://auth-service:3003';
+      return process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
     }
     if (originalUrl.startsWith('/api/users')) {
-      return process.env.USER_SERVICE_URL || 'http://user-service:3002';
+      return process.env.USER_SERVICE_URL || 'http://user-service:3000';
+    }
+    if (originalUrl.startsWith('/api/billing')) {
+      return process.env.BILLING_SERVICE_URL || 'http://billing-service:3000';
+    }
+    if (originalUrl.startsWith('/api/subscriptions')) {
+      return (
+        process.env.SUBSCRIPTION_SERVICE_URL ||
+        'http://subscription-service:3000'
+      );
+    }
+    if (originalUrl.startsWith('/api/events')) {
+      return process.env.EVENT_SERVICE_URL || 'http://event-service:3000';
+    }
+    if (originalUrl.startsWith('/api/comments')) {
+      return process.env.COMMENT_SERVICE_URL || 'http://comment-service:3000';
+    }
+    if (originalUrl.startsWith('/api/posts')) {
+      return process.env.POST_SERVICE_URL || 'http://post-service:3000';
+    }
+    if (originalUrl.startsWith('/api/ticketing')) {
+      return (
+        process.env.TICKETING_SERVICE_URL || 'http://ticketing-service:3000'
+      );
     }
     return null;
   }
@@ -36,16 +67,24 @@ export class ProxyService {
       throw new Error('Aucun service cible pour ce chemin');
     }
 
-    const url = `${target}${req.originalUrl}`;
+    const pathOnly = req.path || req.originalUrl.split('?')[0];
+    const url = `${target}${pathOnly}`;
+
+    const reqWithRaw = req as GatewayRequest & { rawBody?: Buffer };
+    const bodyData = reqWithRaw.rawBody || req.body;
+
     const config: AxiosRequestConfig<unknown> = {
       method: req.method,
       url,
       headers: { ...req.headers, host: undefined },
       params: req.query,
-      data: req.body,
+      data: bodyData,
       validateStatus: () => true,
+      maxRedirects: 0,
+      timeout: this.resolveTimeoutMs(req.originalUrl),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
       responseType: 'arraybuffer',
-      timeout: 10000,
     };
 
     this.logger.log(`[PASSERELLE] ${req.method} ${req.originalUrl} -> ${url}`);

@@ -2,7 +2,7 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
+  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import axios from 'axios';
@@ -15,21 +15,22 @@ type AuthenticatedRequest = Request & { user?: UserPayload };
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
+  private getAuthUrl(): string {
+    return (
+      (process.env.AUTH_SERVICE_URL || 'http://auth-service:3000') +
+      '/api/auth/verify'
+    );
+  }
 
+  async authenticateRequest(req: AuthenticatedRequest): Promise<UserPayload> {
     const authHeader = req.get('authorization');
 
     if (!authHeader) {
-      throw new ForbiddenException('En-tête Authorization manquant');
+      throw new UnauthorizedException('En-tête Authorization manquant');
     }
 
     try {
-      const authUrl =
-        (process.env.AUTH_SERVICE_URL || 'http://auth-service:3003') +
-        '/api/auth/verify';
-
-      this.logger.log(`Vérification du token à ${authUrl}`);
+      const authUrl = this.getAuthUrl();
 
       const response = await axios.get<{ user: UserPayload }>(authUrl, {
         headers: {
@@ -39,17 +40,21 @@ export class AuthGuard implements CanActivate {
       });
 
       if (response.status !== 200) {
-        throw new ForbiddenException('Token invalide');
+        throw new UnauthorizedException('Token invalide');
       }
 
-      const user = response.data.user;
-      req.user = user;
-
-      return true;
+      return response.data.user;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn('Vérification du token échouée: ' + message);
-      throw new ForbiddenException('Token invalide ou expiré');
+      throw new UnauthorizedException('Token invalide ou expiré');
     }
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = await this.authenticateRequest(req);
+    req.user = user;
+    return true;
   }
 }

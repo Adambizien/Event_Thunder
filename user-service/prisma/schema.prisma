@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  User
+  Admin
+}
+
+model User {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email              String    @unique @db.VarChar
+  password           String    @db.VarChar
+  role               UserRole  @default(User)
+  stripe_customer_id String?   @unique @db.VarChar
+  info               UsersInfo?
+
+  @@map("users")
+}
+
+model UsersInfo {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String  @unique @db.Uuid
+  first_name   String? @default("") @db.VarChar(50)
+  last_name    String? @default("") @db.VarChar(50)
+  phone_number String? @default("") @db.VarChar(30)
+  user         User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("users_info")
+}

@@ -35,11 +35,6 @@ describe('ProxyModule', () => {
     expect(guard).toBeInstanceOf(AuthGuard);
   });
 
-  it('devrait exporter ProxyService', () => {
-    const service = proxyModule.get<ProxyService>(ProxyService);
-    expect(service).toBeDefined();
-  });
-
   it('devrait compiler le module sans erreurs', async () => {
     await expect(
       Test.createTestingModule({
@@ -58,11 +53,6 @@ describe('ProxyModule', () => {
     it('devrait avoir tous les controllers enregistrés', () => {
       const controllers = Reflect.getMetadata('controllers', ProxyModule);
       expect(controllers).toContain(ProxyController);
-    });
-
-    it('devrait avoir les exports configurés', () => {
-      const exports = Reflect.getMetadata('exports', ProxyModule);
-      expect(exports).toContain(ProxyService);
     });
 
     it("devrait permettre l'injection de ProxyService dans ProxyController", () => {

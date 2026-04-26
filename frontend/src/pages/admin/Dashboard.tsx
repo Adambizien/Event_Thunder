@@ -1,0 +1,155 @@
+import { useState, useEffect } from 'react';
+import { userService } from '../../services/UserService';
+import { planService } from '../../services/PlanService';
+import { eventService } from '../../services/EventService';
+import { subscriptionService } from '../../services/SubscriptionService';
+import AdminPageHeader from '../../components/AdminPageHeader';
+
+interface Stats {
+  totalUsers: number;
+  totalPlans: number;
+  activeSubscriptions: number;
+  publishedEvents: number;
+  draftEvents: number;
+  completedEvents: number;
+  canceledEvents: number;
+}
+
+const AdminDashboard = () => {
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    totalPlans: 0,
+    activeSubscriptions: 0,
+    publishedEvents: 0,
+    draftEvents: 0,
+    completedEvents: 0,
+    canceledEvents: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [users, plans, events, subscriptions] = await Promise.all([
+        userService.fetchUsers(),
+        planService.fetchPlans(),
+        eventService.fetchEvents(),
+        subscriptionService.getAdminSubscriptionsOverview(),
+      ]);
+
+      setStats({
+        totalUsers: users.length,
+        totalPlans: plans.length,
+        activeSubscriptions: subscriptions.filter(
+          (subscription) => subscription.status === 'active',
+        ).length,
+        publishedEvents: events.filter((event) => event.status === 'published').length,
+        draftEvents: events.filter((event) => event.status === 'draft').length,
+        completedEvents: events.filter((event) => event.status === 'completed').length,
+        canceledEvents: events.filter((event) => event.status === 'canceled').length,
+      });
+    } catch {
+      setError('Erreur lors du chargement des statistiques');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-300 shadow-2xl backdrop-blur-lg">
+        <span className="spinner mr-2 align-middle"></span>
+        Chargement des statistiques...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
+        {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <AdminPageHeader
+        title="Tableau de bord"
+        subtitle="Bienvenue dans l'interface d'administration"
+      />
+
+      {/* General Stats */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-white">Statistiques générales</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Users */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Total Utilisateurs</p>
+              <p className="text-3xl font-bold text-white">{stats.totalUsers}</p>
+            </div>
+            <span className="text-2xl font-semibold text-thunder-gold">Users</span>
+          </div>
+        </div>
+
+        {/* Total Plans */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Plans de Service</p>
+              <p className="text-3xl font-bold text-white">{stats.totalPlans}</p>
+            </div>
+            <span className="text-2xl font-semibold text-thunder-gold">Plans</span>
+          </div>
+        </div>
+
+        {/* Active Subscriptions */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Abonnements Actifs</p>
+              <p className="text-3xl font-bold text-white">{stats.activeSubscriptions}</p>
+            </div>
+            <span className="text-2xl font-semibold text-thunder-gold">Active</span>
+          </div>
+        </div>
+        </div>
+      </div>
+      {/* Events Section */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-white">Événements</h2>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Publiés</p>
+              <p className="text-3xl font-bold text-white">{stats.publishedEvents}</p>
+            </div>
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Brouillons</p>
+              <p className="text-3xl font-bold text-white">{stats.draftEvents}</p>
+            </div>
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Terminés</p>
+              <p className="text-3xl font-bold text-white">{stats.completedEvents}</p>
+            </div>
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Annulés</p>
+              <p className="text-3xl font-bold text-white">{stats.canceledEvents}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;

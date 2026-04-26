@@ -1,21 +1,51 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import Profile from './components/Profile';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Profile from './pages/profile/Profile';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
-import ForgotPassword from './components/ForgotPassword';
-import ResetPassword from './components/ResetPassword';
+import ProtectedAdminRoute from './components/ProtectedAdminRoute';
+import AdminLayout from './components/AdminLayout';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Home from './pages/Home';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminPlans from './pages/admin/Plans';
+import AdminSubscriptionTransactions from './pages/admin/SubscriptionTransactions';
+import AdminTicketTransactions from './pages/admin/TicketTransactions';
+import AdminUsers from './pages/admin/Users';
+import AdminEventCategories from './pages/admin/EventCategories';
+import AdminEvents from './pages/admin/Events';
+import AdminSocialPosts from './pages/admin/SocialPosts';
+import EventDetails from './pages/events/EventDetails';
+import EventsList from './pages/events/EventsList';
+import ConfirmPost from './pages/posts/ConfirmPost';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
+import Subscription from './pages/sub/Subscription';
+import SubscriptionHistory from './pages/sub/SubscriptionHistory';
+import MyTickets from './pages/tickets/MyTickets';
+import OrganizerLayout from './components/OrganizerLayout';
+import OrganizerDashboard from './pages/organizer/Dashboard';
+import OrganizerCreateEvent from './pages/organizer/CreateEvent';
+
 
 function AppContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isOrganizerRoute = location.pathname.startsWith('/organizer');
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -31,7 +61,8 @@ function AppContent() {
           setUser(userData);
           window.history.replaceState({}, '', '/');
         } catch {
-          // Silently fail on OAuth parsing error
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       } else {
         const savedToken = localStorage.getItem('token');
@@ -89,6 +120,21 @@ function AppContent() {
     setUser(userData);
   };
 
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const path = location.pathname;
+    if (path !== '/login' && path !== '/register') return;
+
+    const searchParams = new URLSearchParams(location.search);
+    const redirect = searchParams.get('redirect');
+    if (redirect === 'subscription') {
+      navigate('/subscription', { replace: true });
+      return;
+    }
+    navigate('/', { replace: true });
+  }, [loading, user, location.pathname, location.search, navigate]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy flex flex-col items-center justify-center gap-4">
@@ -103,27 +149,42 @@ function AppContent() {
       <Header user={user} onLogout={handleLogout} />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/events" element={<EventsList />} />
+        <Route path="/events/:id" element={<EventDetails />} />
+        <Route path="/posts/confirm" element={<ConfirmPost />} />
         <Route 
           path="/login" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Login onSwitchToRegister={() => {}} onLogin={handleLogin} />}
+          element={<Login onLogin={handleLogin} />}
         />
         <Route 
           path="/register" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Register onSwitchToLogin={() => {}} onRegister={handleRegister} />}
+          element={<Register onRegister={handleRegister} />}
         />
         <Route 
           path="/forgot-password" 
-          element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+          element={user ? <Navigate to="/" replace /> : <ForgotPassword />}
         />
         <Route 
           path="/reset-password" 
-          element={user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
+          element={user ? <Navigate to="/" replace /> : <ResetPassword />}
         />
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/subscription/*"
+          element={<Subscription />}
+        />
+        <Route
+          path="/subscription-history"
           element={
             <ProtectedRoute user={user}>
-              <Dashboard user={user!} />
+              <SubscriptionHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-tickets"
+          element={
+            <ProtectedRoute user={user}>
+              <MyTickets />
             </ProtectedRoute>
           }
         />
@@ -135,8 +196,36 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedAdminRoute user={user}>
+              <AdminLayout />
+            </ProtectedAdminRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="plans" element={<AdminPlans />} />
+          <Route path="events" element={<AdminEvents />} />
+          <Route path="social-posts" element={<AdminSocialPosts />} />
+          <Route path="event-categories" element={<AdminEventCategories />} />
+          <Route path="subscription-transactions" element={<AdminSubscriptionTransactions />} />
+          <Route path="ticket-transactions" element={<AdminTicketTransactions />} />
+          <Route path="users" element={<AdminUsers />} />
+        </Route>
+        <Route
+          path="/organizer"
+          element={
+            <ProtectedRoute user={user}>
+              <OrganizerLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<OrganizerDashboard user={user!} />} />
+          <Route path="create-event" element={<OrganizerCreateEvent user={user!} />} />
+        </Route>
       </Routes>
-      <Footer />
+      {!isAdminRoute && !isOrganizerRoute && <Footer />}
     </>
   );
 }

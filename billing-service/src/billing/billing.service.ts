@@ -1,0 +1,846 @@
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
+import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
+import { CreateTicketCheckoutDto } from './dto/create-ticket-checkout.dto';
+import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
+import { SyncPlanPriceDto } from './dto/sync-plan-price.dto';
+import { readSecret } from '../utils/secret.util';
+
+@Injectable()
+export class BillingService {
+  private readonly logger = new Logger(BillingService.name);
+  private readonly stripeApiKey?: string;
+  private readonly stripeWebhookSecret?: string;
+  private readonly stripe?: Stripe;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly rabbitmqPublisher: RabbitmqPublisherService,
+  ) {
+    this.stripeApiKey =
+      readSecret('STRIPE_SECRET_KEY') ??
+      this.configService.get<string>('STRIPE_SECRET_KEY');
+    this.stripeWebhookSecret =
+      readSecret('STRIPE_WEBHOOK_SECRET') ??
+      this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+
+    if (this.stripeApiKey) {
+      this.stripe = new Stripe(this.stripeApiKey);
+    }
+  }
+
+  async createSubscriptionCheckoutSession(
+    dto: CreateSubscriptionCheckoutDto,
+  ): Promise<{ sessionId: string; url: string | null }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: dto.stripePriceId, quantity: 1 }],
+      success_url: dto.successUrl,
+      cancel_url: dto.cancelUrl,
+      client_reference_id: dto.userId,
+      customer: dto.stripeCustomerId,
+      customer_email: dto.stripeCustomerId ? undefined : dto.customerEmail,
+      metadata: {
+        userId: dto.userId,
+        planId: dto.planId,
+        customerEmail: dto.customerEmail ?? '',
+      },
+      subscription_data: {
+        metadata: {
+          userId: dto.userId,
+          planId: dto.planId,
+          customerEmail: dto.customerEmail ?? '',
+        },
+      },
+    });
+
+    return {
+      sessionId: session.id,
+      url: session.url,
+    };
+  }
+
+  async createTicketCheckoutSession(
+    dto: CreateTicketCheckoutDto,
+  ): Promise<{ sessionId: string; url: string | null }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      dto.items.map((item) => ({
+        quantity: item.quantity,
+        price_data: {
+          currency: item.currency.toLowerCase(),
+          unit_amount: Math.round(item.unitAmount * 100),
+          product_data: {
+            name: item.name,
+            description: item.description,
+            metadata: {
+              ticketTypeId: item.ticketTypeId,
+              eventId: dto.eventId,
+            },
+          },
+        },
+      }));
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: lineItems,
+      success_url: dto.successUrl,
+      cancel_url: dto.cancelUrl,
+      invoice_creation: {
+        enabled: true,
+      },
+      client_reference_id: dto.userId,
+      customer_email: dto.customerEmail,
+      metadata: {
+        userId: dto.userId,
+        eventId: dto.eventId,
+        customerName: dto.customerName,
+        attendees: JSON.stringify(dto.attendees ?? []),
+        ticketItems: JSON.stringify(dto.items),
+      },
+    });
+
+    return {
+      sessionId: session.id,
+      url: session.url,
+    };
+  }
+
+  async cancelSubscription(
+    stripeSubscriptionId: string,
+  ): Promise<{ canceled: boolean; stripeSubscriptionId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const existing =
+      await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+    if (existing.status === 'canceled') {
+      return {
+        canceled: true,
+        stripeSubscriptionId,
+      };
+    }
+
+    if (existing.cancel_at_period_end) {
+      return {
+        canceled: true,
+        stripeSubscriptionId,
+      };
+    }
+
+    await this.stripe.subscriptions.update(stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    return {
+      canceled: true,
+      stripeSubscriptionId,
+    };
+  }
+
+  async resumeSubscription(
+    stripeSubscriptionId: string,
+  ): Promise<{ resumed: boolean; stripeSubscriptionId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const existing =
+      await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+
+    if (existing.status === 'canceled') {
+      throw new BadRequestException(
+        'Abonnement déjà terminé, veuillez souscrire à un nouveau plan.',
+      );
+    }
+
+    if (!existing.cancel_at_period_end) {
+      return {
+        resumed: true,
+        stripeSubscriptionId,
+      };
+    }
+
+    await this.stripe.subscriptions.update(stripeSubscriptionId, {
+      cancel_at_period_end: false,
+    });
+
+    return {
+      resumed: true,
+      stripeSubscriptionId,
+    };
+  }
+
+  async getInvoiceLinks(stripeInvoiceId: string): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+  }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const invoice = await this.stripe.invoices.retrieve(stripeInvoiceId);
+
+    return {
+      hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+      invoicePdfUrl: invoice.invoice_pdf ?? null,
+    };
+  }
+
+  async getTicketPaymentLinks(stripePaymentIntentId: string): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+    receiptUrl: string | null;
+  }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(
+      stripePaymentIntentId,
+      {
+        expand: ['latest_charge', 'latest_charge.invoice'],
+      },
+    );
+
+    const latestCharge =
+      typeof paymentIntent.latest_charge === 'string' ||
+      !paymentIntent.latest_charge
+        ? null
+        : paymentIntent.latest_charge;
+
+    const receiptUrl = latestCharge?.receipt_url ?? null;
+
+    const chargeInvoice = (
+      latestCharge as
+        | (Stripe.Charge & {
+            invoice?: string | Stripe.Invoice | null;
+          })
+        | null
+    )?.invoice;
+    let invoice: Stripe.Invoice | null = null;
+
+    if (typeof chargeInvoice === 'string' && chargeInvoice) {
+      invoice = await this.stripe.invoices.retrieve(chargeInvoice);
+    } else if (chargeInvoice && typeof chargeInvoice !== 'string') {
+      invoice = chargeInvoice;
+    }
+
+    return {
+      hostedInvoiceUrl: invoice?.hosted_invoice_url ?? null,
+      invoicePdfUrl: invoice?.invoice_pdf ?? null,
+      receiptUrl,
+    };
+  }
+
+  async refundTicketPayment(
+    stripePaymentIntentId: string,
+    reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer',
+  ): Promise<{
+    refundId: string;
+    status: string;
+    amount: number;
+    currency: string;
+  }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: stripePaymentIntentId,
+        reason,
+      },
+      {
+        idempotencyKey: `ticket-refund-${stripePaymentIntentId}`,
+      },
+    );
+
+    const refundPaymentIntentId =
+      typeof refund.payment_intent === 'string'
+        ? refund.payment_intent
+        : refund.payment_intent?.id;
+
+    const ticketLinks = refundPaymentIntentId
+      ? await this.safeGetTicketPaymentLinks(refundPaymentIntentId)
+      : {
+          hostedInvoiceUrl: null,
+          invoicePdfUrl: null,
+          receiptUrl: null,
+        };
+
+    if (refundPaymentIntentId) {
+      await this.publishTicketPaymentRefunded({
+        stripePaymentIntentId: refundPaymentIntentId,
+        stripeRefundId: refund.id,
+        amount: (refund.amount ?? 0) / 100,
+        currency: (refund.currency ?? 'eur').toUpperCase(),
+        reason: refund.reason,
+        refundedAt: new Date().toISOString(),
+        hostedInvoiceUrl: ticketLinks.hostedInvoiceUrl,
+        invoicePdfUrl: ticketLinks.invoicePdfUrl,
+        receiptUrl: ticketLinks.receiptUrl,
+      });
+    }
+
+    return {
+      refundId: refund.id,
+      status: refund.status ?? 'pending',
+      amount: (refund.amount ?? 0) / 100,
+      currency: (refund.currency ?? 'eur').toUpperCase(),
+    };
+  }
+
+  async syncPlanPrice(
+    dto: SyncPlanPriceDto,
+  ): Promise<{ stripePriceId: string; stripeProductId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const price = await this.stripe.prices.create({
+      unit_amount: Math.round(dto.price * 100),
+      currency: dto.currency ?? 'eur',
+      recurring: {
+        interval: dto.interval === 'yearly' ? 'year' : 'month',
+      },
+      product_data: {
+        name: dto.name,
+        metadata: {
+          planId: dto.planId ?? '',
+        },
+      },
+      metadata: {
+        planId: dto.planId ?? '',
+      },
+    });
+
+    const stripeProductId =
+      typeof price.product === 'string' ? price.product : price.product?.id;
+
+    return {
+      stripePriceId: price.id,
+      stripeProductId: stripeProductId ?? '',
+    };
+  }
+
+  async archivePlanPrice(
+    stripePriceId: string,
+  ): Promise<{ archived: boolean; stripePriceId: string }> {
+    if (!this.stripe) {
+      throw new InternalServerErrorException('STRIPE_SECRET_KEY est manquante');
+    }
+
+    const price = await this.stripe.prices.retrieve(stripePriceId);
+    const stripeProductId =
+      typeof price.product === 'string' ? price.product : price.product?.id;
+
+    if (stripeProductId) {
+      const product = await this.stripe.products.retrieve(stripeProductId);
+      const defaultPriceId =
+        typeof product.default_price === 'string'
+          ? product.default_price
+          : product.default_price?.id;
+
+      if (defaultPriceId === stripePriceId) {
+        await this.stripe.products.update(stripeProductId, {
+          default_price: '',
+        });
+      }
+    }
+
+    await this.stripe.prices.update(stripePriceId, { active: false });
+
+    if (stripeProductId) {
+      const remainingActivePrices = await this.stripe.prices.list({
+        product: stripeProductId,
+        active: true,
+        limit: 1,
+      });
+
+      if (remainingActivePrices.data.length === 0) {
+        await this.stripe.products.update(stripeProductId, {
+          active: false,
+        });
+      }
+    }
+
+    return {
+      archived: true,
+      stripePriceId,
+    };
+  }
+
+  constructWebhookEvent(rawBody: Buffer, signature: string): Stripe.Event {
+    if (!this.stripe || !this.stripeWebhookSecret) {
+      throw new InternalServerErrorException(
+        'Configuration Stripe webhook manquante',
+      );
+    }
+
+    try {
+      return this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.stripeWebhookSecret,
+      );
+    } catch {
+      throw new BadRequestException('Signature Stripe invalide');
+    }
+  }
+
+  async handleWebhookEvent(event: Stripe.Event): Promise<void> {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await this.onCheckoutSessionCompleted(event.data.object);
+        break;
+      case 'customer.subscription.created':
+        await this.onSubscriptionCreated(event.data.object);
+        break;
+      case 'customer.subscription.updated':
+        await this.onSubscriptionUpdated(event.data.object);
+        break;
+      case 'invoice.payment_succeeded':
+        await this.onInvoicePaid(event.data.object);
+        break;
+      case 'invoice.payment_failed':
+        await this.onInvoiceFailed(event.data.object);
+        break;
+      case 'customer.subscription.deleted':
+        await this.onSubscriptionCanceled(event.data.object);
+        break;
+      case 'charge.refunded':
+        await this.onChargeRefunded(event.data.object);
+        break;
+      default:
+        this.logger.debug(`Event Stripe ignoré: ${event.type}`);
+    }
+  }
+
+  private async onChargeRefunded(charge: Stripe.Charge): Promise<void> {
+    const stripePaymentIntentId =
+      typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id;
+
+    if (!stripePaymentIntentId) {
+      return;
+    }
+
+    const ticketLinks = await this.safeGetTicketPaymentLinks(
+      stripePaymentIntentId,
+    );
+
+    await this.publishTicketPaymentRefunded({
+      stripePaymentIntentId,
+      amount: (charge.amount_refunded ?? 0) / 100,
+      currency: (charge.currency ?? 'eur').toUpperCase(),
+      refundedAt: new Date().toISOString(),
+      hostedInvoiceUrl: ticketLinks.hostedInvoiceUrl,
+      invoicePdfUrl: ticketLinks.invoicePdfUrl,
+      receiptUrl: ticketLinks.receiptUrl,
+    });
+  }
+
+  private async onSubscriptionCreated(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
+    const period = this.extractPeriodFromSubscription(subscription);
+
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.subscription.created',
+      {
+        userId: subscription.metadata?.userId,
+        planId: subscription.metadata?.planId,
+        stripePriceId: this.extractPriceIdFromSubscription(subscription),
+        stripeSubscriptionId: subscription.id,
+        status: this.mapSubscriptionStatus(subscription),
+        currentPeriodStart: period.start,
+        currentPeriodEnd: period.end,
+        customerEmail: subscription.metadata?.customerEmail,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? new Date().toISOString()
+            : null,
+        endedAt: subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? (period.end ?? null)
+            : null,
+      },
+    );
+  }
+
+  private async onSubscriptionUpdated(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
+    const period = this.extractPeriodFromSubscription(subscription);
+
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.subscription.updated',
+      {
+        userId: subscription.metadata?.userId,
+        planId: subscription.metadata?.planId,
+        stripePriceId: this.extractPriceIdFromSubscription(subscription),
+        stripeSubscriptionId: subscription.id,
+        status: this.mapSubscriptionStatus(subscription),
+        currentPeriodStart: period.start,
+        currentPeriodEnd: period.end,
+        customerEmail: subscription.metadata?.customerEmail,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? new Date().toISOString()
+            : null,
+        endedAt: subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : subscription.cancel_at_period_end
+            ? (period.end ?? null)
+            : null,
+      },
+    );
+  }
+
+  private async onCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    if (session.mode === 'subscription') {
+      if (!session.subscription) return;
+      return;
+    }
+
+    if (session.mode !== 'payment') {
+      return;
+    }
+
+    const stripePaymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+
+    const rawItems = session.metadata?.ticketItems;
+    if (!rawItems || !stripePaymentIntentId) {
+      return;
+    }
+
+    let parsedItems: Array<{
+      ticketTypeId?: string;
+      name?: string;
+      description?: string;
+      quantity?: number;
+      unitAmount?: number;
+      currency?: string;
+    }> = [];
+
+    try {
+      parsedItems = JSON.parse(rawItems) as typeof parsedItems;
+    } catch {
+      this.logger.warn('Metadata ticketItems Stripe invalide');
+      return;
+    }
+
+    let attendees: Array<{
+      ticketTypeId: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+    }> = [];
+    if (session.metadata?.attendees) {
+      try {
+        const parsedAttendees = JSON.parse(
+          session.metadata.attendees,
+        ) as unknown;
+        const isAttendee = (
+          value: unknown,
+        ): value is {
+          ticketTypeId: string;
+          firstname: string;
+          lastname: string;
+          email: string;
+        } => {
+          if (typeof value !== 'object' || value === null) {
+            return false;
+          }
+
+          const candidate = value as Record<string, unknown>;
+          return (
+            typeof candidate.ticketTypeId === 'string' &&
+            typeof candidate.firstname === 'string' &&
+            typeof candidate.lastname === 'string' &&
+            typeof candidate.email === 'string'
+          );
+        };
+
+        if (Array.isArray(parsedAttendees)) {
+          attendees = parsedAttendees.filter(isAttendee);
+        }
+      } catch {
+        this.logger.warn('Metadata attendees Stripe invalide');
+      }
+    }
+
+    const ticketLinks = await this.safeGetTicketPaymentLinks(
+      stripePaymentIntentId,
+    );
+
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.ticket.payment.succeeded',
+      {
+        userId: session.metadata?.userId ?? session.client_reference_id,
+        eventId: session.metadata?.eventId,
+        customerName: session.metadata?.customerName,
+        customerEmail:
+          session.customer_details?.email ?? session.customer_email,
+        attendees,
+        stripePaymentIntentId,
+        stripeCheckoutSessionId: session.id,
+        createdAt: session.created
+          ? new Date(session.created * 1000).toISOString()
+          : new Date().toISOString(),
+        hostedInvoiceUrl: ticketLinks.hostedInvoiceUrl,
+        invoicePdfUrl: ticketLinks.invoicePdfUrl,
+        receiptUrl: ticketLinks.receiptUrl,
+        currency: (session.currency ?? 'eur').toUpperCase(),
+        amountTotal: (session.amount_total ?? 0) / 100,
+        items: parsedItems,
+      },
+    );
+  }
+
+  private async onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
+    const stripeSubscriptionId = this.extractSubscriptionIdFromInvoice(invoice);
+
+    if (!stripeSubscriptionId) return;
+
+    const subscriptionMetadata =
+      await this.getSubscriptionMetadata(stripeSubscriptionId);
+
+    const period = invoice.lines.data[0]?.period;
+    await this.rabbitmqPublisher.publishWithRetry('billing.payment.succeeded', {
+      userId: subscriptionMetadata.userId,
+      planId: subscriptionMetadata.planId,
+      stripeSubscriptionId,
+      stripeInvoiceId: invoice.id,
+      customerEmail:
+        invoice.customer_email ?? subscriptionMetadata.customerEmail ?? null,
+      hostedInvoiceUrl: invoice.hosted_invoice_url,
+      invoicePdfUrl: invoice.invoice_pdf,
+      amount: (invoice.amount_paid ?? 0) / 100,
+      currency: (invoice.currency ?? 'eur').toUpperCase(),
+      status: 'paid',
+      description: invoice.description,
+      paidAt: invoice.status_transitions?.paid_at
+        ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+        : new Date().toISOString(),
+    });
+
+    if (period?.start && period?.end) {
+      await this.rabbitmqPublisher.publishWithRetry(
+        'billing.subscription.renewed',
+        {
+          stripeSubscriptionId,
+          status: 'active',
+          currentPeriodStart: new Date(period.start * 1000).toISOString(),
+          currentPeriodEnd: new Date(period.end * 1000).toISOString(),
+        },
+      );
+    }
+  }
+
+  private async onInvoiceFailed(invoice: Stripe.Invoice): Promise<void> {
+    const stripeSubscriptionId = this.extractSubscriptionIdFromInvoice(invoice);
+
+    if (!stripeSubscriptionId) return;
+
+    const subscriptionMetadata =
+      await this.getSubscriptionMetadata(stripeSubscriptionId);
+
+    await this.rabbitmqPublisher.publishWithRetry('billing.payment.failed', {
+      userId: subscriptionMetadata.userId,
+      planId: subscriptionMetadata.planId,
+      stripeSubscriptionId,
+      stripeInvoiceId: invoice.id,
+      customerEmail:
+        invoice.customer_email ?? subscriptionMetadata.customerEmail ?? null,
+      hostedInvoiceUrl: invoice.hosted_invoice_url,
+      invoicePdfUrl: invoice.invoice_pdf,
+      amount: (invoice.amount_due ?? 0) / 100,
+      currency: (invoice.currency ?? 'eur').toUpperCase(),
+      status: 'failed',
+      description: invoice.description,
+      paidAt: new Date().toISOString(),
+    });
+  }
+
+  private async onSubscriptionCanceled(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.subscription.canceled',
+      {
+        stripeSubscriptionId: subscription.id,
+        status: 'canceled',
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000).toISOString()
+          : new Date().toISOString(),
+        endedAt: subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : null,
+      },
+    );
+  }
+
+  private extractSubscriptionIdFromInvoice(
+    invoice: Stripe.Invoice,
+  ): string | undefined {
+    const legacySubscription = (
+      invoice as Stripe.Invoice & {
+        subscription?: string | { id: string };
+      }
+    ).subscription;
+
+    if (typeof legacySubscription === 'string') return legacySubscription;
+    if (legacySubscription?.id) return legacySubscription.id;
+
+    const parentSubscription = (
+      invoice as Stripe.Invoice & {
+        parent?: {
+          subscription_details?: {
+            subscription?: string;
+          };
+        };
+      }
+    ).parent?.subscription_details?.subscription;
+
+    return parentSubscription;
+  }
+
+  private async getSubscriptionMetadata(stripeSubscriptionId: string): Promise<{
+    userId?: string;
+    planId?: string;
+    customerEmail?: string;
+  }> {
+    if (!this.stripe) {
+      return {};
+    }
+
+    try {
+      const subscription =
+        await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+      return {
+        userId: subscription.metadata?.userId,
+        planId: subscription.metadata?.planId,
+        customerEmail: subscription.metadata?.customerEmail,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Impossible de recuperer les metadata subscription ${stripeSubscriptionId}`,
+      );
+      this.logger.debug(
+        error instanceof Error ? error.message : 'Erreur inconnue',
+      );
+      return {};
+    }
+  }
+
+  private async safeGetTicketPaymentLinks(
+    stripePaymentIntentId: string,
+  ): Promise<{
+    hostedInvoiceUrl: string | null;
+    invoicePdfUrl: string | null;
+    receiptUrl: string | null;
+  }> {
+    try {
+      return await this.getTicketPaymentLinks(stripePaymentIntentId);
+    } catch (error) {
+      this.logger.warn(
+        `Impossible de recuperer les liens de facture ticket pour ${stripePaymentIntentId}`,
+      );
+      this.logger.debug(
+        error instanceof Error ? error.message : 'Erreur inconnue',
+      );
+      return {
+        hostedInvoiceUrl: null,
+        invoicePdfUrl: null,
+        receiptUrl: null,
+      };
+    }
+  }
+
+  private async publishTicketPaymentRefunded(payload: {
+    stripePaymentIntentId: string;
+    stripeRefundId?: string;
+    amount?: number;
+    currency?: string;
+    reason?: string | null;
+    refundedAt?: string;
+    hostedInvoiceUrl?: string | null;
+    invoicePdfUrl?: string | null;
+    receiptUrl?: string | null;
+  }): Promise<void> {
+    await this.rabbitmqPublisher.publishWithRetry(
+      'billing.ticket.payment.refunded',
+      {
+        stripePaymentIntentId: payload.stripePaymentIntentId,
+        stripeRefundId: payload.stripeRefundId,
+        amount: payload.amount,
+        currency: payload.currency,
+        reason: payload.reason,
+        refundedAt: payload.refundedAt ?? new Date().toISOString(),
+        hostedInvoiceUrl: payload.hostedInvoiceUrl ?? null,
+        invoicePdfUrl: payload.invoicePdfUrl ?? null,
+        receiptUrl: payload.receiptUrl ?? null,
+      },
+    );
+  }
+
+  private extractPriceIdFromSubscription(
+    subscription: Stripe.Subscription,
+  ): string | undefined {
+    return subscription.items.data[0]?.price?.id;
+  }
+
+  private extractPeriodFromSubscription(subscription: Stripe.Subscription): {
+    start?: string;
+    end?: string;
+  } {
+    const item = subscription.items.data[0];
+
+    return {
+      start: item?.current_period_start
+        ? new Date(item.current_period_start * 1000).toISOString()
+        : undefined,
+      end: item?.current_period_end
+        ? new Date(item.current_period_end * 1000).toISOString()
+        : undefined,
+    };
+  }
+
+  private mapSubscriptionStatus(
+    subscription: Stripe.Subscription,
+  ): 'active' | 'canceled' {
+    if (
+      subscription.status === 'canceled' ||
+      subscription.cancel_at_period_end
+    ) {
+      return 'canceled';
+    }
+
+    return 'active';
+  }
+}

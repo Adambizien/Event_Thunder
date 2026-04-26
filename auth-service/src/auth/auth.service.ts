@@ -14,7 +14,8 @@ import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import * as crypto from 'crypto';
+import { readSecret } from '../utils/secret.util';
+import { RabbitmqPublisherService } from './rabbitmq-publisher.service';
 
 type UserPayload = {
   id: string;
@@ -38,22 +39,19 @@ type AuthResponse = {
 export class AuthService {
   private googleClient: OAuth2Client;
   private userServiceUrl: string;
-  private mailingServiceUrl: string;
-  private resetTokens: Map<string, { email: string; expiresAt: number }> =
-    new Map();
+  private usedResetTokens: Map<string, number> = new Map();
   private blacklistedTokens: Set<string> = new Set();
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly httpService: HttpService,
+    private readonly rabbitmqPublisher: RabbitmqPublisherService,
   ) {
     this.userServiceUrl =
-      process.env.USER_SERVICE_URL || 'http://user-service:3002';
-    this.mailingServiceUrl =
-      process.env.MAILING_SERVICE_URL || 'http://mailing:3003';
+      process.env.USER_SERVICE_URL || 'http://user-service:3000';
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const googleClientSecret = readSecret('GOOGLE_CLIENT_SECRET');
 
     if (!googleClientId || !googleClientSecret) {
       throw new Error('Google OAuth credentials are not defined');
@@ -155,9 +153,7 @@ export class AuthService {
       }
 
       if (isNewUser) {
-        this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
-          // Silent fail for welcome email
-        });
+        this.sendWelcomeEmail(user.email, user.firstName).catch(() => {});
       }
 
       const token = this.generateToken(user.id);
@@ -197,9 +193,7 @@ export class AuthService {
 
       const token = this.generateToken(user.id);
 
-      this.sendWelcomeEmail(user.email, user.firstName).catch(() => {
-        // Silent fail for welcome email
-      });
+      this.sendWelcomeEmail(user.email, user.firstName).catch(() => {});
 
       return {
         message: 'Utilisateur enregistré avec succès',
@@ -303,24 +297,19 @@ export class AuthService {
         };
       }
 
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
-
-      this.resetTokens.set(resetToken, {
-        email: dto.email,
-        expiresAt,
-      });
+      const resetToken = this.generatePasswordResetToken(dto.email);
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-      await firstValueFrom(
-        this.httpService.post(`${this.mailingServiceUrl}/mail/password-reset`, {
+      await this.rabbitmqPublisher.publishWithRetry(
+        'auth.mail.password-reset',
+        {
           email: dto.email,
           resetUrl,
           username: user.firstName || user.email.split('@')[0],
           expiresInMinutes: 30,
-        }),
+        },
       );
 
       return {
@@ -334,28 +323,32 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-    const tokenData = this.resetTokens.get(dto.token);
+    const resetPayload = this.verifyPasswordResetToken(dto.token);
 
-    if (!tokenData) {
+    if (!resetPayload) {
       throw new BadRequestException(
         'Jeton de réinitialisation invalide ou expiré',
       );
     }
 
-    if (Date.now() > tokenData.expiresAt) {
-      this.resetTokens.delete(dto.token);
-      throw new BadRequestException('Le jeton de réinitialisation a expiré');
+    this.cleanupExpiredEntries(this.usedResetTokens);
+    if (this.usedResetTokens.has(dto.token)) {
+      throw new BadRequestException(
+        'Ce jeton de réinitialisation a déjà servi',
+      );
     }
 
     try {
       await firstValueFrom(
         this.httpService.patch(`${this.userServiceUrl}/api/users/password`, {
-          email: tokenData.email,
+          email: resetPayload.email,
           newPassword: dto.newPassword,
         }),
       );
 
-      this.resetTokens.delete(dto.token);
+      const expiresAt = this.readTokenExpirationMs(dto.token, 30 * 60 * 1000);
+      this.usedResetTokens.set(dto.token, expiresAt);
+      this.cleanupExpiredEntries(this.usedResetTokens);
 
       return { message: 'Mot de passe réinitialisé avec succès' };
     } catch (error: unknown) {
@@ -373,18 +366,88 @@ export class AuthService {
       return { valid: false, message: 'Jeton manquant' };
     }
 
-    const tokenData = this.resetTokens.get(token);
-
-    if (!tokenData) {
+    this.cleanupExpiredEntries(this.usedResetTokens);
+    if (this.usedResetTokens.has(token)) {
       return { valid: false, message: 'Jeton invalide ou expiré' };
     }
 
-    const now = Date.now();
-    if (now > tokenData.expiresAt) {
-      this.resetTokens.delete(token);
-      return { valid: false, message: 'Le jeton a expiré' };
+    const payload = this.verifyPasswordResetToken(token);
+    if (!payload) {
+      return { valid: false, message: 'Jeton invalide ou expiré' };
     }
+
     return { valid: true, message: 'Jeton valide' };
+  }
+
+  private getResetTokenSecret(): string {
+    const resetSecret =
+      readSecret('RESET_PASSWORD_JWT_SECRET') ?? readSecret('JWT_SECRET');
+    if (!resetSecret) {
+      throw new Error(
+        'RESET_PASSWORD_JWT_SECRET or JWT_SECRET must be defined',
+      );
+    }
+    return resetSecret;
+  }
+
+  private generatePasswordResetToken(email: string): string {
+    return this.jwtService.sign(
+      {
+        type: 'password_reset',
+        email,
+        nonce: randomBytes(16).toString('hex'),
+      },
+      {
+        secret: this.getResetTokenSecret(),
+        expiresIn: '30m',
+      },
+    );
+  }
+
+  private verifyPasswordResetToken(
+    token: string,
+  ): { email: string; type: string } | null {
+    try {
+      const payload = this.jwtService.verify<{ email?: string; type?: string }>(
+        token,
+        {
+          secret: this.getResetTokenSecret(),
+        },
+      );
+
+      if (payload.type !== 'password_reset' || !payload.email) {
+        return null;
+      }
+
+      return { email: payload.email, type: payload.type };
+    } catch {
+      return null;
+    }
+  }
+
+  private cleanupExpiredEntries(store: Map<string, number>): void {
+    const now = Date.now();
+    for (const [token, expiresAt] of store.entries()) {
+      if (expiresAt <= now) {
+        store.delete(token);
+      }
+    }
+  }
+
+  private readTokenExpirationMs(token: string, fallbackMs: number): number {
+    if (typeof this.jwtService.decode !== 'function') {
+      return Date.now() + fallbackMs;
+    }
+    const decoded: unknown = this.jwtService.decode(token);
+    if (
+      decoded &&
+      typeof decoded === 'object' &&
+      'exp' in decoded &&
+      typeof decoded.exp === 'number'
+    ) {
+      return decoded.exp * 1000;
+    }
+    return Date.now() + fallbackMs;
   }
 
   private async sendWelcomeEmail(
@@ -392,12 +455,10 @@ export class AuthService {
     username?: string,
   ): Promise<void> {
     try {
-      await firstValueFrom(
-        this.httpService.post(`${this.mailingServiceUrl}/mail/welcome`, {
-          email,
-          username: username || email.split('@')[0],
-        }),
-      );
+      await this.rabbitmqPublisher.publishWithRetry('auth.mail.welcome', {
+        email,
+        username: username || email.split('@')[0],
+      });
     } catch (error: unknown) {
       console.error('Error sending welcome email:', error);
       throw error;
@@ -405,7 +466,7 @@ export class AuthService {
   }
 
   private generateToken(userId: string): string {
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = readSecret('JWT_SECRET');
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
@@ -418,7 +479,6 @@ export class AuthService {
       const cleanToken = token.replace('Bearer ', '');
 
       this.jwtService.verify(cleanToken);
-
       this.blacklistedTokens.add(cleanToken);
 
       return { message: 'Déconnexion réussie' };

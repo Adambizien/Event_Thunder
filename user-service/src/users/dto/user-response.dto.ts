@@ -5,5 +5,4 @@ export class UserResponseDto {
   email: string;
   phoneNumber?: string | null;
   role?: string;
-  planId?: string;
 }

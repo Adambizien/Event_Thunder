@@ -1,101 +1,306 @@
 services:
   # Postgres Database
   postgres:
-    image: postgres:15
-    container_name: event_thunder_postgres
+    image: postgres:18.2-alpine3.23
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      TZ: Europe/Paris
+    secrets:
+      - postgres_user
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/postgres_user) -d postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     ports:
       - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
-    networks:
-      - app-network
 
   # API Gateway
   api-gateway:
     build: ./api-gateway
-    container_name: api_gateway
+    restart: unless-stopped
     environment:
-      - PORT=${API_GATEWAY_PORT}
-      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
-      - USER_SERVICE_URL=${USER_SERVICE_URL}
+      PORT: 3000
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
+      SUBSCRIPTION_SERVICE_URL: ${SUBSCRIPTION_SERVICE_URL}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
+      COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL}
+      POST_SERVICE_URL: ${POST_SERVICE_URL}
+      TICKETING_SERVICE_URL: ${TICKETING_SERVICE_URL}
     ports:
-      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+      - "${API_GATEWAY_PORT}:3000"
     depends_on:
       - auth-service
       - user-service
-    networks:
-      - app-network
+      - billing-service
+      - subscription-service
+      - event-service
+      - comment-service
+      - post-service
+      - ticketing-service
 
   # Auth Service
   auth-service:
     build: ./auth-service
-    container_name: auth_service
+    restart: unless-stopped
     environment:
-      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      - USER_SERVICE_URL=${USER_SERVICE_URL}
-      - MAILING_SERVICE_URL=${MAILING_SERVICE_URL}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
-      - FRONTEND_URL=${FRONTEND_URL}
-    ports:
-      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+      PORT: 3000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      MAILING_SERVICE_URL: ${MAILING_SERVICE_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET_FILE: /run/secrets/google_client_secret
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      FRONTEND_URL: ${FRONTEND_URL}
+      RESET_PASSWORD_JWT_SECRET_FILE: /run/secrets/reset_password_jwt_secret
+    secrets:
+      - jwt_secret
+      - google_client_secret
+      - reset_password_jwt_secret
     depends_on:
       - user-service
-      - mailing
-    networks:
-      - app-network
+      - mailing-service
+      - rabbitmq
 
   # User Service
   user-service:
     build: ./user-service
-    container_name: user_service
+    restart: unless-stopped
     environment:
-      - PORT=${USER_SERVICE_PORT}
-      - DB_CONNECTION=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${USER_DATABASE}
-      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS}
-      - NODE_ENV=${NODE_ENV}
-    ports:
-      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${USER_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS}
+      NODE_ENV: ${NODE_ENV}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+    secrets:
+      - postgres_user
+      - postgres_password
     depends_on:
-      - postgres
-    networks:
-      - app-network
+      postgres:
+        condition: service_healthy
+
+  # Event Service
+  event-service:
+    build: ./event-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${EVENT_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Comment Service
+  comment-service:
+    build: ./comment-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${COMMENT_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Post Service
+  post-service:
+    build: ./post-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${POST_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      AI_API_URL: ${AI_API_URL}
+      AI_API_KEY_FILE: /run/secrets/ai_api_key
+      AI_MODEL: ${AI_MODEL}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      POST_CRON_SECRET_FILE: /run/secrets/post_cron_secret
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+      - post_cron_secret
+      - ai_api_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Subscription Service:
+  subscription-service:
+    build: ./subscription-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${SUBSCRIPTION_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.billing.events
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Ticketing Service
+  ticketing-service:
+    build: ./ticketing-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${TICKETING_DATABASE}
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_TICKETING_QUEUE: ticketing-service.billing.events
+      NODE_ENV: ${NODE_ENV}
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  
+  # billing-service:
+  billing-service:
+    build: ./billing-service
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      NODE_ENV: ${NODE_ENV}
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
+      STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
+    secrets:
+      - stripe_secret_key
+      - stripe_webhook_secret
+    ports:
+      - "${BILLING_SERVICE_PORT}:3000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:4.2.4-management-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
 
   # Mailing Service
-  mailing:
+  mailing-service:
     build: ./mailing-service
-    container_name: mailing_service
+    restart: unless-stopped
     environment:
-      - PORT=${MAILING_SERVICE_PORT}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - MAIL_FROM=${MAIL_FROM}
-      - PRODUCT_NAME=${PRODUCT_NAME}
-    ports:
-      - "${MAILING_SERVICE_PORT}:${MAILING_SERVICE_PORT}"
-    networks:
-      - app-network
+      PORT: 3000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_MAILING_QUEUE: mailing-service.billing.events
+      RESEND_API_KEY_FILE: /run/secrets/resend_api_key
+      MAIL_FROM: ${MAIL_FROM}
+      PRODUCT_NAME: ${PRODUCT_NAME}
+      TICKETING_SERVICE_URL: ${TICKETING_SERVICE_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+    secrets:
+      - resend_api_key
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   # Frontend
   frontend:
-    build: ./frontend
-    container_name: frontend
-    environment:
-      - VITE_API_URL=${API_GATEWAY_URL}
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${API_GATEWAY_URL}
+    restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
-    depends_on:
-      - api-gateway
+      - "${FRONTEND_PORT}:80"
 
 volumes:
   postgres_data:
 
-networks:
-  app-network:
-    driver: bridge
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  reset_password_jwt_secret:
+    file: ./secrets/reset_password_jwt_secret.txt
+  stripe_secret_key:
+    file: ./secrets/stripe_secret_key.txt
+  stripe_webhook_secret:
+    file: ./secrets/stripe_webhook_secret.txt
+  google_client_secret:
+    file: ./secrets/google_client_secret.txt
+  resend_api_key:
+    file: ./secrets/resend_api_key.txt
+  post_cron_secret:
+    file: ./secrets/post_cron_secret.txt
+  ai_api_key:
+    file: ./secrets/ai_api_key.txt

@@ -1,0 +1,31 @@
+name: CD Event Thunder
+
+on:
+  workflow_run:
+    workflows: ["CI Event Thunder"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Déployer sur OVH
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Déploiement via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OVH_HOST }}
+          username: ${{ secrets.OVH_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: ${{ secrets.OVH_PORT }}
+          script: |
+            cd /var/www/html/Event_Thunder
+            git pull origin main
+            sudo docker compose down
+            # utiliser le script de démarrage propre pour éviter les problèmes de migration Prisma
+            # sudo docker compose up -d --build
+            # sudo docker compose ps

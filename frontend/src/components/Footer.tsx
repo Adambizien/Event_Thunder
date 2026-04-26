@@ -12,7 +12,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="flex flex-col">
             <div className="mb-4">
-              <Logo size="sm" />
+              <Logo size="md" />
             </div>
             <p className="text-gray-400 text-sm">
               La plateforme pour gérer vos événements avec foudre et précision.
@@ -87,7 +87,7 @@ const Footer = () => {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-gray-700 pt-8">
+        <div className="border-t border-white/10 pt-8">
           {/* Bottom Footer */}
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm mb-4 md:mb-0">
@@ -101,21 +101,21 @@ const Footer = () => {
                 className="text-gray-400 hover:text-thunder-gold transition-colors"
                 aria-label="Twitter"
               >
-                𝕏
+                X
               </a>
               <a
                 href="#"
                 className="text-gray-400 hover:text-thunder-gold transition-colors"
                 aria-label="GitHub"
               >
-                ⚙️
+                GH
               </a>
               <a
                 href="#"
                 className="text-gray-400 hover:text-thunder-gold transition-colors"
                 aria-label="LinkedIn"
               >
-                💼
+                IN
               </a>
             </div>
           </div>

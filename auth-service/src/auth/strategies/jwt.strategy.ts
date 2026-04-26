@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import type { Request } from 'express';
+import { readSecret } from '../../utils/secret.util';
 
 type JwtPayload = {
   id: string;
@@ -11,7 +12,7 @@ type JwtPayload = {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = readSecret('JWT_SECRET');
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
