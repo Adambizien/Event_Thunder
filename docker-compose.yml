@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
       RABBITMQ_EXCHANGE: billing.events
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
@@ -69,6 +69,7 @@ services:
       - jwt_secret
       - google_client_secret
       - reset_password_jwt_secret
+      - rabbitmq_url
     depends_on:
       - user-service
       - mailing-service
@@ -150,7 +151,7 @@ services:
       AI_API_URL: ${AI_API_URL}
       AI_API_KEY_FILE: /run/secrets/ai_api_key
       AI_MODEL: ${AI_MODEL}
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
       RABBITMQ_EXCHANGE: billing.events
       POST_CRON_SECRET_FILE: /run/secrets/post_cron_secret
       NODE_ENV: ${NODE_ENV}
@@ -159,6 +160,7 @@ services:
       - postgres_password
       - post_cron_secret
       - ai_api_key
+      - rabbitmq_url
     depends_on:
       postgres:
         condition: service_healthy
@@ -178,13 +180,14 @@ services:
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
       RABBITMQ_EXCHANGE: billing.events
       RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.billing.events
       NODE_ENV: ${NODE_ENV}
     secrets:
       - postgres_user
       - postgres_password
+      - rabbitmq_url
     depends_on:
       postgres:
         condition: service_healthy
@@ -203,13 +206,14 @@ services:
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
       RABBITMQ_EXCHANGE: billing.events
       RABBITMQ_TICKETING_QUEUE: ticketing-service.billing.events
       NODE_ENV: ${NODE_ENV}
     secrets:
       - postgres_user
       - postgres_password
+      - rabbitmq_url
     depends_on:
       postgres:
         condition: service_healthy
@@ -222,7 +226,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
       RABBITMQ_EXCHANGE: billing.events
       NODE_ENV: ${NODE_ENV}
       STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
@@ -230,6 +234,7 @@ services:
     secrets:
       - stripe_secret_key
       - stripe_webhook_secret
+      - rabbitmq_url
     ports:
       - "${BILLING_SERVICE_PORT}:3000"
     depends_on:
@@ -246,9 +251,16 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    command:
+      - sh
+      - -ec
+      - |
+        export RABBITMQ_DEFAULT_USER="$$(cat /run/secrets/rabbitmq_default_user)"
+        export RABBITMQ_DEFAULT_PASS="$$(cat /run/secrets/rabbitmq_default_pass)"
+        exec docker-entrypoint.sh rabbitmq-server
+    secrets:
+      - rabbitmq_default_user
+      - rabbitmq_default_pass
 
   # Mailing Service
   mailing-service:
@@ -256,7 +268,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
       RABBITMQ_EXCHANGE: billing.events
       RABBITMQ_MAILING_QUEUE: mailing-service.billing.events
       RESEND_API_KEY_FILE: /run/secrets/resend_api_key
@@ -266,6 +278,7 @@ services:
       USER_SERVICE_URL: ${USER_SERVICE_URL}
     secrets:
       - resend_api_key
+      - rabbitmq_url
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -304,3 +317,9 @@ secrets:
     file: ./secrets/post_cron_secret.txt
   ai_api_key:
     file: ./secrets/ai_api_key.txt
+  rabbitmq_url:
+    file: ./secrets/rabbitmq_url.txt
+  rabbitmq_default_user:
+    file: ./secrets/rabbitmq_default_user.txt
+  rabbitmq_default_pass:
+    file: ./secrets/rabbitmq_default_pass.txt
