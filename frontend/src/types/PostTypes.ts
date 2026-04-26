@@ -1,4 +1,4 @@
-export type SocialNetwork = 'x';
+export type SocialNetwork = 'x' | 'facebook';
 
 export type PostStatus =
   | 'draft'

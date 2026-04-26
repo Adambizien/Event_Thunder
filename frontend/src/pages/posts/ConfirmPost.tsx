@@ -9,9 +9,12 @@ const ConfirmPost = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState('Confirmation en cours...');
   const [isError, setIsError] = useState(false);
-  const [xIntentUrl, setXIntentUrl] = useState<string | null>(null);
+  const [intentUrl, setIntentUrl] = useState<string | null>(null);
+  const [intentNetwork, setIntentNetwork] = useState<'x' | 'facebook' | null>(null);
   const [postId, setPostId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+
+  const networkLabel = intentNetwork === 'facebook' ? 'Facebook' : 'X';
 
   useEffect(() => {
     const postId = searchParams.get('postId');
@@ -31,9 +34,15 @@ const ConfirmPost = () => {
       try {
         const result = await postService.confirmPost(postId, token);
         setMessage(result.message || 'Post confirmé avec succès.');
-        if (result.xIntentUrl) {
-          setXIntentUrl(result.xIntentUrl);
-          setMessage('Confirmation validée. Clique sur le bouton pour publier sur X.');
+        const resolvedIntentUrl = result.intentUrl ?? result.xIntentUrl;
+        const resolvedNetwork = result.intentNetwork ?? (result.xIntentUrl ? 'x' : null);
+
+        if (resolvedIntentUrl) {
+          setIntentUrl(resolvedIntentUrl);
+          setIntentNetwork(resolvedNetwork);
+          setMessage(
+            `Confirmation validée. Clique sur le bouton pour publier sur ${resolvedNetwork === 'facebook' ? 'Facebook' : 'X'}.`,
+          );
         }
       } catch (error) {
         setIsError(true);
@@ -50,17 +59,20 @@ const ConfirmPost = () => {
     void run();
   }, [searchParams]);
 
-  const handlePublishOnX = async () => {
-    if (!postId || !token || !xIntentUrl || actionLoading) {
+  const handlePublishOnNetwork = async () => {
+    if (!postId || !token || !intentUrl || actionLoading) {
       return;
     }
 
     try {
       setActionLoading(true);
       const result = await postService.publishPostManual(postId, token);
+      const resolvedIntentUrl = result.intentUrl ?? result.xIntentUrl ?? intentUrl;
       setIsError(false);
-      setMessage(result.message ?? 'Post marqué comme envoyé. Redirection vers X...');
-      window.location.assign(result.xIntentUrl ?? xIntentUrl);
+      setMessage(
+        result.message ?? `Post marqué comme envoyé. Redirection vers ${networkLabel}...`,
+      );
+      window.location.assign(resolvedIntentUrl);
     } catch (error) {
       setIsError(true);
       setMessage(error instanceof Error ? error.message : 'Impossible de publier le post.');
@@ -110,38 +122,38 @@ const ConfirmPost = () => {
         >
           {isError
             ? 'La publication n\'a pas pu être confirmée.'
-            : xIntentUrl
-              ? 'La confirmation est validée. Finalise la publication dans X.'
+            : intentUrl
+              ? `La confirmation est validée. Finalise la publication dans ${networkLabel}.`
               : 'La confirmation est bien prise en compte.'}
         </div>
 
         <div className="mt-8 border-t border-white/10 pt-5">
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            {!isError && xIntentUrl && (
+          <div className="grid grid-cols-2 gap-3">
+            {!isError && intentUrl && (
               <button
                 type="button"
-                onClick={handlePublishOnX}
+                onClick={handlePublishOnNetwork}
                 disabled={actionLoading}
-                className="inline-flex items-center rounded-lg border border-sky-400/70 bg-sky-500/20 px-4 py-2 font-semibold text-sky-200 transition hover:bg-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary inline-flex w-full items-center justify-center gap-2"
               >
-                {actionLoading ? 'Traitement...' : 'Publiér sur X'}
+                {actionLoading ? 'Traitement...' : `Publier sur ${networkLabel}`}
               </button>
             )}
-            {!isError && xIntentUrl ? (
+            {!isError && intentUrl ? (
               <button
                 type="button"
                 onClick={handleCancelAndBack}
                 disabled={actionLoading}
-                className="inline-flex items-center rounded-lg border border-thunder-gold/70 bg-thunder-gold/20 px-4 py-2 font-semibold text-thunder-gold transition hover:bg-thunder-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center rounded border border-white/30 bg-white/15 px-6 py-2 font-semibold text-white transition-colors hover:bg-white/25 disabled:opacity-60"
               >
-                Retour à l'administration des posts
+                Annuler et revenir à la gestion des posts
               </button>
             ) : (
               <Link
                 to="/admin/social-posts"
-                className="inline-flex items-center rounded-lg border border-thunder-gold/70 bg-thunder-gold/20 px-4 py-2 font-semibold text-thunder-gold transition hover:bg-thunder-gold/30"
+                className="col-span-2 inline-flex w-full items-center justify-center rounded border border-white/30 bg-white/15 px-6 py-2 font-semibold text-white transition-colors hover:bg-white/25"
               >
-                Retour à l'administration des posts
+                Annuler et revenir à la gestion des posts
               </Link>
             )}
           </div>

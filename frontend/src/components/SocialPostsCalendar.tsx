@@ -158,6 +158,7 @@ const SocialPostsCalendar = ({
   );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(new Set());
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
 
   const scheduledPosts = useMemo(
     () =>
@@ -257,6 +258,7 @@ const SocialPostsCalendar = ({
                 key={dayKey}
                 onClick={() => {
                   if (isClickable) {
+                    setCurrentTimestamp(Date.now());
                     setSelectedDay(dayKey);
                   }
                 }}
@@ -320,7 +322,10 @@ const SocialPostsCalendar = ({
                   ? post.targets.find((target) => target.error_message)?.error_message
                   : null;
               const expiresAt = getExpirationDate(post);
-              const remainingMs = expiresAt ? expiresAt.getTime() - Date.now() : null;
+              const remainingMs =
+                expiresAt && currentTimestamp !== null
+                  ? expiresAt.getTime() - currentTimestamp
+                  : null;
               const isExpanded = expandedPostIds.has(post.id);
               const isLongContent = post.content.length > CONTENT_PREVIEW_LENGTH;
               const displayedContent =

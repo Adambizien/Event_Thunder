@@ -434,7 +434,7 @@ const AdminSocialPosts = () => {
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-lg">
         <h2 className="text-xl font-semibold text-white mb-4">Publication manuelle </h2>
         <p className="text-sm text-gray-300">
-          Après confirmation par e-mail, l'application ouvre X avec le texte pré-rempli. Tu valides ensuite la publication directement dans X.
+          Après confirmation par e-mail, l'application ouvre X ou Facebook avec le texte pré-rempli. Tu valides ensuite la publication directement dans la plateforme choisie.
         </p>
       </section>
 

@@ -172,20 +172,36 @@ const SocialPostFormModal = ({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-300">Réseaux sociaux</label>
-          <label className="inline-flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-2 text-sm text-gray-200">
-            <input
-              type="checkbox"
-              checked={selectedNetworks.includes('x')}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  onNetworksChange(['x']);
-                } else {
-                  onNetworksChange([]);
-                }
-              }}
-            />
-            X
-          </label>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-2 text-sm text-gray-200">
+              <input
+                type="checkbox"
+                checked={selectedNetworks.includes('x')}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    onNetworksChange(['x']);
+                  } else {
+                    onNetworksChange([]);
+                  }
+                }}
+              />
+              X
+            </label>
+            <label className="inline-flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-2 text-sm text-gray-200">
+              <input
+                type="checkbox"
+                checked={selectedNetworks.includes('facebook')}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    onNetworksChange(['facebook']);
+                  } else {
+                    onNetworksChange([]);
+                  }
+                }}
+              />
+              Facebook
+            </label>
+          </div>
         </div>
 
         <div className="flex gap-4 pt-4">

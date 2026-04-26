@@ -33,24 +33,35 @@ export const postService = {
   async confirmPost(postId: string, token: string): Promise<{
     message: string;
     post: PostItem;
+    intentUrl?: string;
+    intentNetwork?: 'x' | 'facebook';
     xIntentUrl?: string;
   }> {
     const response = await api.post(`/api/posts/${postId}/confirm`, { token });
     return response.data as {
       message: string;
       post: PostItem;
+      intentUrl?: string;
+      intentNetwork?: 'x' | 'facebook';
       xIntentUrl?: string;
     };
   },
 
   async publishPostManual(postId: string, token: string): Promise<{
     message?: string;
+    intentUrl?: string;
+    intentNetwork?: 'x' | 'facebook';
     xIntentUrl?: string;
   }> {
     const response = await api.post(`/api/posts/${postId}/publish-manual`, {
       token,
     });
-    return response.data as { message?: string; xIntentUrl?: string };
+    return response.data as {
+      message?: string;
+      intentUrl?: string;
+      intentNetwork?: 'x' | 'facebook';
+      xIntentUrl?: string;
+    };
   },
 
   async cancelPostManual(postId: string, token: string): Promise<{

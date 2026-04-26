@@ -34,6 +34,6 @@ export class CreatePostDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(1)
   @ArrayUnique()
-  @IsIn(['x'], { each: true })
-  networks!: Array<'x'>;
+  @IsIn(['x', 'facebook'], { each: true })
+  networks!: Array<'x' | 'facebook'>;
 }

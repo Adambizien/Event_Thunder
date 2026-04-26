@@ -26,7 +26,12 @@ type PostForReminder = {
   event_id?: string | null;
   content: string;
   scheduled_at: Date | null;
-  targets: Array<{ network: 'x' }>;
+  targets: Array<{ network: 'x' | 'facebook' }>;
+};
+
+type ManualIntent = {
+  network: 'x' | 'facebook';
+  intentUrl: string;
 };
 
 type EventLookup = {
@@ -51,6 +56,7 @@ export class PostsService {
   private readonly aiApiUrl: string;
   private readonly aiApiKey?: string;
   private readonly aiModel: string;
+  private readonly facebookAppId?: string;
   private readonly frontendUrl: string;
   private readonly cronSecret: string;
   private readonly aiGenerationLimit = 5;
@@ -66,9 +72,11 @@ export class PostsService {
     this.eventServiceUrl =
       process.env.EVENT_SERVICE_URL ?? 'http://event-service:3000';
     this.aiApiUrl =
-      process.env.AI_API_URL ?? 'https://api.groq.com/openai/v1/chat/completions';
+      process.env.AI_API_URL ??
+      'https://api.groq.com/openai/v1/chat/completions';
     this.aiApiKey = readSecret('AI_API_KEY');
     this.aiModel = process.env.AI_MODEL ?? 'llama-3.1-8b-instant';
+    this.facebookAppId = process.env.FACEBOOK_APP_ID?.trim();
     this.frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
     this.cronSecret = readSecret('POST_CRON_SECRET') ?? '';
   }
@@ -94,7 +102,10 @@ export class PostsService {
         throw new BadRequestException('Événement introuvable ou inaccèssible.');
       }
 
-      const generatedText = await this.requestAiTextGeneration(dto.prompt, event);
+      const generatedText = await this.requestAiTextGeneration(
+        dto.prompt,
+        event,
+      );
       if (!generatedText) {
         throw new BadRequestException(
           "Impossible de générer un texte avec l'IA pour le moment.",
@@ -321,13 +332,19 @@ export class PostsService {
       );
     }
 
-    const xIntentUrl = this.buildXIntentUrl(dbToken.post.content);
+    const intent = this.buildManualIntent(
+      dbToken.post.content,
+      dbToken.post.event_id,
+      dbToken.post.targets,
+    );
+    const networkLabel = intent.network === 'facebook' ? 'Facebook' : 'X';
 
     return {
       post: dbToken.post,
-      message:
-        'Confirmation validee. Choisis ensuite Publiér sur X ou Annuler.',
-      xIntentUrl,
+      message: `Confirmation validee. Choisis ensuite Publier sur ${networkLabel} ou Annuler.`,
+      intentNetwork: intent.network,
+      intentUrl: intent.intentUrl,
+      xIntentUrl: intent.network === 'x' ? intent.intentUrl : undefined,
     };
   }
 
@@ -365,6 +382,13 @@ export class PostsService {
       );
     }
 
+    const intent = this.buildManualIntent(
+      dbToken.post.content,
+      dbToken.post.event_id,
+      dbToken.post.targets,
+    );
+    const networkLabel = intent.network === 'facebook' ? 'Facebook' : 'X';
+
     await this.prisma.postConfirmationToken.update({
       where: { id: dbToken.id },
       data: { consumed_at: now },
@@ -383,14 +407,16 @@ export class PostsService {
       data: {
         status: 'published',
         published_at: now,
-        external_post_id: 'manual_x_publish',
+        external_post_id: `manual_${intent.network}_publish`,
         error_message: null,
       },
     });
 
     return {
-      message: 'Post marqué comme envoyé. Redirection vers X.',
-      xIntentUrl: this.buildXIntentUrl(dbToken.post.content),
+      message: `Post marqué comme envoyé. Redirection vers ${networkLabel}.`,
+      intentNetwork: intent.network,
+      intentUrl: intent.intentUrl,
+      xIntentUrl: intent.network === 'x' ? intent.intentUrl : undefined,
     };
   }
 
@@ -671,6 +697,60 @@ export class PostsService {
     return `https://twitter.com/intent/tweet?${params.toString()}`;
   }
 
+  private buildFacebookIntentUrl(
+    content: string,
+    eventId?: string | null,
+  ): string {
+    const shareUrl =
+      this.buildEventUrl(eventId) ?? this.frontendUrl.replace(/\/$/, '');
+
+    if (this.facebookAppId) {
+      const params = new URLSearchParams({
+        app_id: this.facebookAppId,
+        display: 'popup',
+        href: shareUrl,
+        quote: content,
+        redirect_uri: this.frontendUrl.replace(/\/$/, ''),
+      });
+      return `https://www.facebook.com/dialog/share?${params.toString()}`;
+    }
+
+    const params = new URLSearchParams({
+      u: shareUrl,
+      quote: content,
+    });
+    return `https://www.facebook.com/sharer/sharer.php?${params.toString()}`;
+  }
+
+  private resolvePrimaryNetwork(
+    targets: Array<{ network: 'x' | 'facebook' }>,
+  ): 'x' | 'facebook' {
+    if (targets.some((target) => target.network === 'facebook')) {
+      return 'facebook';
+    }
+    return 'x';
+  }
+
+  private buildManualIntent(
+    content: string,
+    eventId: string | null | undefined,
+    targets: Array<{ network: 'x' | 'facebook' }>,
+  ): ManualIntent {
+    const network = this.resolvePrimaryNetwork(targets);
+
+    if (network === 'facebook') {
+      return {
+        network,
+        intentUrl: this.buildFacebookIntentUrl(content, eventId),
+      };
+    }
+
+    return {
+      network,
+      intentUrl: this.buildXIntentUrl(content),
+    };
+  }
+
   private buildEventUrl(eventId?: string | null): string | undefined {
     if (!eventId || eventId.trim().length === 0) {
       return undefined;
@@ -718,7 +798,9 @@ export class PostsService {
     return {
       usedAt: now,
       remaining: this.aiGenerationLimit - history.length,
-      availableAt: new Date(history[0] + this.aiGenerationWindowMs).toISOString(),
+      availableAt: new Date(
+        history[0] + this.aiGenerationWindowMs,
+      ).toISOString(),
     };
   }
 
@@ -755,9 +837,12 @@ export class PostsService {
         headers['x-user-role'] = userRole;
       }
 
-      const response = await fetch(`${this.eventServiceUrl}/api/events/${eventId}`, {
-        headers,
-      });
+      const response = await fetch(
+        `${this.eventServiceUrl}/api/events/${eventId}`,
+        {
+          headers,
+        },
+      );
 
       if (!response.ok) {
         return null;
@@ -813,7 +898,10 @@ export class PostsService {
       const raw = await response.text();
       if (!response.ok) {
         const parsedError = this.safeParseJson(raw);
-        const providerMessage = this.extractProviderErrorMessage(parsedError, raw);
+        const providerMessage = this.extractProviderErrorMessage(
+          parsedError,
+          raw,
+        );
         this.logger.warn(
           `Provider IA en echec (status=${response.status}): ${providerMessage}`,
         );
@@ -915,7 +1003,10 @@ export class PostsService {
     }
   }
 
-  private extractGeneratedText(parsed: unknown, fallbackRaw: string): string | null {
+  private extractGeneratedText(
+    parsed: unknown,
+    fallbackRaw: string,
+  ): string | null {
     if (typeof parsed === 'string' && parsed.trim().length > 0) {
       return parsed.trim();
     }
@@ -936,7 +1027,8 @@ export class PostsService {
           if (!choice || typeof choice !== 'object') {
             continue;
           }
-          const content = (choice as { message?: { content?: unknown } }).message?.content;
+          const content = (choice as { message?: { content?: unknown } })
+            .message?.content;
           if (typeof content === 'string' && content.trim().length > 0) {
             return content.trim();
           }
@@ -971,7 +1063,7 @@ export class PostsService {
     await this.prisma.post.update({
       where: { id: postId },
       data: {
-        status: nextStatus as any,
+        status: nextStatus,
         published_at: null,
       },
     });

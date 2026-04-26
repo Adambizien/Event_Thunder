@@ -8,18 +8,18 @@ const AdminLayout = () => {
   const menuItems = [
     { path: '/admin', label: 'Tableau de bord' },
     { path: '/admin/plans', label: 'Gestion des plans' },
-    { path: '/admin/events', label: "Création d'événements" },
-    { path: '/admin/social-posts', label: 'Posts réseaux sociaux' },
-    { path: '/admin/event-categories', label: "Catégories d'événements" },
+    { path: '/admin/events', label: "Gestion des événements" },
+    { path: '/admin/social-posts', label: 'Gestion des posts' },
+    { path: '/admin/event-categories', label: "Gestion des catégories" },
     {
       path: '/admin/subscription-transactions',
-      label: 'Transactions abonnements',
+      label: 'Gestion des abonnements',
     },
     {
       path: '/admin/ticket-transactions',
-      label: 'Transactions tickets',
+      label: 'Gestion des tickets',
     },
-    { path: '/admin/users', label: 'Liste des utilisateurs' },
+    { path: '/admin/users', label: 'Gestion des utilisateurs' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
