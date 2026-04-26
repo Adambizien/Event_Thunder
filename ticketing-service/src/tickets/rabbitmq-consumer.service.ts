@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Channel, ChannelModel, ConsumeMessage, connect } from 'amqplib';
 import { TicketsService } from './tickets.service';
+import { readSecret } from '../utils/secret.util';
 
 @Injectable()
 export class RabbitmqConsumerService
@@ -32,7 +33,9 @@ export class RabbitmqConsumerService
     private readonly ticketsService: TicketsService,
   ) {
     this.rabbitUrl =
-      this.configService.get<string>('RABBITMQ_URL') ?? 'amqp://rabbitmq:5672';
+      readSecret('RABBITMQ_URL') ??
+      this.configService.get<string>('RABBITMQ_URL') ??
+      'amqp://rabbitmq:5672';
     this.exchange =
       this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
     this.queueName =

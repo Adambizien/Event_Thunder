@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Channel, ChannelModel, ConsumeMessage, connect } from 'amqplib';
 import { MailService } from './mail.service';
+import { readSecret } from '../utils/secret.util';
 
 type SubscriptionPaidPayload = {
   customerEmail?: string | null;
@@ -110,7 +111,9 @@ export class RabbitmqConsumerService
     private readonly mailService: MailService,
   ) {
     this.rabbitUrl =
-      this.configService.get<string>('RABBITMQ_URL') ?? 'amqp://rabbitmq:5672';
+      readSecret('RABBITMQ_URL') ??
+      this.configService.get<string>('RABBITMQ_URL') ??
+      'amqp://rabbitmq:5672';
     this.exchange =
       this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
     this.queueName =

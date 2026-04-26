@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChannelModel, ConfirmChannel, connect } from 'amqplib';
+import { readSecret } from '../utils/secret.util';
 
 @Injectable()
 export class RabbitmqPublisherService
@@ -24,7 +25,9 @@ export class RabbitmqPublisherService
     this.exchange =
       this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
     this.rabbitUrl =
-      this.configService.get<string>('RABBITMQ_URL') ?? 'amqp://rabbitmq:5672';
+      readSecret('RABBITMQ_URL') ??
+      this.configService.get<string>('RABBITMQ_URL') ??
+      'amqp://rabbitmq:5672';
     this.retryDelayMs = Number(
       this.configService.get<string>('RABBITMQ_RETRY_DELAY_MS') ?? 5000,
     );
