@@ -8,24 +8,33 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
-    name: Déployer sur OVH
+    name: Deployer via Tailscale
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Déploiement via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Connecter le runner au tailnet
+        uses: tailscale/github-action@v4
         with:
-          host: ${{ secrets.OVH_HOST }}
-          username: ${{ secrets.OVH_USERNAME }}
-          key: ${{ secrets.OVH_SSH_KEY }}
-          port: ${{ secrets.OVH_PORT }}
-          script: |
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Verifier l'acces au serveur
+        run: tailscale ping --timeout=10s ${{ secrets.TS_TAILNET_HOST }}
+
+      - name: Deploiement via Tailscale SSH
+        run: |
+          tailscale ssh ${{ secrets.TS_SSH_USER }}@${{ secrets.TS_TAILNET_HOST }} '
             cd /var/www/html/Event_Thunder
             git pull origin main
             sudo docker compose down
-            # utiliser le script de démarrage propre pour éviter les problèmes de migration Prisma
+            # utiliser le script de demarrage propre pour eviter les problemes de migration Prisma
             # sudo docker compose up -d --build
             # sudo docker compose ps
+          '
