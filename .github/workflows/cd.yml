@@ -34,7 +34,6 @@ jobs:
             cd /var/www/html/Event_Thunder
             git pull origin main
             sudo docker compose down
-            # utiliser le script de demarrage propre pour eviter les problemes de migration Prisma
-            # sudo docker compose up -d --build
-            # sudo docker compose ps
+            ./scripts/start-clean-prisma.sh
+            sudo docker compose ps
           '
