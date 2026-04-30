@@ -7,7 +7,6 @@ Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, a
 - Docker Compose lance tous les services en local sur le serveur.
 - Nginx sert le frontend et reverse-proxy les routes API.
 - Cloudflare Tunnel expose seulement Nginx (et eventuellement un tunnel dedie Stripe si voulu).
-- Aucun port applicatif (8000, 3006, 5173, etc.) ne doit etre ouvert publiquement sur le firewall.
 
 ## 2) Pre-requis serveur
 
@@ -16,31 +15,74 @@ Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, a
 - Nginx installe
 - cloudflared installe
 - DNS Cloudflare configure
-- Git clone du repo dans un dossier stable
 
 ## 3) Fichiers a configurer avant demarrage
 
 ### 3.1 .env racine
 
 Copier et adapter le fichier .env a la racine.
+``
+  # =============================================
+  # CONFIGURATION MICROSERVICES - .env (PROD)
+  # =============================================
 
-Variables importantes a verifier:
+  # Postgres
+  POSTGRES_HOST=postgres
+  POSTGRES_PORT=5433
 
-- NODE_ENV=production
-- API_GATEWAY_PORT (ex: 8000)
-- BILLING_SERVICE_PORT (ex: 3006)
-- FRONTEND_PORT (ex: 5173)
-- API_GATEWAY_URL (URL publique API)
-- FRONTEND_URL (URL publique frontend)
-- GOOGLE_CLIENT_ID
-- GOOGLE_REDIRECT_URI
-- AI_API_URL
-- AI_MODEL
+  # DATABASE NAME
+  USER_DATABASE=event_thunder_users
+  EVENT_DATABASE=event_thunder_events
+  SUBSCRIPTION_DATABASE=event_thunder_subscribe
+  TICKETING_DATABASE=event_thunder_ticketing
+  COMMENT_DATABASE=event_thunder_comments
+  POST_DATABASE=event_thunder_posts
 
-Important OAuth Google:
+  # Services Ports
+  API_GATEWAY_PORT=8000
+  BILLING_SERVICE_PORT=3006
+  FRONTEND_PORT=5173
 
-- GOOGLE_REDIRECT_URI doit pointer vers:
-  - https://TON_DOMAINE/api/auth/google/callback
+  # URLs des Services (interne Docker)
+  AUTH_SERVICE_URL=http://auth-service:3000
+  USER_SERVICE_URL=http://user-service:3000
+  BILLING_SERVICE_URL=http://billing-service:3000
+  SUBSCRIPTION_SERVICE_URL=http://subscription-service:3000
+  MAILING_SERVICE_URL=http://mailing-service:3000
+  EVENT_SERVICE_URL=http://event-service:3000
+  COMMENT_SERVICE_URL=http://comment-service:3000
+  POST_SERVICE_URL=http://post-service:3000
+  TICKETING_SERVICE_URL=http://ticketing-service:3000
+
+  # URLs publiques
+  API_GATEWAY_URL=https://TON_DOMAINE
+  FRONTEND_URL=https://TON_DOMAINE
+
+  # JWT
+  JWT_EXPIRES_IN=4h
+
+  # Bcrypt
+  BCRYPT_SALT_ROUNDS=10
+
+  # Environment
+  NODE_ENV=production
+
+  # Google OAuth2 Configuration
+  GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+  GOOGLE_REDIRECT_URI=https://TON_DOMAINE/api/auth/google/callback
+
+  # Resend Email Configuration
+  MAIL_FROM=no-reply@mail.TON_DOMAINE.fr
+  PRODUCT_NAME=Event Thunder
+
+  # IA backend directe (post-service) - Groq
+  AI_API_URL=https://api.groq.com/openai/v1/chat/completions
+  AI_MODEL=llama-3.1-8b-instant
+```
+
+```
+  sudo chown user:user /var/www/html/Event_Thunder/.env
+```
 
 ### 3.2 Secrets Docker
 
@@ -60,9 +102,27 @@ Les fichiers suivants doivent exister dans le dossier secrets:
 - secrets/rabbitmq_default_pass.txt
 - secrets/rabbitmq_url.txt
 
-sudo chown -R adam:adam secrets
-chmod 700 secrets
-chmod 600 secrets/*.txt
+postgres_user.txt et postgres_password.txt sont utilises pour la configuration de la base de donnees Postgres.
+
+jwt_secret.txt et reset_password_jwt_secret.txt sont utilises pour la generation de tokens JWT.
+
+google_client_secret.txt est utilise pour l'authentification Google OAuth2.
+
+stripe_secret_key.txt et stripe_webhook_secret.txt sont utilises pour la configuration Stripe.
+
+resend_api_key.txt est utilise pour la configuration de Resend (service d'email).
+
+post_cron_secret.txt est utilise pour securiser l'endpoint de dispatch des posts reseaux.
+
+ai_api_key.txt est utilise pour la configuration de l'IA (Groq).
+
+rabbitmq_default_user.txt, rabbitmq_default_pass.txt et rabbitmq_url.txt sont utilises pour la configuration de RabbitMQ.
+
+```
+  sudo chown -R user:user secrets
+  chmod 700 secrets
+  chmod 600 secrets/*.txt
+```
 
 ### 3.3 Deploiement GitHub Actions via Tailscale
 
@@ -78,7 +138,7 @@ Secrets GitHub a ajouter:
 Valeurs attendues:
 
 - TS_TAILNET_HOST: nom MagicDNS ou IP Tailscale du serveur
-- TS_SSH_USER: utilisateur Linux pour le deploiement (ex: adam)
+- TS_SSH_USER: utilisateur Linux pour le deploiement (ex: ubuntu)
 
 Configuration serveur requise:
 
@@ -97,8 +157,10 @@ Exemple de principe cote Tailscale:
 
 Utiliser le script fourni (migrations + build + startup): (attention il faut npm i dans chaque service pour que les migrations Prisma fonctionnent)
 
-- chmod +x scripts/start-clean-prisma.sh
-- ./scripts/start-clean-prisma.sh
+```
+  chmod +x scripts/start-clean-prisma.sh
+  ./scripts/start-clean-prisma.sh
+```
 
 Ce script:
 
@@ -113,7 +175,7 @@ Endpoint webhook Stripe du projet:
 
 - /api/billing/stripe/webhook
 
-### Option A (recommandee): via domaine principal (Nginx/API Gateway)
+### Option A : via domaine principal (Nginx/API Gateway)
 
 URL webhook Stripe:
 
@@ -168,45 +230,10 @@ Le dispatch des confirmations de posts reseaux se fait via endpoint interne:
 - POST /api/posts/internal/dispatch-due
 - Header requis: x-cron-secret
 
-Ajouter une crontab (ex: toutes les 5 minutes):
+Ajouter une crontab (ex: toutes les 1 minute) :
 
-- */5 * * * * cd /chemin/Event_Thunder && /usr/bin/curl -fsS -X POST "https://TON_DOMAINE/api/posts/internal/dispatch-due" -H "x-cron-secret:$(cat secrets/post_cron_secret.txt)" >> logs/post-cron.log 2>&1
+```
+* * * * * cd /chemin/Event_Thunder && /usr/bin/curl -fsS -X POST "https://TON_DOMAINE/api/posts/internal/ dispatch-due" -H "x-cron-secret:$(cat secrets/post_cron_secret.txt)" >> logs/post-cron.log 2>&1
+```
 
-Verifier que le dossier logs existe (deja present dans le repo) et que l'utilisateur cron a les droits d'ecriture.
-
-## 9) Rotation des logs (recommande)
-
-Configurer logrotate pour logs/post-cron.log (journalier ou hebdo, compression, retention).
-
-Exemple simple:
-
-- rotation 14
-- compress
-- missingok
-- notifempty
-
-## 10) Checklist finale avant go-live
-
-- .env prod valide (URLs, ports, NODE_ENV)
-- Tous les secrets presents et non vides
-- GOOGLE_REDIRECT_URI exact dans Google Cloud Console
-- Stripe webhook configure sur la bonne URL
-- STRIPE_WEBHOOK_SECRET correct
-- Script start-clean-prisma.sh execute avec succes
-- docker compose ps: tous les services healthy/running
-- Cron actif et logs qui s'ecrivent dans logs/post-cron.log
-- Nginx OK (frontend + /api)
-- Cloudflare Tunnel OK
-- Sauvegarde reguliere de la base Postgres (a ajouter si pas en place)
-
-## 11) Points souvent oublies
-
-- Regenerer Prisma apres changement schema sur chaque service concerne
-- Aligner FRONTEND_URL, API_GATEWAY_URL, GOOGLE_REDIRECT_URI sur le meme domaine public
-- Verifier les secrets apres rotation (Stripe, JWT, Resend, Google)
-- Surveiller l'espace disque (logs + volumes postgres)
-- Tester un cycle complet apres deploy:
-  - login Google
-  - paiement Stripe
-  - webhook Stripe
-  - post reseau programme -> email -> confirmation
+Verifier que le dossier /logs existe (deja present dans le repo) et que l'utilisateur cron a les droits d'ecriture.
