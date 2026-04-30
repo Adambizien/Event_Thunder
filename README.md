@@ -30,7 +30,7 @@ flowchart LR
     Gateway[API Gateway]
   end
 
-  subgraph ServicesHTTP[Services internes (HTTP)]
+  subgraph ServicesHTTP[Services internes HTTP]
     Auth[Auth Service]
     Users[User Service]
     Events[Event Service]
@@ -41,7 +41,7 @@ flowchart LR
     Ticketing[Ticketing Service]
   end
 
-  subgraph Async[Evenements (RabbitMQ)]
+  subgraph Async[Evenements RabbitMQ]
     Rabbit[(RabbitMQ)]
     Mailing[Mailing Service]
   end
