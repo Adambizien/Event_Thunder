@@ -18,6 +18,73 @@ Event Thunder est une plateforme de gestion d'evenements avec billetterie, abonn
 - mailing-service: envoi d'emails (welcome, reset, abonnement, tickets, confirmation post) via Resend, consommation RabbitMQ.
 - frontend: application React/Vite consommatrice de l'API Gateway.
 
+## Architecture (schema)
+
+```mermaid
+flowchart LR
+  Frontend[Frontend React/Vite]
+  Gateway[API Gateway]
+  Auth[Auth Service]
+  Users[User Service]
+  Events[Event Service]
+  Comments[Comment Service]
+  Posts[Post Service]
+  Subs[Subscription Service]
+  Billing[Billing Service]
+  Ticketing[Ticketing Service]
+  Mailing[Mailing Service]
+  Postgres[(Postgres)]
+  Rabbit[(RabbitMQ)]
+  Stripe[Stripe]
+  Resend[Resend]
+
+  Frontend --> Gateway
+  Gateway --> Auth
+  Gateway --> Users
+  Gateway --> Events
+  Gateway --> Comments
+  Gateway --> Posts
+  Gateway --> Subs
+  Gateway --> Billing
+  Gateway --> Ticketing
+
+  Auth --> Users
+  Auth --> Mailing
+  Posts --> Mailing
+  Subs --> Billing
+  Ticketing --> Billing
+
+  Auth --> Rabbit
+  Billing --> Rabbit
+  Posts --> Rabbit
+  Rabbit --> Subs
+  Rabbit --> Ticketing
+  Rabbit --> Mailing
+
+  Users --> Postgres
+  Events --> Postgres
+  Comments --> Postgres
+  Posts --> Postgres
+  Subs --> Postgres
+  Ticketing --> Postgres
+
+  Billing --> Stripe
+  Mailing --> Resend
+```
+
+## Endpoints principaux (via API Gateway)
+
+- **Auth**: `GET /api/auth/google/url`, `GET /api/auth/google/callback`, `POST /api/auth/google/callback`, `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/verify`, `POST /api/auth/forgot-password`, `GET /api/auth/verify-reset-token`, `POST /api/auth/reset-password`, `POST /api/auth/logout`, `GET /api/auth/health`.
+- **Users**: `POST /api/users`, `POST /api/users/verify`, `GET /api/users/:id`, `GET /api/users/email/:email`, `PATCH /api/users/password`, `PUT /api/users/password`, `PUT /api/users/profile`, `GET /api/users`, `DELETE /api/users/:id`, `PATCH /api/users/role`, `GET /api/users/health`.
+- **Events**: `GET /api/events`, `GET /api/events/public`, `GET /api/events/:id`, `POST /api/events`, `PATCH /api/events/:id`, `DELETE /api/events/:id`.
+- **Categories**: `GET /api/events/categories`, `POST /api/events/categories`, `PATCH /api/events/categories/:id`, `DELETE /api/events/categories/:id`.
+- **Comments**: `GET /api/comments/events/:eventId`, `GET /api/comments/events/:eventId/count`, `POST /api/comments/events/:eventId`, `POST /api/comments/:commentId/likes/toggle`, `DELETE /api/comments/:commentId`.
+- **Posts**: `GET /api/posts/public`, `GET /api/posts`, `GET /api/posts/admin`, `GET /api/posts/:id`, `POST /api/posts`, `POST /api/posts/generate-text`, `PATCH /api/posts/:id`, `DELETE /api/posts/:id`, `POST /api/posts/:id/confirm`, `POST /api/posts/:id/publish-manual`, `POST /api/posts/:id/cancel-manual`, `POST /api/posts/internal/dispatch-due`.
+- **Subscriptions**: `GET /api/subscriptions/plans`, `POST /api/subscriptions/plans`, `PATCH /api/subscriptions/plans/:id`, `DELETE /api/subscriptions/plans/:id`, `POST /api/subscriptions/checkout-session`, `POST /api/subscriptions/cancel`, `POST /api/subscriptions/resume`, `POST /api/subscriptions/finalize-plan-change`, `GET /api/subscriptions/user/:userId`, `GET /api/subscriptions/admin/overview`, `GET /api/subscriptions/invoices/:stripeInvoiceId`.
+- **Billing**: `POST /api/billing/subscriptions/checkout-session`, `POST /api/billing/tickets/checkout-session`, `POST /api/billing/tickets/refund`, `POST /api/billing/subscriptions/cancel`, `POST /api/billing/subscriptions/resume`, `GET /api/billing/invoices/:stripeInvoiceId`, `GET /api/billing/tickets/payments/:stripePaymentIntentId/invoice-links`, `POST /api/billing/plans/sync-price`, `POST /api/billing/plans/archive-price`, `POST /api/billing/stripe/webhook`.
+- **Ticketing**: `GET /api/ticketing/events/:eventId/types`, `PUT /api/ticketing/events/:eventId/types`, `GET /api/ticketing/events/:eventId/sold-tickets`, `POST /api/ticketing/checkout-session`, `GET /api/ticketing/me/tickets`, `GET /api/ticketing/admin/tickets`, `GET /api/ticketing/payments/:stripePaymentIntentId/invoice-links`, `GET /api/ticketing/internal/purchases/payment-intent/:stripePaymentIntentId`, `POST /api/ticketing/purchases/:purchaseId/refund`.
+
+
 Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, avec Nginx en local et Cloudflare Tunnel pour l'exposition externe.
 
 ## 1) Architecture cible
