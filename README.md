@@ -122,7 +122,7 @@ Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, a
 ### 3.1 .env racine
 
 Copier et adapter le fichier .env a la racine.
-  ``
+  ```
     # =============================================
     # CONFIGURATION MICROSERVICES - .env (PROD)
     # =============================================
