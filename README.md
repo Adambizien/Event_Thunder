@@ -24,8 +24,8 @@ Event Thunder est une plateforme de gestion d'evenements avec billetterie, abonn
 
 ```mermaid
 flowchart LR
-  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
-  Gateway -->|HTTP| Posts[Post Service]
+  Frontend[Frontend] -->|HTTP GET/POST/PATCH/DELETE| Gateway[API Gateway]
+  Gateway -->|HTTP GET/POST/PATCH/DELETE| Posts[Post Service]
   Posts -->|SQL| Postgres[(Postgres)]
   Posts -->|RabbitMQ event| Rabbit[(RabbitMQ)]
   Rabbit -->|RabbitMQ event| Mailing[Mailing Service]
@@ -36,9 +36,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
-  Gateway -->|HTTP| Auth[Auth Service]
-  Auth -->|HTTP| Users[User Service]
+  Frontend[Frontend] -->|HTTP GET/POST| Gateway[API Gateway]
+  Gateway -->|HTTP GET/POST| Auth[Auth Service]
+  Auth -->|HTTP POST| Users[User Service]
   Users -->|SQL| Postgres[(Postgres)]
   Auth -->|RabbitMQ event| Rabbit[(RabbitMQ)]
   Rabbit -->|RabbitMQ event| Mailing[Mailing Service]
@@ -49,16 +49,16 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
-  Gateway -->|HTTP| Billing[Billing Service]
-  Gateway -->|HTTP| Subs[Subscription Service]
-  Gateway -->|HTTP| Ticketing[Ticketing Service]
+  Frontend[Frontend] -->|HTTP GET/POST| Gateway[API Gateway]
+  Gateway -->|HTTP GET/POST| Billing[Billing Service]
+  Gateway -->|HTTP GET/POST| Subs[Subscription Service]
+  Gateway -->|HTTP GET/POST/PUT| Ticketing[Ticketing Service]
 
   Subs -->|SQL| Postgres[(Postgres)]
   Ticketing -->|SQL| Postgres
 
-  Subs -->|HTTP| Billing
-  Ticketing -->|HTTP| Billing
+  Subs -->|HTTP POST| Billing
+  Ticketing -->|HTTP POST| Billing
 
   Billing -->|HTTP| Stripe[Stripe]
   Billing -->|RabbitMQ event| Rabbit[(RabbitMQ)]
@@ -72,8 +72,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
-  Gateway -->|HTTP| Events[Event Service]
+  Frontend[Frontend] -->|HTTP GET/POST/PATCH/DELETE| Gateway[API Gateway]
+  Gateway -->|HTTP GET/POST/PATCH/DELETE| Events[Event Service]
   Events -->|SQL| Postgres[(Postgres)]
 ```
 
@@ -81,8 +81,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
-  Gateway -->|HTTP| Comments[Comment Service]
+  Frontend[Frontend] -->|HTTP GET/POST/DELETE| Gateway[API Gateway]
+  Gateway -->|HTTP GET/POST/DELETE| Comments[Comment Service]
   Comments -->|SQL| Postgres[(Postgres)]
 ```
 
