@@ -18,74 +18,72 @@ Event Thunder est une plateforme de gestion d'evenements avec billetterie, abonn
 - mailing-service: envoi d'emails (welcome, reset, abonnement, tickets, confirmation post) via Resend, consommation RabbitMQ.
 - frontend: application React/Vite consommatrice de l'API Gateway.
 
-## Architecture (schema)
+## Schemas d'architecture par domaine
+
+### Posts (reseaux et confirmations)
 
 ```mermaid
 flowchart LR
-  subgraph Client
-    Frontend[Frontend React/Vite]
-  end
+  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
+  Gateway -->|HTTP| Posts[Post Service]
+  Posts -->|SQL| Postgres[(Postgres)]
+  Posts -->|RabbitMQ event| Rabbit[(RabbitMQ)]
+  Rabbit -->|RabbitMQ event| Mailing[Mailing Service]
+  Mailing -->|HTTP| Resend[Resend]
+```
 
-  subgraph GatewayLayer
-    Gateway[API Gateway]
-  end
+### Authentification
 
-  subgraph ServicesHTTP[Services internes HTTP]
-    Auth[Auth Service]
-    Users[User Service]
-    Events[Event Service]
-    Comments[Comment Service]
-    Posts[Post Service]
-    Subs[Subscription Service]
-    Billing[Billing Service]
-    Ticketing[Ticketing Service]
-  end
+```mermaid
+flowchart LR
+  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
+  Gateway -->|HTTP| Auth[Auth Service]
+  Auth -->|HTTP| Users[User Service]
+  Users -->|SQL| Postgres[(Postgres)]
+  Auth -->|RabbitMQ event| Rabbit[(RabbitMQ)]
+  Rabbit -->|RabbitMQ event| Mailing[Mailing Service]
+  Mailing -->|HTTP| Resend[Resend]
+```
 
-  subgraph Async[Evenements RabbitMQ]
-    Rabbit[(RabbitMQ)]
-    Mailing[Mailing Service]
-  end
+### Paiements (abonnements et tickets)
 
-  subgraph Data
-    Postgres[(Postgres)]
-  end
+```mermaid
+flowchart LR
+  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
+  Gateway -->|HTTP| Billing[Billing Service]
+  Gateway -->|HTTP| Subs[Subscription Service]
+  Gateway -->|HTTP| Ticketing[Ticketing Service]
 
-  subgraph Externes
-    Stripe[Stripe]
-    Resend[Resend]
-  end
+  Subs -->|SQL| Postgres[(Postgres)]
+  Ticketing -->|SQL| Postgres
 
-  Frontend -->|HTTP| Gateway
-
-  Gateway -->|HTTP| Auth
-  Gateway -->|HTTP| Users
-  Gateway -->|HTTP| Events
-  Gateway -->|HTTP| Comments
-  Gateway -->|HTTP| Posts
-  Gateway -->|HTTP| Subs
-  Gateway -->|HTTP| Billing
-  Gateway -->|HTTP| Ticketing
-
-  Auth -->|HTTP| Users
   Subs -->|HTTP| Billing
   Ticketing -->|HTTP| Billing
 
-  Auth -->|RabbitMQ event| Rabbit
-  Billing -->|RabbitMQ event| Rabbit
-  Posts -->|RabbitMQ event| Rabbit
+  Billing -->|HTTP| Stripe[Stripe]
+  Billing -->|RabbitMQ event| Rabbit[(RabbitMQ)]
   Rabbit -->|RabbitMQ event| Subs
   Rabbit -->|RabbitMQ event| Ticketing
-  Rabbit -->|RabbitMQ event| Mailing
+  Rabbit -->|RabbitMQ event| Mailing[Mailing Service]
+  Mailing -->|HTTP| Resend[Resend]
+```
 
-  Mailing -->|HTTP| Resend
-  Billing -->|HTTP| Stripe
+### Evenements
 
-  Users -->|SQL| Postgres
-  Events -->|SQL| Postgres
-  Comments -->|SQL| Postgres
-  Posts -->|SQL| Postgres
-  Subs -->|SQL| Postgres
-  Ticketing -->|SQL| Postgres
+```mermaid
+flowchart LR
+  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
+  Gateway -->|HTTP| Events[Event Service]
+  Events -->|SQL| Postgres[(Postgres)]
+```
+
+### Commentaires
+
+```mermaid
+flowchart LR
+  Frontend[Frontend] -->|HTTP| Gateway[API Gateway]
+  Gateway -->|HTTP| Comments[Comment Service]
+  Comments -->|SQL| Postgres[(Postgres)]
 ```
 
 ## Endpoints principaux (via API Gateway)
