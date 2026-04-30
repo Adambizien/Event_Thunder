@@ -86,6 +86,304 @@ flowchart LR
   Comments -->|SQL| Postgres[(Postgres)]
 ```
 
+## Schema base de donnees (Prisma)
+
+```mermaid
+erDiagram
+  Comment {
+    UUID id PK
+    UUID user_id INDEX
+    UUID event_id INDEX
+    TEXT content
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  CommentLike {
+    UUID id PK
+    UUID user_id INDEX
+    UUID comment_id FK
+    TIMESTAMP created_at
+  }
+
+  Category {
+    UUID id PK
+    VARCHAR name
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  Event {
+    UUID id PK
+    UUID creator_id INDEX
+    VARCHAR title
+    TEXT description
+    UUID category_id FK
+    VARCHAR location
+    TEXT address
+    TIMESTAMP start_date
+    TIMESTAMP end_date
+    VARCHAR image_url
+    EventStatus status
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  Post {
+    UUID id PK
+    UUID event_id NULL INDEX
+    UUID user_id INDEX
+    TEXT content
+    PostStatus status
+    TIMESTAMP scheduled_at NULL
+    TIMESTAMP published_at NULL
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  PostTarget {
+    UUID id PK
+    UUID post_id FK
+    SocialNetwork network
+    PostTargetStatus status
+    VARCHAR(255) external_post_id NULL
+    VARCHAR(255) error_message NULL
+    TIMESTAMP created_at
+    TIMESTAMP published_at NULL
+  }
+
+  PostReminder {
+    UUID id PK
+    UUID post_id FK
+    TIMESTAMP reminder_at
+    VARCHAR(255) message NULL
+    PostReminderStatus status
+    TIMESTAMP created_at
+    TIMESTAMP sent_at NULL
+  }
+
+  PostConfirmationToken {
+    UUID id PK
+    UUID post_id FK
+    VARCHAR(64) token_hash UNIQUE
+    TIMESTAMP expires_at
+    TIMESTAMP consumed_at NULL
+    TIMESTAMP created_at
+  }
+
+  User {
+    UUID id PK
+    VARCHAR email UNIQUE
+    VARCHAR password
+    UserRole role
+    VARCHAR stripe_customer_id NULL UNIQUE
+  }
+
+  UsersInfo {
+    UUID id PK
+    UUID user_id FK UNIQUE
+    VARCHAR(50) first_name NULL
+    VARCHAR(50) last_name NULL
+    VARCHAR(30) phone_number NULL
+  }
+
+  Plan {
+    UUID id PK
+    VARCHAR(100) name
+    DECIMAL(10,2) price
+    PlanInterval interval
+    PlanCurrency currency
+    VARCHAR stripe_price_id UNIQUE
+    INT max_events
+    INT max_posts
+    INT display_order
+    TEXT description NULL
+    TIMESTAMP created_at
+  }
+
+  Subscription {
+    UUID id PK
+    UUID user_id
+    UUID plan_id FK
+    VARCHAR stripe_subscription_id UNIQUE
+    SubscriptionStatus status
+    TIMESTAMP current_period_start NULL
+    TIMESTAMP current_period_end NULL
+    TIMESTAMP canceled_at NULL
+    TIMESTAMP ended_at NULL
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  PaymentSubHistory {
+    UUID id PK
+    UUID subscription_id FK
+    VARCHAR stripe_invoice_id UNIQUE
+    DECIMAL(10,2) amount
+    PaymentCurrency currency
+    PaymentStatus status
+    TIMESTAMP paid_at NULL
+    TIMESTAMP created_at
+  }
+
+  TicketType {
+    UUID id PK
+    UUID event_id INDEX
+    VARCHAR(120) name
+    TEXT description NULL
+    DECIMAL(10,2) price
+    TicketCurrency currency
+    INT max_quantity NULL
+    INT sold_quantity
+    BOOLEAN is_active
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  TicketPurchase {
+    UUID id PK
+    UUID user_id INDEX
+    VARCHAR stripe_payment_intent_id UNIQUE
+    TicketPurchaseStatus status
+    DECIMAL(10,2) total_amount
+    TicketCurrency currency
+    TIMESTAMP paid_at NULL
+    TIMESTAMP failed_at NULL
+    TIMESTAMP refunded_at NULL
+    TIMESTAMP cancelled_at NULL
+    VARCHAR(255) failure_reason NULL
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  TicketPurchaseItem {
+    UUID id PK
+    UUID ticket_purchase_id FK
+    UUID ticket_type_id FK
+    INT quantity
+    DECIMAL(10,2) unit_price
+    TicketCurrency currency
+    VARCHAR(120) ticket_type_label NULL
+    TIMESTAMP created_at
+  }
+
+  Ticket {
+    UUID id PK
+    UUID ticket_purchase_id FK
+    UUID ticket_type_id FK
+    VARCHAR attendee_firstname
+    VARCHAR attendee_lastname
+    VARCHAR attendee_email NULL
+    VARCHAR ticket_number UNIQUE
+    TEXT qr_code
+    BOOLEAN used
+    TIMESTAMP used_at NULL
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  EventStatus {
+    ENUM draft
+    ENUM published
+    ENUM canceled
+    ENUM completed
+  }
+
+  PostStatus {
+    ENUM draft
+    ENUM scheduled
+    ENUM awaiting_confirmation
+    ENUM expired
+    ENUM published
+    ENUM archived
+  }
+
+  SocialNetwork {
+    ENUM x
+    ENUM facebook
+  }
+
+  PostTargetStatus {
+    ENUM pending
+    ENUM published
+    ENUM failed
+    ENUM cancelled
+  }
+
+  PostReminderStatus {
+    ENUM pending
+    ENUM sent
+    ENUM cancelled
+  }
+
+  UserRole {
+    ENUM User
+    ENUM Admin
+  }
+
+  PlanInterval {
+    ENUM monthly
+    ENUM yearly
+  }
+
+  PlanCurrency {
+    ENUM EUR
+    ENUM USD
+  }
+
+  SubscriptionStatus {
+    ENUM active
+    ENUM canceled
+  }
+
+  PaymentStatus {
+    ENUM paid
+    ENUM failed
+  }
+
+  PaymentCurrency {
+    ENUM EUR
+    ENUM USD
+  }
+
+  TicketPurchaseStatus {
+    ENUM pending
+    ENUM paid
+    ENUM failed
+    ENUM refunded
+    ENUM cancelled
+  }
+
+  TicketCurrency {
+    ENUM EUR
+    ENUM USD
+  }
+
+  Comment ||--o{ CommentLike : has
+  Category ||--o{ Event : has
+  Post ||--o{ PostTarget : has
+  Post ||--o{ PostReminder : has
+  Post ||--o{ PostConfirmationToken : has
+  User ||--|| UsersInfo : has
+  Plan ||--o{ Subscription : has
+  Subscription ||--o{ PaymentSubHistory : has
+  TicketType ||--o{ TicketPurchaseItem : has
+  TicketPurchase ||--o{ TicketPurchaseItem : has
+  TicketType ||--o{ Ticket : has
+  TicketPurchase ||--o{ Ticket : has
+
+  Comment }o--|| User : "logical user_id"
+  Comment }o--|| Event : "logical event_id"
+  CommentLike }o--|| User : "logical user_id"
+  Post }o--|| User : "logical user_id"
+  Post }o--|| Event : "logical event_id"
+  TicketType }o--|| Event : "logical event_id"
+  TicketPurchase }o--|| User : "logical user_id"
+  Subscription }o--|| User : "logical user_id"
+```
+
+Note: Les relations "logical" representent des liens inter-services (pas de FK physiques entre bases).
+
 ## Endpoints principaux (via API Gateway)
 
 - **Auth**: `GET /api/auth/google/url`, `GET /api/auth/google/callback`, `POST /api/auth/google/callback`, `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/verify`, `POST /api/auth/forgot-password`, `GET /api/auth/verify-reset-token`, `POST /api/auth/reset-password`, `POST /api/auth/logout`, `GET /api/auth/health`.
