@@ -22,54 +22,70 @@ Event Thunder est une plateforme de gestion d'evenements avec billetterie, abonn
 
 ```mermaid
 flowchart LR
-  Frontend[Frontend React/Vite]
-  Gateway[API Gateway]
-  Auth[Auth Service]
-  Users[User Service]
-  Events[Event Service]
-  Comments[Comment Service]
-  Posts[Post Service]
-  Subs[Subscription Service]
-  Billing[Billing Service]
-  Ticketing[Ticketing Service]
-  Mailing[Mailing Service]
-  Postgres[(Postgres)]
-  Rabbit[(RabbitMQ)]
-  Stripe[Stripe]
-  Resend[Resend]
+  subgraph Client
+    Frontend[Frontend React/Vite]
+  end
 
-  Frontend --> Gateway
-  Gateway --> Auth
-  Gateway --> Users
-  Gateway --> Events
-  Gateway --> Comments
-  Gateway --> Posts
-  Gateway --> Subs
-  Gateway --> Billing
-  Gateway --> Ticketing
+  subgraph GatewayLayer
+    Gateway[API Gateway]
+  end
 
-  Auth --> Users
-  Auth --> Mailing
-  Posts --> Mailing
-  Subs --> Billing
-  Ticketing --> Billing
+  subgraph ServicesHTTP[Services internes (HTTP)]
+    Auth[Auth Service]
+    Users[User Service]
+    Events[Event Service]
+    Comments[Comment Service]
+    Posts[Post Service]
+    Subs[Subscription Service]
+    Billing[Billing Service]
+    Ticketing[Ticketing Service]
+  end
 
-  Auth --> Rabbit
-  Billing --> Rabbit
-  Posts --> Rabbit
-  Rabbit --> Subs
-  Rabbit --> Ticketing
-  Rabbit --> Mailing
+  subgraph Async[Evenements (RabbitMQ)]
+    Rabbit[(RabbitMQ)]
+    Mailing[Mailing Service]
+  end
 
-  Users --> Postgres
-  Events --> Postgres
-  Comments --> Postgres
-  Posts --> Postgres
-  Subs --> Postgres
-  Ticketing --> Postgres
+  subgraph Data
+    Postgres[(Postgres)]
+  end
 
-  Billing --> Stripe
-  Mailing --> Resend
+  subgraph Externes
+    Stripe[Stripe]
+    Resend[Resend]
+  end
+
+  Frontend -->|HTTP| Gateway
+
+  Gateway -->|HTTP| Auth
+  Gateway -->|HTTP| Users
+  Gateway -->|HTTP| Events
+  Gateway -->|HTTP| Comments
+  Gateway -->|HTTP| Posts
+  Gateway -->|HTTP| Subs
+  Gateway -->|HTTP| Billing
+  Gateway -->|HTTP| Ticketing
+
+  Auth -->|HTTP| Users
+  Subs -->|HTTP| Billing
+  Ticketing -->|HTTP| Billing
+
+  Auth -->|RabbitMQ event| Rabbit
+  Billing -->|RabbitMQ event| Rabbit
+  Posts -->|RabbitMQ event| Rabbit
+  Rabbit -->|RabbitMQ event| Subs
+  Rabbit -->|RabbitMQ event| Ticketing
+  Rabbit -->|RabbitMQ event| Mailing
+
+  Mailing -->|HTTP| Resend
+  Billing -->|HTTP| Stripe
+
+  Users -->|SQL| Postgres
+  Events -->|SQL| Postgres
+  Comments -->|SQL| Postgres
+  Posts -->|SQL| Postgres
+  Subs -->|SQL| Postgres
+  Ticketing -->|SQL| Postgres
 ```
 
 ## Endpoints principaux (via API Gateway)
@@ -106,68 +122,68 @@ Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, a
 ### 3.1 .env racine
 
 Copier et adapter le fichier .env a la racine.
-``
-  # =============================================
-  # CONFIGURATION MICROSERVICES - .env (PROD)
-  # =============================================
+  ``
+    # =============================================
+    # CONFIGURATION MICROSERVICES - .env (PROD)
+    # =============================================
 
-  # Postgres
-  POSTGRES_HOST=postgres
-  POSTGRES_PORT=5433
+    # Postgres
+    POSTGRES_HOST=postgres
+    POSTGRES_PORT=5433
 
-  # DATABASE NAME
-  USER_DATABASE=event_thunder_users
-  EVENT_DATABASE=event_thunder_events
-  SUBSCRIPTION_DATABASE=event_thunder_subscribe
-  TICKETING_DATABASE=event_thunder_ticketing
-  COMMENT_DATABASE=event_thunder_comments
-  POST_DATABASE=event_thunder_posts
+    # DATABASE NAME
+    USER_DATABASE=event_thunder_users
+    EVENT_DATABASE=event_thunder_events
+    SUBSCRIPTION_DATABASE=event_thunder_subscribe
+    TICKETING_DATABASE=event_thunder_ticketing
+    COMMENT_DATABASE=event_thunder_comments
+    POST_DATABASE=event_thunder_posts
 
-  # Services Ports
-  API_GATEWAY_PORT=8000
-  BILLING_SERVICE_PORT=3006
-  FRONTEND_PORT=5173
+    # Services Ports
+    API_GATEWAY_PORT=8000
+    BILLING_SERVICE_PORT=3006
+    FRONTEND_PORT=5173
 
-  # URLs des Services (interne Docker)
-  AUTH_SERVICE_URL=http://auth-service:3000
-  USER_SERVICE_URL=http://user-service:3000
-  BILLING_SERVICE_URL=http://billing-service:3000
-  SUBSCRIPTION_SERVICE_URL=http://subscription-service:3000
-  MAILING_SERVICE_URL=http://mailing-service:3000
-  EVENT_SERVICE_URL=http://event-service:3000
-  COMMENT_SERVICE_URL=http://comment-service:3000
-  POST_SERVICE_URL=http://post-service:3000
-  TICKETING_SERVICE_URL=http://ticketing-service:3000
+    # URLs des Services (interne Docker)
+    AUTH_SERVICE_URL=http://auth-service:3000
+    USER_SERVICE_URL=http://user-service:3000
+    BILLING_SERVICE_URL=http://billing-service:3000
+    SUBSCRIPTION_SERVICE_URL=http://subscription-service:3000
+    MAILING_SERVICE_URL=http://mailing-service:3000
+    EVENT_SERVICE_URL=http://event-service:3000
+    COMMENT_SERVICE_URL=http://comment-service:3000
+    POST_SERVICE_URL=http://post-service:3000
+    TICKETING_SERVICE_URL=http://ticketing-service:3000
 
-  # URLs publiques
-  API_GATEWAY_URL=https://TON_DOMAINE
-  FRONTEND_URL=https://TON_DOMAINE
+    # URLs publiques
+    API_GATEWAY_URL=https://TON_DOMAINE
+    FRONTEND_URL=https://TON_DOMAINE
 
-  # JWT
-  JWT_EXPIRES_IN=4h
+    # JWT
+    JWT_EXPIRES_IN=4h
 
-  # Bcrypt
-  BCRYPT_SALT_ROUNDS=10
+    # Bcrypt
+    BCRYPT_SALT_ROUNDS=10
 
-  # Environment
-  NODE_ENV=production
+    # Environment
+    NODE_ENV=production
 
-  # Google OAuth2 Configuration
-  GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
-  GOOGLE_REDIRECT_URI=https://TON_DOMAINE/api/auth/google/callback
+    # Google OAuth2 Configuration
+    GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+    GOOGLE_REDIRECT_URI=https://TON_DOMAINE/api/auth/google/callback
 
-  # Resend Email Configuration
-  MAIL_FROM=no-reply@mail.TON_DOMAINE.fr
-  PRODUCT_NAME=Event Thunder
+    # Resend Email Configuration
+    MAIL_FROM=no-reply@mail.TON_DOMAINE.fr
+    PRODUCT_NAME=Event Thunder
 
-  # IA backend directe (post-service) - Groq
-  AI_API_URL=https://api.groq.com/openai/v1/chat/completions
-  AI_MODEL=llama-3.1-8b-instant
-```
+    # IA backend directe (post-service) - Groq
+    AI_API_URL=https://api.groq.com/openai/v1/chat/completions
+    AI_MODEL=llama-3.1-8b-instant
+  ```
 
-```
-  sudo chown user:user /var/www/html/Event_Thunder/.env
-```
+  ```
+    sudo chown user:user /var/www/html/Event_Thunder/.env
+  ```
 
 ### 3.2 Secrets Docker
 
@@ -203,11 +219,11 @@ ai_api_key.txt est utilise pour la configuration de l'IA (Groq).
 
 rabbitmq_default_user.txt, rabbitmq_default_pass.txt et rabbitmq_url.txt sont utilises pour la configuration de RabbitMQ.
 
-```
-  sudo chown -R user:user secrets
-  chmod 700 secrets
-  chmod 600 secrets/*.txt
-```
+  ```
+    sudo chown -R user:user secrets
+    chmod 700 secrets
+    chmod 600 secrets/*.txt
+  ```
 
 ### 3.3 Deploiement GitHub Actions via Tailscale
 
@@ -229,7 +245,9 @@ Configuration serveur requise:
 
 - Tailscale installe et connecte sur le nouveau serveur
 - Tailscale SSH active sur le serveur:
-  - sudo tailscale set --ssh=true
+  ```
+    sudo tailscale set --ssh=true
+  ```
 - Une regle SSH Tailscale doit autoriser le tag GitHub Actions (ex: tag:ci) a se connecter au serveur
 
 Exemple de principe cote Tailscale:
@@ -242,10 +260,10 @@ Exemple de principe cote Tailscale:
 
 Utiliser le script fourni (migrations + build + startup): (attention il faut npm i dans chaque service pour que les migrations Prisma fonctionnent)
 
-```
-  chmod +x scripts/start-clean-prisma.sh
-  ./scripts/start-clean-prisma.sh
-```
+  ```
+    chmod +x scripts/start-clean-prisma.sh
+    ./scripts/start-clean-prisma.sh
+  ```
 
 Ce script:
 
@@ -317,8 +335,8 @@ Le dispatch des confirmations de posts reseaux se fait via endpoint interne:
 
 Ajouter une crontab (ex: toutes les 1 minute) :
 
-```
-* * * * * cd /chemin/Event_Thunder && /usr/bin/curl -fsS -X POST "https://TON_DOMAINE/api/posts/internal/ dispatch-due" -H "x-cron-secret:$(cat secrets/post_cron_secret.txt)" >> logs/post-cron.log 2>&1
-```
+  ```
+    * * * * * cd /chemin/Event_Thunder && /usr/bin/curl -fsS -X POST "https://TON_DOMAINE/api/posts/internal/ dispatch-due" -H "x-cron-secret:$(cat secrets/post_cron_secret.txt)" >> logs/post-cron.log 2>&1
+  ```
 
 Verifier que le dossier /logs existe (deja present dans le repo) et que l'utilisateur cron a les droits d'ecriture.
