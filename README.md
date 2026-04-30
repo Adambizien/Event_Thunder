@@ -91,149 +91,149 @@ flowchart LR
 ```mermaid
 erDiagram
   Comment {
-    id UUID PK
-    user_id UUID INDEX
-    event_id UUID INDEX
+    id UUID
+    user_id UUID
+    event_id UUID
     content TEXT
     created_at TIMESTAMP
     updated_at TIMESTAMP
   }
 
   CommentLike {
-    id UUID PK
-    user_id UUID INDEX
-    comment_id UUID FK
+    id UUID
+    user_id UUID
+    comment_id UUID
     created_at TIMESTAMP
   }
 
   Category {
-    id UUID PK
+    id UUID
     name VARCHAR
     created_at TIMESTAMP
     updated_at TIMESTAMP
   }
 
   Event {
-    id UUID PK
-    creator_id UUID INDEX
+    id UUID
+    creator_id UUID
     title VARCHAR
     description TEXT
-    category_id UUID FK
+    category_id UUID
     location VARCHAR
     address TEXT
     start_date TIMESTAMP
     end_date TIMESTAMP
     image_url VARCHAR
-    status EventStatus
+    status VARCHAR
     created_at TIMESTAMP
     updated_at TIMESTAMP
   }
 
   Post {
-    id UUID PK
-    event_id UUID NULL INDEX
-    user_id UUID INDEX
+    id UUID
+    event_id UUID
+    user_id UUID
     content TEXT
-    status PostStatus
-    scheduled_at TIMESTAMP NULL
-    published_at TIMESTAMP NULL
+    status VARCHAR
+    scheduled_at TIMESTAMP
+    published_at TIMESTAMP
     created_at TIMESTAMP
     updated_at TIMESTAMP
   }
 
   PostTarget {
-    id UUID PK
-    post_id UUID FK
-    network SocialNetwork
-    status PostTargetStatus
-    external_post_id VARCHAR NULL
-    error_message VARCHAR NULL
+    id UUID
+    post_id UUID
+    network VARCHAR
+    status VARCHAR
+    external_post_id VARCHAR
+    error_message VARCHAR
     created_at TIMESTAMP
-    published_at TIMESTAMP NULL
+    published_at TIMESTAMP
   }
 
   PostReminder {
-    id UUID PK
-    post_id UUID FK
+    id UUID
+    post_id UUID
     reminder_at TIMESTAMP
-    message VARCHAR NULL
-    status PostReminderStatus
+    message VARCHAR
+    status VARCHAR
     created_at TIMESTAMP
-    sent_at TIMESTAMP NULL
+    sent_at TIMESTAMP
   }
 
   PostConfirmationToken {
-    id UUID PK
-    post_id UUID FK
-    token_hash VARCHAR UNIQUE
+    id UUID
+    post_id UUID
+    token_hash VARCHAR
     expires_at TIMESTAMP
-    consumed_at TIMESTAMP NULL
+    consumed_at TIMESTAMP
     created_at TIMESTAMP
   }
 
   User {
-    id UUID PK
-    email VARCHAR UNIQUE
+    id UUID
+    email VARCHAR
     password VARCHAR
-    role UserRole
-    stripe_customer_id VARCHAR NULL UNIQUE
+    role VARCHAR
+    stripe_customer_id VARCHAR
   }
 
   UsersInfo {
-    id UUID PK
-    user_id UUID FK UNIQUE
-    first_name VARCHAR NULL
-    last_name VARCHAR NULL
-    phone_number VARCHAR NULL
+    id UUID
+    user_id UUID
+    first_name VARCHAR
+    last_name VARCHAR
+    phone_number VARCHAR
   }
 
   Plan {
-    id UUID PK
+    id UUID
     name VARCHAR
     price DECIMAL
-    interval PlanInterval
-    currency PlanCurrency
-    stripe_price_id VARCHAR UNIQUE
+    interval VARCHAR
+    currency VARCHAR
+    stripe_price_id VARCHAR
     max_events INT
     max_posts INT
     display_order INT
-    description TEXT NULL
+    description TEXT
     created_at TIMESTAMP
   }
 
   Subscription {
-    id UUID PK
+    id UUID
     user_id UUID
-    plan_id UUID FK
-    stripe_subscription_id VARCHAR UNIQUE
-    status SubscriptionStatus
-    current_period_start TIMESTAMP NULL
-    current_period_end TIMESTAMP NULL
-    canceled_at TIMESTAMP NULL
-    ended_at TIMESTAMP NULL
+    plan_id UUID
+    stripe_subscription_id VARCHAR
+    status VARCHAR
+    current_period_start TIMESTAMP
+    current_period_end TIMESTAMP
+    canceled_at TIMESTAMP
+    ended_at TIMESTAMP
     created_at TIMESTAMP
     updated_at TIMESTAMP
   }
 
   PaymentSubHistory {
-    id UUID PK
-    subscription_id UUID FK
-    stripe_invoice_id VARCHAR UNIQUE
+    id UUID
+    subscription_id UUID
+    stripe_invoice_id VARCHAR
     amount DECIMAL
-    currency PaymentCurrency
-    status PaymentStatus
-    paid_at TIMESTAMP NULL
+    currency VARCHAR
+    status VARCHAR
+    paid_at TIMESTAMP
     created_at TIMESTAMP
   }
 
   TicketType {
-    id UUID PK
-    event_id UUID INDEX
+    id UUID
+    event_id UUID
     name VARCHAR
-    description TEXT NULL
+    description TEXT
     price DECIMAL
-    currency TicketCurrency
-    max_quantity INT NULL
+    currency VARCHAR
+    max_quantity INT
     sold_quantity INT
     is_active BOOLEAN
     created_at TIMESTAMP
@@ -241,122 +241,45 @@ erDiagram
   }
 
   TicketPurchase {
-    id UUID PK
-    user_id UUID INDEX
-    stripe_payment_intent_id VARCHAR UNIQUE
-    status TicketPurchaseStatus
+    id UUID
+    user_id UUID
+    stripe_payment_intent_id VARCHAR
+    status VARCHAR
     total_amount DECIMAL
-    currency TicketCurrency
-    paid_at TIMESTAMP NULL
-    failed_at TIMESTAMP NULL
-    refunded_at TIMESTAMP NULL
-    cancelled_at TIMESTAMP NULL
-    failure_reason VARCHAR NULL
+    currency VARCHAR
+    paid_at TIMESTAMP
+    failed_at TIMESTAMP
+    refunded_at TIMESTAMP
+    cancelled_at TIMESTAMP
+    failure_reason VARCHAR
     created_at TIMESTAMP
     updated_at TIMESTAMP
   }
 
   TicketPurchaseItem {
-    id UUID PK
-    ticket_purchase_id UUID FK
-    ticket_type_id UUID FK
+    id UUID
+    ticket_purchase_id UUID
+    ticket_type_id UUID
     quantity INT
     unit_price DECIMAL
-    currency TicketCurrency
-    ticket_type_label VARCHAR NULL
+    currency VARCHAR
+    ticket_type_label VARCHAR
     created_at TIMESTAMP
   }
 
   Ticket {
-    id UUID PK
-    ticket_purchase_id UUID FK
-    ticket_type_id UUID FK
+    id UUID
+    ticket_purchase_id UUID
+    ticket_type_id UUID
     attendee_firstname VARCHAR
     attendee_lastname VARCHAR
-    attendee_email VARCHAR NULL
-    ticket_number VARCHAR UNIQUE
+    attendee_email VARCHAR
+    ticket_number VARCHAR
     qr_code TEXT
     used BOOLEAN
-    used_at TIMESTAMP NULL
+    used_at TIMESTAMP
     created_at TIMESTAMP
     updated_at TIMESTAMP
-  }
-
-  EventStatus {
-    ENUM draft
-    ENUM published
-    ENUM canceled
-    ENUM completed
-  }
-
-  PostStatus {
-    ENUM draft
-    ENUM scheduled
-    ENUM awaiting_confirmation
-    ENUM expired
-    ENUM published
-    ENUM archived
-  }
-
-  SocialNetwork {
-    ENUM x
-    ENUM facebook
-  }
-
-  PostTargetStatus {
-    ENUM pending
-    ENUM published
-    ENUM failed
-    ENUM cancelled
-  }
-
-  PostReminderStatus {
-    ENUM pending
-    ENUM sent
-    ENUM cancelled
-  }
-
-  UserRole {
-    ENUM User
-    ENUM Admin
-  }
-
-  PlanInterval {
-    ENUM monthly
-    ENUM yearly
-  }
-
-  PlanCurrency {
-    ENUM EUR
-    ENUM USD
-  }
-
-  SubscriptionStatus {
-    ENUM active
-    ENUM canceled
-  }
-
-  PaymentStatus {
-    ENUM paid
-    ENUM failed
-  }
-
-  PaymentCurrency {
-    ENUM EUR
-    ENUM USD
-  }
-
-  TicketPurchaseStatus {
-    ENUM pending
-    ENUM paid
-    ENUM failed
-    ENUM refunded
-    ENUM cancelled
-  }
-
-  TicketCurrency {
-    ENUM EUR
-    ENUM USD
   }
 
   Comment ||--o{ CommentLike : has
@@ -382,7 +305,7 @@ erDiagram
   Subscription }o--|| User : "logical user_id"
 ```
 
-Note: Les relations "logical" representent des liens inter-services (pas de FK physiques entre bases).
+Note: Les relations "logical" representent des liens inter-services (pas de FK physiques entre bases). Les enums et contraintes (unique/index/null) sont decrits dans les fichiers Prisma.
 
 ## Endpoints principaux (via API Gateway)
 
