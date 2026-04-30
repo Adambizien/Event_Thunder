@@ -1,5 +1,23 @@
 # Event Thunder - Guide de mise en production
 
+## Presentation du projet
+
+Event Thunder est une plateforme de gestion d'evenements avec billetterie, abonnements et publication de contenus. L'architecture est composee de microservices NestJS, d'un frontend React/Vite, d'une base Postgres (via Prisma) et d'un bus d'evenements RabbitMQ. Les paiements passent par Stripe, l'authentification peut utiliser Google OAuth, et les emails sont envoyes via Resend.
+
+## Services
+
+- api-gateway: point d'entree unique qui proxifie les routes /api, applique l'authentification JWT, gere les routes publiques/optionnelles, et injecte x-user-id/x-user-role.
+- auth-service: inscription/connexion, verification JWT, Google OAuth, reset password, publication d'evenements mail.
+- user-service: gestion des profils, mots de passe, roles, et operations admin sur les utilisateurs.
+- event-service: CRUD des evenements et gestion des categories, avec liste publique.
+- comment-service: commentaires par evenement, likes, comptage, suppression admin.
+- post-service: gestion des posts reseaux, generation de texte IA, confirmations de publication, dispatch cron, publication d'evenements mail.
+- subscription-service: plans, checkout, resume/cancel, factures, et consommation des evenements de billing.
+- billing-service: integration Stripe (checkout, webhooks, prix), gestion des remboursements, publication d'evenements de paiement.
+- ticketing-service: types de tickets par evenement, achats, factures, remboursements, consommation des evenements de billing.
+- mailing-service: envoi d'emails (welcome, reset, abonnement, tickets, confirmation post) via Resend, consommation RabbitMQ.
+- frontend: application React/Vite consommatrice de l'API Gateway.
+
 Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, avec Nginx en local et Cloudflare Tunnel pour l'exposition externe.
 
 ## 1) Architecture cible
