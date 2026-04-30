@@ -91,195 +91,195 @@ flowchart LR
 ```mermaid
 erDiagram
   Comment {
-    UUID id PK
-    UUID user_id INDEX
-    UUID event_id INDEX
-    TEXT content
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    user_id UUID INDEX
+    event_id UUID INDEX
+    content TEXT
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   CommentLike {
-    UUID id PK
-    UUID user_id INDEX
-    UUID comment_id FK
-    TIMESTAMP created_at
+    id UUID PK
+    user_id UUID INDEX
+    comment_id UUID FK
+    created_at TIMESTAMP
   }
 
   Category {
-    UUID id PK
-    VARCHAR name
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    name VARCHAR
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   Event {
-    UUID id PK
-    UUID creator_id INDEX
-    VARCHAR title
-    TEXT description
-    UUID category_id FK
-    VARCHAR location
-    TEXT address
-    TIMESTAMP start_date
-    TIMESTAMP end_date
-    VARCHAR image_url
-    EventStatus status
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    creator_id UUID INDEX
+    title VARCHAR
+    description TEXT
+    category_id UUID FK
+    location VARCHAR
+    address TEXT
+    start_date TIMESTAMP
+    end_date TIMESTAMP
+    image_url VARCHAR
+    status EventStatus
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   Post {
-    UUID id PK
-    UUID event_id NULL INDEX
-    UUID user_id INDEX
-    TEXT content
-    PostStatus status
-    TIMESTAMP scheduled_at NULL
-    TIMESTAMP published_at NULL
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    event_id UUID NULL INDEX
+    user_id UUID INDEX
+    content TEXT
+    status PostStatus
+    scheduled_at TIMESTAMP NULL
+    published_at TIMESTAMP NULL
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   PostTarget {
-    UUID id PK
-    UUID post_id FK
-    SocialNetwork network
-    PostTargetStatus status
-    VARCHAR(255) external_post_id NULL
-    VARCHAR(255) error_message NULL
-    TIMESTAMP created_at
-    TIMESTAMP published_at NULL
+    id UUID PK
+    post_id UUID FK
+    network SocialNetwork
+    status PostTargetStatus
+    external_post_id VARCHAR NULL
+    error_message VARCHAR NULL
+    created_at TIMESTAMP
+    published_at TIMESTAMP NULL
   }
 
   PostReminder {
-    UUID id PK
-    UUID post_id FK
-    TIMESTAMP reminder_at
-    VARCHAR(255) message NULL
-    PostReminderStatus status
-    TIMESTAMP created_at
-    TIMESTAMP sent_at NULL
+    id UUID PK
+    post_id UUID FK
+    reminder_at TIMESTAMP
+    message VARCHAR NULL
+    status PostReminderStatus
+    created_at TIMESTAMP
+    sent_at TIMESTAMP NULL
   }
 
   PostConfirmationToken {
-    UUID id PK
-    UUID post_id FK
-    VARCHAR(64) token_hash UNIQUE
-    TIMESTAMP expires_at
-    TIMESTAMP consumed_at NULL
-    TIMESTAMP created_at
+    id UUID PK
+    post_id UUID FK
+    token_hash VARCHAR UNIQUE
+    expires_at TIMESTAMP
+    consumed_at TIMESTAMP NULL
+    created_at TIMESTAMP
   }
 
   User {
-    UUID id PK
-    VARCHAR email UNIQUE
-    VARCHAR password
-    UserRole role
-    VARCHAR stripe_customer_id NULL UNIQUE
+    id UUID PK
+    email VARCHAR UNIQUE
+    password VARCHAR
+    role UserRole
+    stripe_customer_id VARCHAR NULL UNIQUE
   }
 
   UsersInfo {
-    UUID id PK
-    UUID user_id FK UNIQUE
-    VARCHAR(50) first_name NULL
-    VARCHAR(50) last_name NULL
-    VARCHAR(30) phone_number NULL
+    id UUID PK
+    user_id UUID FK UNIQUE
+    first_name VARCHAR NULL
+    last_name VARCHAR NULL
+    phone_number VARCHAR NULL
   }
 
   Plan {
-    UUID id PK
-    VARCHAR(100) name
-    DECIMAL(10,2) price
-    PlanInterval interval
-    PlanCurrency currency
-    VARCHAR stripe_price_id UNIQUE
-    INT max_events
-    INT max_posts
-    INT display_order
-    TEXT description NULL
-    TIMESTAMP created_at
+    id UUID PK
+    name VARCHAR
+    price DECIMAL
+    interval PlanInterval
+    currency PlanCurrency
+    stripe_price_id VARCHAR UNIQUE
+    max_events INT
+    max_posts INT
+    display_order INT
+    description TEXT NULL
+    created_at TIMESTAMP
   }
 
   Subscription {
-    UUID id PK
-    UUID user_id
-    UUID plan_id FK
-    VARCHAR stripe_subscription_id UNIQUE
-    SubscriptionStatus status
-    TIMESTAMP current_period_start NULL
-    TIMESTAMP current_period_end NULL
-    TIMESTAMP canceled_at NULL
-    TIMESTAMP ended_at NULL
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    user_id UUID
+    plan_id UUID FK
+    stripe_subscription_id VARCHAR UNIQUE
+    status SubscriptionStatus
+    current_period_start TIMESTAMP NULL
+    current_period_end TIMESTAMP NULL
+    canceled_at TIMESTAMP NULL
+    ended_at TIMESTAMP NULL
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   PaymentSubHistory {
-    UUID id PK
-    UUID subscription_id FK
-    VARCHAR stripe_invoice_id UNIQUE
-    DECIMAL(10,2) amount
-    PaymentCurrency currency
-    PaymentStatus status
-    TIMESTAMP paid_at NULL
-    TIMESTAMP created_at
+    id UUID PK
+    subscription_id UUID FK
+    stripe_invoice_id VARCHAR UNIQUE
+    amount DECIMAL
+    currency PaymentCurrency
+    status PaymentStatus
+    paid_at TIMESTAMP NULL
+    created_at TIMESTAMP
   }
 
   TicketType {
-    UUID id PK
-    UUID event_id INDEX
-    VARCHAR(120) name
-    TEXT description NULL
-    DECIMAL(10,2) price
-    TicketCurrency currency
-    INT max_quantity NULL
-    INT sold_quantity
-    BOOLEAN is_active
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    event_id UUID INDEX
+    name VARCHAR
+    description TEXT NULL
+    price DECIMAL
+    currency TicketCurrency
+    max_quantity INT NULL
+    sold_quantity INT
+    is_active BOOLEAN
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   TicketPurchase {
-    UUID id PK
-    UUID user_id INDEX
-    VARCHAR stripe_payment_intent_id UNIQUE
-    TicketPurchaseStatus status
-    DECIMAL(10,2) total_amount
-    TicketCurrency currency
-    TIMESTAMP paid_at NULL
-    TIMESTAMP failed_at NULL
-    TIMESTAMP refunded_at NULL
-    TIMESTAMP cancelled_at NULL
-    VARCHAR(255) failure_reason NULL
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    user_id UUID INDEX
+    stripe_payment_intent_id VARCHAR UNIQUE
+    status TicketPurchaseStatus
+    total_amount DECIMAL
+    currency TicketCurrency
+    paid_at TIMESTAMP NULL
+    failed_at TIMESTAMP NULL
+    refunded_at TIMESTAMP NULL
+    cancelled_at TIMESTAMP NULL
+    failure_reason VARCHAR NULL
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   TicketPurchaseItem {
-    UUID id PK
-    UUID ticket_purchase_id FK
-    UUID ticket_type_id FK
-    INT quantity
-    DECIMAL(10,2) unit_price
-    TicketCurrency currency
-    VARCHAR(120) ticket_type_label NULL
-    TIMESTAMP created_at
+    id UUID PK
+    ticket_purchase_id UUID FK
+    ticket_type_id UUID FK
+    quantity INT
+    unit_price DECIMAL
+    currency TicketCurrency
+    ticket_type_label VARCHAR NULL
+    created_at TIMESTAMP
   }
 
   Ticket {
-    UUID id PK
-    UUID ticket_purchase_id FK
-    UUID ticket_type_id FK
-    VARCHAR attendee_firstname
-    VARCHAR attendee_lastname
-    VARCHAR attendee_email NULL
-    VARCHAR ticket_number UNIQUE
-    TEXT qr_code
-    BOOLEAN used
-    TIMESTAMP used_at NULL
-    TIMESTAMP created_at
-    TIMESTAMP updated_at
+    id UUID PK
+    ticket_purchase_id UUID FK
+    ticket_type_id UUID FK
+    attendee_firstname VARCHAR
+    attendee_lastname VARCHAR
+    attendee_email VARCHAR NULL
+    ticket_number VARCHAR UNIQUE
+    qr_code TEXT
+    used BOOLEAN
+    used_at TIMESTAMP NULL
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
   }
 
   EventStatus {
