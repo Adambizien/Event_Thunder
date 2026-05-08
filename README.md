@@ -1,26 +1,26 @@
 # Event Thunder - Guide de mise en production
 
-## Presentation du projet
+## Présentation du projet
 
-Event Thunder est une plateforme de gestion d'evenements avec billetterie, abonnements et publication de contenus. L'architecture est composee de microservices NestJS, d'un frontend React/Vite, d'une base Postgres (via Prisma) et d'un bus d'evenements RabbitMQ. Les paiements passent par Stripe, l'authentification peut utiliser Google OAuth, et les emails sont envoyes via Resend.
+Event Thunder est une plateforme de gestion d'événements avec billetterie, abonnements et publication de contenus. L'architecture est composée de microservices NestJS, d'un frontend React/Vite, d'une base Postgres (via Prisma) et d'un bus d'événements RabbitMQ. Les paiements passent par Stripe, l'authentification peut utiliser Google OAuth, et les emails sont envoyés via Resend.
 
 ## Services
 
-- api-gateway: point d'entree unique qui proxifie les routes /api, applique l'authentification JWT, gere les routes publiques/optionnelles, et injecte x-user-id/x-user-role.
-- auth-service: inscription/connexion, verification JWT, Google OAuth, reset password, publication d'evenements mail.
-- user-service: gestion des profils, mots de passe, roles, et operations admin sur les utilisateurs.
-- event-service: CRUD des evenements et gestion des categories, avec liste publique.
-- comment-service: commentaires par evenement, likes, comptage, suppression admin.
-- post-service: gestion des posts reseaux, generation de texte IA, confirmations de publication, dispatch cron, publication d'evenements mail.
-- subscription-service: plans, checkout, resume/cancel, factures, et consommation des evenements de billing.
-- billing-service: integration Stripe (checkout, webhooks, prix), gestion des remboursements, publication d'evenements de paiement.
-- ticketing-service: types de tickets par evenement, achats, factures, remboursements, consommation des evenements de billing.
+- api-gateway: point d'entrée unique qui proxifie les routes /api, applique l'authentification JWT, gère les routes publiques/optionnelles, et injecte x-user-id/x-user-role.
+- auth-service: inscription/connexion, vérification JWT, Google OAuth, reset password, publication d'événements mail.
+- user-service: gestion des profils, mots de passe, rôles, et opérations admin sur les utilisateurs.
+- event-service: CRUD des événements et gestion des catégories, avec liste publique.
+- comment-service: commentaires par événement, likes, comptage, suppression admin.
+- post-service: gestion des posts réseaux, génération de texte IA, confirmations de publication, dispatch cron, publication d'événements mail.
+- subscription-service: plans, checkout, resume/cancel, factures, et consommation des événements de billing.
+- billing-service: intégration Stripe (checkout, webhooks, prix), gestion des remboursements, publication d'événements de paiement.
+- ticketing-service: types de tickets par événement, achats, factures, remboursements, consommation des événements de billing.
 - mailing-service: envoi d'emails (welcome, reset, abonnement, tickets, confirmation post) via Resend, consommation RabbitMQ.
 - frontend: application React/Vite consommatrice de l'API Gateway.
 
-## Schemas d'architecture par domaine
+## Schémas d'architecture par domaine
 
-### Posts (reseaux et confirmations)
+### Posts (réseaux et confirmations)
 
 ```mermaid
 flowchart LR
@@ -68,7 +68,7 @@ flowchart LR
   Mailing -->|HTTP| Resend[Resend]
 ```
 
-### Evenements
+### Événements
 
 ```mermaid
 flowchart LR
@@ -86,16 +86,16 @@ flowchart LR
   Comments -->|SQL| Postgres[(Postgres)]
 ```
 
-## Schema base de donnees
+## Schéma base de données
 
-![Schema de la base de donnees](./project-info/images/BDD.png)
+![Schéma de la base de données](./project-info/images/BDD.png)
 
 ## Endpoints principaux (via API Gateway)
 
 - **Auth**: `GET /api/auth/google/url`, `GET /api/auth/google/callback`, `POST /api/auth/google/callback`, `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/verify`, `POST /api/auth/forgot-password`, `GET /api/auth/verify-reset-token`, `POST /api/auth/reset-password`, `POST /api/auth/logout`, `GET /api/auth/health`.
 - **Users**: `POST /api/users`, `POST /api/users/verify`, `GET /api/users/:id`, `GET /api/users/email/:email`, `PATCH /api/users/password`, `PUT /api/users/password`, `PUT /api/users/profile`, `GET /api/users`, `DELETE /api/users/:id`, `PATCH /api/users/role`, `GET /api/users/health`.
 - **Events**: `GET /api/events`, `GET /api/events/public`, `GET /api/events/:id`, `POST /api/events`, `PATCH /api/events/:id`, `DELETE /api/events/:id`.
-- **Categories**: `GET /api/events/categories`, `POST /api/events/categories`, `PATCH /api/events/categories/:id`, `DELETE /api/events/categories/:id`.
+- **Catégories**: `GET /api/events/categories`, `POST /api/events/categories`, `PATCH /api/events/categories/:id`, `DELETE /api/events/categories/:id`.
 - **Comments**: `GET /api/comments/events/:eventId`, `GET /api/comments/events/:eventId/count`, `POST /api/comments/events/:eventId`, `POST /api/comments/:commentId/likes/toggle`, `DELETE /api/comments/:commentId`.
 - **Posts**: `GET /api/posts/public`, `GET /api/posts`, `GET /api/posts/admin`, `GET /api/posts/:id`, `POST /api/posts`, `POST /api/posts/generate-text`, `PATCH /api/posts/:id`, `DELETE /api/posts/:id`, `POST /api/posts/:id/confirm`, `POST /api/posts/:id/publish-manual`, `POST /api/posts/:id/cancel-manual`, `POST /api/posts/internal/dispatch-due`.
 - **Subscriptions**: `GET /api/subscriptions/plans`, `POST /api/subscriptions/plans`, `PATCH /api/subscriptions/plans/:id`, `DELETE /api/subscriptions/plans/:id`, `POST /api/subscriptions/checkout-session`, `POST /api/subscriptions/cancel`, `POST /api/subscriptions/resume`, `POST /api/subscriptions/finalize-plan-change`, `GET /api/subscriptions/user/:userId`, `GET /api/subscriptions/admin/overview`, `GET /api/subscriptions/invoices/:stripeInvoiceId`.
@@ -103,27 +103,27 @@ flowchart LR
 - **Ticketing**: `GET /api/ticketing/events/:eventId/types`, `PUT /api/ticketing/events/:eventId/types`, `GET /api/ticketing/events/:eventId/sold-tickets`, `POST /api/ticketing/checkout-session`, `GET /api/ticketing/me/tickets`, `GET /api/ticketing/admin/tickets`, `GET /api/ticketing/payments/:stripePaymentIntentId/invoice-links`, `GET /api/ticketing/internal/purchases/payment-intent/:stripePaymentIntentId`, `POST /api/ticketing/purchases/:purchaseId/refund`.
 
 
-Ce document decrit une mise en prod sur un serveur sans ports publics ouverts, avec Nginx en local et Cloudflare Tunnel pour l'exposition externe.
+Ce document décrit une mise en prod sur un serveur sans ports publics ouverts, avec Nginx en local et Cloudflare Tunnel pour l'exposition externe.
 
 ## 1) Architecture cible
 
 - Docker Compose lance tous les services en local sur le serveur.
 - Nginx sert le frontend et reverse-proxy les routes API.
-- Cloudflare Tunnel expose seulement Nginx (et eventuellement un tunnel dedie Stripe si voulu).
+- Cloudflare Tunnel expose seulement Nginx (et éventuellement un tunnel dédié Stripe si voulu).
 
-## 2) Pre-requis serveur
+## 2) Prérequis serveur
 
-- Docker + Docker Compose installes
-- Node.js + npm installes (necessaires pour migrations Prisma via script)
-- Nginx installe
-- cloudflared installe
-- DNS Cloudflare configure
+- Docker + Docker Compose installés
+- Node.js + npm installés (nécessaires pour migrations Prisma via script)
+- Nginx installé
+- cloudflared installé
+- DNS Cloudflare configuré
 
-## 3) Fichiers a configurer avant demarrage
+## 3) Fichiers à configurer avant démarrage
 
 ### 3.1 .env racine
 
-Copier et adapter le fichier .env a la racine.
+Copier et adapter le fichier .env à la racine.
   ```
     # =============================================
     # CONFIGURATION MICROSERVICES - .env (PROD)
@@ -205,21 +205,21 @@ Les fichiers suivants doivent exister dans le dossier secrets:
 - secrets/rabbitmq_default_pass.txt
 - secrets/rabbitmq_url.txt
 
-postgres_user.txt et postgres_password.txt sont utilises pour la configuration de la base de donnees Postgres.
+postgres_user.txt et postgres_password.txt sont utilisés pour la configuration de la base de données Postgres.
 
-jwt_secret.txt et reset_password_jwt_secret.txt sont utilises pour la generation de tokens JWT.
+jwt_secret.txt et reset_password_jwt_secret.txt sont utilisés pour la génération de tokens JWT.
 
-google_client_secret.txt est utilise pour l'authentification Google OAuth2.
+google_client_secret.txt est utilisé pour l'authentification Google OAuth2.
 
-stripe_secret_key.txt et stripe_webhook_secret.txt sont utilises pour la configuration Stripe.
+stripe_secret_key.txt et stripe_webhook_secret.txt sont utilisés pour la configuration Stripe.
 
-resend_api_key.txt est utilise pour la configuration de Resend (service d'email).
+resend_api_key.txt est utilisé pour la configuration de Resend (service d'email).
 
-post_cron_secret.txt est utilise pour securiser l'endpoint de dispatch des posts reseaux.
+post_cron_secret.txt est utilisé pour sécuriser l'endpoint de dispatch des posts réseaux.
 
-ai_api_key.txt est utilise pour la configuration de l'IA (Groq).
+ai_api_key.txt est utilisé pour la configuration de l'IA (Groq).
 
-rabbitmq_default_user.txt, rabbitmq_default_pass.txt et rabbitmq_url.txt sont utilises pour la configuration de RabbitMQ.
+rabbitmq_default_user.txt, rabbitmq_default_pass.txt et rabbitmq_url.txt sont utilisés pour la configuration de RabbitMQ.
 
   ```
     sudo chown -R user:user secrets
@@ -227,11 +227,11 @@ rabbitmq_default_user.txt, rabbitmq_default_pass.txt et rabbitmq_url.txt sont ut
     chmod 600 secrets/*.txt
   ```
 
-### 3.3 Deploiement GitHub Actions via Tailscale
+### 3.3 Déploiement GitHub Actions via Tailscale
 
 Si le serveur n'expose pas SSH publiquement, le CD GitHub Actions peut passer par Tailscale.
 
-Secrets GitHub a ajouter:
+Secrets GitHub à ajouter:
 
 - TS_OAUTH_CLIENT_ID
 - TS_OAUTH_SECRET
@@ -241,24 +241,24 @@ Secrets GitHub a ajouter:
 Valeurs attendues:
 
 - TS_TAILNET_HOST: nom MagicDNS ou IP Tailscale du serveur
-- TS_SSH_USER: utilisateur Linux pour le deploiement (ex: ubuntu)
+- TS_SSH_USER: utilisateur Linux pour le déploiement (ex: ubuntu)
 
 Configuration serveur requise:
 
-- Tailscale installe et connecte sur le nouveau serveur
-- Tailscale SSH active sur le serveur:
+- Tailscale installé et connecté sur le nouveau serveur
+- Tailscale SSH activé sur le serveur:
   ```
     sudo tailscale set --ssh=true
   ```
-- Une regle SSH Tailscale doit autoriser le tag GitHub Actions (ex: tag:ci) a se connecter au serveur
+- Une règle SSH Tailscale doit autoriser le tag GitHub Actions (ex: tag:ci) à se connecter au serveur
 
-Exemple de principe cote Tailscale:
+Exemple de principe côté Tailscale:
 
 - le runner GitHub rejoint le tailnet avec le tag `tag:ci`
 - le workflow se connecte au serveur avec `tailscale ssh`
-- aucun port SSH public n'a besoin d'etre ouvert
+- aucun port SSH public n'a besoin d'être ouvert
 
-## 4) Demarrage propre (obligatoire)
+## 4) Démarrage propre (obligatoire)
 
 Utiliser le script fourni (migrations + build + startup): (attention il faut npm i dans chaque service pour que les migrations Prisma fonctionnent)
 
@@ -269,10 +269,10 @@ Utiliser le script fourni (migrations + build + startup): (attention il faut npm
 
 Ce script:
 
-- demarre postgres/rabbitmq
+- démarre postgres/rabbitmq
 - attend postgres healthy
 - applique les migrations Prisma (user, subscription, event, comment, ticketing, post)
-- build et demarre toute la stack Docker
+- build et démarre toute la stack Docker
 
 ## 5) Stripe webhook (port 3006)
 
@@ -286,7 +286,7 @@ URL webhook Stripe:
 
 - https://TON_DOMAINE/api/billing/stripe/webhook
 
-### Option B: tunnel dedie vers billing-service:3006
+### Option B: tunnel dédié vers billing-service:3006
 
 Si vous gardez un tunnel direct 3006, URL webhook Stripe:
 
@@ -300,7 +300,7 @@ Exemple local/test:
 Important:
 
 - Le endpoint attend la signature Stripe (header stripe-signature)
-- STRIPE_WEBHOOK_SECRET doit correspondre au endpoint configure dans Stripe
+- STRIPE_WEBHOOK_SECRET doit correspondre au endpoint configuré dans Stripe
 
 ## 6) Nginx (reverse proxy local)
 
@@ -314,7 +314,7 @@ Exemple de logique:
 - location / -> http://127.0.0.1:5173
 - location /api/ -> http://127.0.0.1:8000
 
-Adaptez aux ports reels de votre .env.
+Adaptez aux ports réels de votre .env.
 
 ## 7) Cloudflare Tunnel
 
@@ -323,14 +323,14 @@ Exposer uniquement Nginx (sans ouvrir de ports publics serveur).
 Exemple ingress cloudflared:
 
 - host app: service http://127.0.0.1:80
-- host api: service http://127.0.0.1:80 (routes /api gerees par Nginx)
+- host api: service http://127.0.0.1:80 (routes /api gérées par Nginx)
 - host webhook stripe (optionnel): service http://127.0.0.1:3006
 
-Avec cette approche, le firewall peut rester strict sur les entrees publiques.
+Avec cette approche, le firewall peut rester strict sur les entrées publiques.
 
-## 8) Cron Linux (posts reseaux + logs)
+## 8) Cron Linux (posts réseaux + logs)
 
-Le dispatch des confirmations de posts reseaux se fait via endpoint interne:
+Le dispatch des confirmations de posts réseaux se fait via endpoint interne:
 
 - POST /api/posts/internal/dispatch-due
 - Header requis: x-cron-secret
@@ -341,4 +341,4 @@ Ajouter une crontab (ex: toutes les 1 minute) :
     * * * * * cd /chemin/Event_Thunder && /usr/bin/curl -fsS -X POST "https://TON_DOMAINE/api/posts/internal/ dispatch-due" -H "x-cron-secret:$(cat secrets/post_cron_secret.txt)" >> logs/post-cron.log 2>&1
   ```
 
-Verifier que le dossier /logs existe (deja present dans le repo) et que l'utilisateur cron a les droits d'ecriture.
+Vérifier que le dossier /logs existe (déjà présent dans le repo) et que l'utilisateur cron a les droits d'écriture.
