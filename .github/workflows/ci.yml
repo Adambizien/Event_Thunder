@@ -427,8 +427,26 @@ jobs:
   all-tests-passed:
     name: Tous les tests sont passés
     runs-on: ubuntu-latest
-    needs: [test-api-gateway, test-auth-service, test-user-service, test-mailing-service, test-billing-service, test-comment-service, test-event-service, test-post-service, test-subscription-service, test-ticketing-service, test-frontend]
+    if: ${{ always() }}
+    needs:
+      - test-api-gateway
+      - test-auth-service
+      - test-user-service
+      - test-mailing-service
+      - test-billing-service
+      - test-comment-service
+      - test-event-service
+      - test-post-service
+      - test-subscription-service
+      - test-ticketing-service
+      - test-frontend
     
     steps:
+      - name: Vérifier les résultats des tests
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: |
+          echo "Un ou plusieurs jobs de test ont échoué, été annulés ou ignorés."
+          exit 1
+
       - name: Success
         run: echo "✅ Tous les services ont été testés avec succès!"
