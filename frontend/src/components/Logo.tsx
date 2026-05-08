@@ -1,4 +1,4 @@
-import logoImage from '../assets/event-thunder-logo.png';
+import logoImage from '../assets/event-thunder-logo.svg';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
