@@ -37,12 +37,13 @@ jobs:
         working-directory: ./api-gateway
         run: npm run build
       
-      # - name: Run tests
-      #   working-directory: ./api-gateway
-      #   run: npm run test
-      - name: Skip tests temporarily
+      - name: Run tests
         working-directory: ./api-gateway
-        run: echo "Tests temporairement desactives pour valider le deploiement"
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./api-gateway
+        run: npm run test:e2e
 
   # Test du service Auth
   test-auth-service:
@@ -71,12 +72,13 @@ jobs:
       - name: Build
         working-directory: ./auth-service
         run: npm run build
-      # - name: Run tests
-      #   working-directory: ./auth-service
-      #   run: npm run test
-      - name: Skip tests temporarily
+      - name: Run tests
         working-directory: ./auth-service
-        run: echo "Tests temporairement desactives pour valider le deploiement"
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./auth-service
+        run: npm run test:e2e
 
   # Test du service User
   test-user-service:
@@ -106,12 +108,13 @@ jobs:
         working-directory: ./user-service
         run: npm run build
 
-      # - name: Run tests
-      #   working-directory: ./user-service
-      #   run: npm run test
-      - name: Skip tests temporarily
+      - name: Run tests
         working-directory: ./user-service
-        run: echo "Tests temporairement desactives pour valider le deploiement"
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./user-service
+        run: npm run test:e2e
 
   # Test du service Mailing
   test-mailing-service:
@@ -140,12 +143,249 @@ jobs:
       - name: Build
         working-directory: ./mailing-service
         run: npm run build
-      # - name: Run tests
-      #   working-directory: ./mailing-service
-      #   run: npm run test
-      - name: Skip tests temporarily
+      - name: Run tests
         working-directory: ./mailing-service
-        run: echo "Tests temporairement desactives pour valider le deploiement"
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./mailing-service
+        run: npm run test:e2e
+
+  # Test du service Billing
+  test-billing-service:
+    name: Test Billing Service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+          cache-dependency-path: billing-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./billing-service
+        run: npm ci
+      
+      - name: Lint code
+        working-directory: ./billing-service
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./billing-service
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: ./billing-service
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./billing-service
+        run: npm run test:e2e
+
+  # Test du service Comment
+  test-comment-service:
+    name: Test Comment Service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+          cache-dependency-path: comment-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./comment-service
+        run: npm ci
+      
+      - name: Generate Prisma client
+        working-directory: ./comment-service
+        run: npm run prisma:generate
+      
+      - name: Lint code
+        working-directory: ./comment-service
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./comment-service
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: ./comment-service
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./comment-service
+        run: npm run test:e2e
+
+  # Test du service Event
+  test-event-service:
+    name: Test Event Service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+          cache-dependency-path: event-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./event-service
+        run: npm ci
+      
+      - name: Generate Prisma client
+        working-directory: ./event-service
+        run: npm run prisma:generate
+      
+      - name: Lint code
+        working-directory: ./event-service
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./event-service
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: ./event-service
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./event-service
+        run: npm run test:e2e
+
+  # Test du service Post
+  test-post-service:
+    name: Test Post Service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+          cache-dependency-path: post-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./post-service
+        run: npm ci
+      
+      - name: Generate Prisma client
+        working-directory: ./post-service
+        run: npm run prisma:generate
+      
+      - name: Lint code
+        working-directory: ./post-service
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./post-service
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: ./post-service
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./post-service
+        run: npm run test:e2e
+
+  # Test du service Subscription
+  test-subscription-service:
+    name: Test Subscription Service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+          cache-dependency-path: subscription-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./subscription-service
+        run: npm ci
+      
+      - name: Generate Prisma client
+        working-directory: ./subscription-service
+        run: npm run prisma:generate
+      
+      - name: Lint code
+        working-directory: ./subscription-service
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./subscription-service
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: ./subscription-service
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./subscription-service
+        run: npm run test:e2e
+
+  # Test du service Ticketing
+  test-ticketing-service:
+    name: Test Ticketing Service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+          cache-dependency-path: ticketing-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./ticketing-service
+        run: npm ci
+      
+      - name: Generate Prisma client
+        working-directory: ./ticketing-service
+        run: npm run prisma:generate
+      
+      - name: Lint code
+        working-directory: ./ticketing-service
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./ticketing-service
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: ./ticketing-service
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./ticketing-service
+        run: npm run test:e2e
 
   # Test du Frontend
   test-frontend:
@@ -175,19 +415,38 @@ jobs:
         working-directory: ./frontend
         run: npm run build
       
-      #  - name: Run tests
-      #   working-directory: ./frontend
-      #   run: npm run test
-      - name: Skip tests temporarily
+      - name: Run tests
         working-directory: ./frontend
-        run: echo "Tests temporairement desactives pour valider le deploiement"
+        run: npm run test
+
+      - name: Run end-to-end tests
+        working-directory: ./frontend
+        run: npm run test:e2e
 
   # Job final qui vérifie que tous les tests sont passés
   all-tests-passed:
     name: Tous les tests sont passés
     runs-on: ubuntu-latest
-    needs: [test-api-gateway, test-auth-service, test-user-service, test-mailing-service, test-frontend]
+    if: ${{ always() }}
+    needs:
+      - test-api-gateway
+      - test-auth-service
+      - test-user-service
+      - test-mailing-service
+      - test-billing-service
+      - test-comment-service
+      - test-event-service
+      - test-post-service
+      - test-subscription-service
+      - test-ticketing-service
+      - test-frontend
     
     steps:
+      - name: Vérifier les résultats des tests
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: |
+          echo "Un ou plusieurs jobs de test ont échoué, été annulés ou ignorés."
+          exit 1
+
       - name: Success
         run: echo "✅ Tous les services ont été testés avec succès!"
