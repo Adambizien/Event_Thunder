@@ -7,7 +7,7 @@ const OrganizerLayout = () => {
 
   const menuItems = [
     { path: '/organizer', label: 'Tableau de bord' },
-    { path: '/organizer/create-event', label: "Création d'événement" },
+    { path: '/organizer/create-event', label: "Gestion d'événement" },
   ];
 
   const isActive = (path: string) => location.pathname === path;

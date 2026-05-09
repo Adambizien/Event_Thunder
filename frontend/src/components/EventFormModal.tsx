@@ -30,6 +30,7 @@ interface EventFormModalProps {
   endDate: string;
   imageUrl: string;
   status: EventStatus;
+  statusOptions?: EventStatus[];
   ticketTypes: TicketTypeFormItem[];
   onClose: () => void;
   onSubmit: (e: FormEvent) => void;
@@ -47,7 +48,7 @@ interface EventFormModalProps {
   onUpdateTicketType: (index: number, patch: Partial<TicketTypeFormItem>) => void;
 }
 
-const statusOptions: EventStatus[] = ['draft', 'published', 'canceled', 'completed'];
+const defaultStatusOptions: EventStatus[] = ['draft', 'published', 'canceled', 'completed'];
 
 const statusLabels: Record<EventStatus, string> = {
   draft: 'Brouillon',
@@ -71,6 +72,7 @@ const EventFormModal = ({
   endDate,
   imageUrl,
   status,
+  statusOptions = defaultStatusOptions,
   ticketTypes,
   onClose,
   onSubmit,

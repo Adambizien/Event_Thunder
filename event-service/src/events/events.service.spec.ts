@@ -36,6 +36,10 @@ type PrismaMock = {
     >;
     create: jest.Mock<Promise<EventRecord>, [Record<string, unknown>]>;
     update: jest.Mock<Promise<EventRecord>, [Record<string, unknown>]>;
+    updateMany: jest.Mock<
+      Promise<{ count: number }>,
+      [Record<string, unknown>]
+    >;
     delete: jest.Mock<Promise<EventRecord>, [Record<string, unknown>]>;
   };
   category: {
@@ -58,6 +62,10 @@ const createPrismaMock = (): PrismaMock => ({
     >(),
     create: createMock<Promise<EventRecord>, [Record<string, unknown>]>(),
     update: createMock<Promise<EventRecord>, [Record<string, unknown>]>(),
+    updateMany: createMock<
+      Promise<{ count: number }>,
+      [Record<string, unknown>]
+    >(),
     delete: createMock<Promise<EventRecord>, [Record<string, unknown>]>(),
   },
   category: {
@@ -90,6 +98,7 @@ describe('EventsService', () => {
 
   beforeEach(() => {
     prisma = createPrismaMock();
+    prisma.event.updateMany.mockResolvedValue({ count: 0 });
     service = new EventsService(prisma as unknown as PrismaService);
   });
 
@@ -102,6 +111,17 @@ describe('EventsService', () => {
     expect(prisma.event.findMany).toHaveBeenCalledWith({
       include: { category: true },
       orderBy: { start_date: 'asc' },
+    });
+    expect(prisma.event.updateMany).toHaveBeenCalledWith({
+      where: {
+        end_date: {
+          lte: expect.any(Date) as Date,
+        },
+        status: EventStatus.published,
+      },
+      data: {
+        status: EventStatus.completed,
+      },
     });
   });
 

@@ -52,6 +52,8 @@ const toIsoDateString = (value: string): string | null => {
   return parsed.toISOString();
 };
 
+const hasDatePassed = (iso: string) => new Date(iso).getTime() < Date.now();
+
 const toInputDateTimeValue = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
@@ -424,6 +426,13 @@ const AdminEvents = () => {
 
     if (!startDateIso || !endDateIso) {
       setFormError('Veuillez saisir des dates valides');
+      return;
+    }
+
+    if (status === 'published' && hasDatePassed(endDateIso)) {
+      setFormError(
+        "Impossible de publier un événement dont la date de fin est inférieure à la date d'aujourd'hui.",
+      );
       return;
     }
 
