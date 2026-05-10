@@ -37,6 +37,7 @@ import MyTickets from './pages/tickets/MyTickets';
 import OrganizerLayout from './components/OrganizerLayout';
 import OrganizerDashboard from './pages/organizer/Dashboard';
 import OrganizerCreateEvent from './pages/organizer/CreateEvent';
+import OrganizerTicketTransactions from './pages/organizer/TicketTransactions';
 
 
 function AppContent() {
@@ -223,6 +224,7 @@ function AppContent() {
         >
           <Route index element={<OrganizerDashboard user={user!} />} />
           <Route path="create-event" element={<OrganizerCreateEvent user={user!} />} />
+          <Route path="tickets" element={<OrganizerTicketTransactions user={user!} />} />
         </Route>
       </Routes>
       {!isAdminRoute && !isOrganizerRoute && <Footer />}
