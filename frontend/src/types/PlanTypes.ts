@@ -7,6 +7,7 @@ export interface Plan {
   stripePriceId: string;
   maxEvents: number;
   maxPosts: number;
+  ticketFeePercentage: number;
   displayOrder: number;
   description: string | null;
   createdAt: string;
@@ -19,6 +20,7 @@ export interface FormData {
   currency: 'EUR' | 'USD';
   maxEvents: string;
   maxPosts: string;
+  ticketFeePercentage: string;
   displayOrder: string;
   description: string;
 }

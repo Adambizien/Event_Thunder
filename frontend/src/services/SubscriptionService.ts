@@ -12,6 +12,9 @@ const normalizeSubscription = (
     ...rawPlan,
     maxEvents: Number(rawPlan.maxEvents ?? rawPlan.max_events ?? 0),
     maxPosts: Number(rawPlan.maxPosts ?? rawPlan.max_posts ?? 0),
+    ticketFeePercentage: Number(
+      rawPlan.ticketFeePercentage ?? rawPlan.ticket_fee_percentage ?? 0,
+    ),
   };
   const payments: PaymentHistoryType[] = Array.isArray(subscription.payments)
     ? subscription.payments.map((payment) => {

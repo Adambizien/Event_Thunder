@@ -109,6 +109,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
   const [isGracePeriod, setIsGracePeriod] = useState(false);
   const [gracePeriodEnd, setGracePeriodEnd] = useState<string | null>(null);
   const [maxPublishedEvents, setMaxPublishedEvents] = useState(0);
+  const [ticketFeePercentage, setTicketFeePercentage] = useState<number | null>(null);
   const [nowMs, setNowMs] = useState(Date.now());
   const [loadingAccess, setLoadingAccess] = useState(true);
   const [categories, setCategories] = useState<EventCategory[]>([]);
@@ -173,11 +174,24 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
         setIsGracePeriod(accessState.isGracePeriod);
         setGracePeriodEnd(accessState.gracePeriodEnd);
         setMaxPublishedEvents(planLimits.maxEvents);
+        const activeSubscription =
+          subscriptions.find((subscription) => subscription.status === 'active') ??
+          subscriptions.find((subscription) => {
+            if (subscription.status !== 'canceled' || !subscription.currentPeriodEnd) {
+              return false;
+            }
+
+            const periodEnd = new Date(subscription.currentPeriodEnd).getTime();
+            return !Number.isNaN(periodEnd) && periodEnd > Date.now();
+          }) ??
+          null;
+        setTicketFeePercentage(activeSubscription?.plan.ticketFeePercentage ?? null);
       } catch {
         setHasActiveSubscription(Boolean(user.planId));
         setIsGracePeriod(false);
         setGracePeriodEnd(null);
         setMaxPublishedEvents(-1);
+        setTicketFeePercentage(null);
       } finally {
         setLoadingAccess(false);
       }
@@ -1150,6 +1164,21 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
       />
 
       {gracePeriodNotice}
+
+      {ticketFeePercentage !== null && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/15 p-4 text-sm text-amber-100 shadow-2xl backdrop-blur-lg sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            EventThunder prend {ticketFeePercentage}% sur chaque paiement de ticket pour les
+            événements liés à votre plan d'abonnement.
+          </p>
+          <Link
+            to="/subscription"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300/50 px-4 py-2 font-semibold text-amber-100 transition-colors hover:bg-amber-300 hover:text-black"
+          >
+            Voir les plans
+          </Link>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">

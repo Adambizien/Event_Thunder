@@ -141,6 +141,22 @@ const PlanFormModal = ({
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Pourcentage prélevé sur les tickets
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={formData.ticketFeePercentage}
+              onChange={(e) => updateFormData('ticketFeePercentage', e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded px-4 py-2 text-white focus:border-thunder-gold focus:outline-none"
+              placeholder="0"
+            />
+          </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Description

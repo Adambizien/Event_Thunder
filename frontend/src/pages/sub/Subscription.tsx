@@ -15,6 +15,7 @@ interface Plan {
   description?: string;
   maxEvents: number;
   maxPosts: number;
+  ticketFeePercentage: number;
   displayOrder: number;
 }
 
@@ -634,6 +635,10 @@ const Subscription = () => {
                 <p>
                   <span className="text-gray-400">Posts programmés simultanément:</span>{' '}
                   {maxPostsLabel}
+                </p>
+                <p>
+                  <span className="text-gray-400">Prélèvement sur tickets:</span>{' '}
+                  {plan.ticketFeePercentage ?? 0}%
                 </p>
               </div>
               {userSub && userSub.status === 'active' ? (

@@ -20,6 +20,7 @@ const AdminPlans = () => {
     currency: 'EUR',
     maxEvents: '0',
     maxPosts: '0',
+    ticketFeePercentage: '0',
     displayOrder: '0',
     description: '',
   });
@@ -49,7 +50,8 @@ const AdminPlans = () => {
       !formData.name ||
       !formData.price ||
       !formData.maxEvents ||
-      !formData.maxPosts
+      !formData.maxPosts ||
+      !formData.ticketFeePercentage
     ) {
       setFormError('Veuillez remplir tous les champs');
       return;
@@ -68,6 +70,7 @@ const AdminPlans = () => {
         currency: 'EUR',
         maxEvents: '0',
         maxPosts: '0',
+        ticketFeePercentage: '0',
         displayOrder: '0',
         description: '',
       });
@@ -90,6 +93,7 @@ const AdminPlans = () => {
       currency: (plan.currency || 'EUR') as 'EUR' | 'USD',
       maxEvents: plan.maxEvents.toString(),
       maxPosts: plan.maxPosts.toString(),
+      ticketFeePercentage: (plan.ticketFeePercentage ?? 0).toString(),
       displayOrder: plan.displayOrder?.toString() ?? '0',
       description: plan.description ?? '',
     });
@@ -120,6 +124,7 @@ const AdminPlans = () => {
       currency: 'EUR',
       maxEvents: '0',
       maxPosts: '0',
+      ticketFeePercentage: '0',
       displayOrder: '0',
       description: '',
     });
@@ -203,6 +208,10 @@ const AdminPlans = () => {
                   <p>
                     <span className="text-gray-400">Posts programmés simultanément:</span>{' '}
                     {plan.maxPosts === -1 ? 'Illimité' : plan.maxPosts}
+                  </p>
+                  <p>
+                    <span className="text-gray-400">Prélèvement tickets:</span>{' '}
+                    {plan.ticketFeePercentage ?? 0}%
                   </p>
                   <p><span className="text-gray-400">Ordre:</span> {plan.displayOrder ?? 0}</p>
                   {plan.description && (

@@ -97,6 +97,17 @@ export class SubscriptionsController {
       }
     }
 
+    if ('ticketFeePercentage' in dto && dto.ticketFeePercentage !== undefined) {
+      if (
+        typeof dto.ticketFeePercentage !== 'number' ||
+        Number.isNaN(dto.ticketFeePercentage) ||
+        dto.ticketFeePercentage < 0 ||
+        dto.ticketFeePercentage > 100
+      ) {
+        throw new BadRequestException('Champ invalide: ticketFeePercentage');
+      }
+    }
+
     if ('displayOrder' in dto && dto.displayOrder !== undefined) {
       if (
         typeof dto.displayOrder !== 'number' ||

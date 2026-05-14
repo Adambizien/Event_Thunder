@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import RevenueLineChartCard from '../../components/RevenueLineChartCard';
 import TicketPurchaseCards, {
@@ -6,6 +7,7 @@ import TicketPurchaseCards, {
 } from '../../components/TicketPurchaseCards';
 import TopRevenueCard from '../../components/TopRevenueCard';
 import { eventService } from '../../services/EventService';
+import { subscriptionService } from '../../services/SubscriptionService';
 import { ticketService } from '../../services/TicketService';
 import type { User } from '../../types/AuthTypes';
 import type { TicketPurchase, SoldEventTicketItem } from '../../types/TicketTypes';
@@ -313,9 +315,26 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
+  const [ticketFeePercentage, setTicketFeePercentage] = useState<number | null>(null);
 
   const loadOverview = useCallback(async () => {
-    const events = await eventService.fetchEvents();
+    const [events, subscriptions] = await Promise.all([
+      eventService.fetchEvents(),
+      subscriptionService.getUserSubscriptions(user.id).catch(() => []),
+    ]);
+    const activeSubscription =
+      subscriptions.find((subscription) => subscription.status === 'active') ??
+      subscriptions.find((subscription) => {
+        if (subscription.status !== 'canceled' || !subscription.currentPeriodEnd) {
+          return false;
+        }
+
+        const periodEnd = new Date(subscription.currentPeriodEnd).getTime();
+        return !Number.isNaN(periodEnd) && periodEnd > Date.now();
+      }) ??
+      null;
+    setTicketFeePercentage(activeSubscription?.plan.ticketFeePercentage ?? null);
+
     const organizerEvents = events.filter((event) => event.creator_id === user.id);
     const purchasesByEvent = await Promise.all(
       organizerEvents.map(async (event) => {
@@ -612,6 +631,21 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
         title="Gestion des tickets"
         subtitle="Consultez les tickets vendus sur vos événements, surveillez vos revenus et analysez vos ventes par période."
       />
+
+      {ticketFeePercentage !== null && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/15 p-4 text-sm text-amber-100 shadow-2xl backdrop-blur-lg sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            EventThunder prend {ticketFeePercentage}% sur chaque paiement de ticket pour les
+            événements liés à votre plan d'abonnement.
+          </p>
+          <Link
+            to="/subscription"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300/50 px-4 py-2 font-semibold text-amber-100 transition-colors hover:bg-amber-300 hover:text-black"
+          >
+            Voir les plans
+          </Link>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-500/50 bg-red-500/30 p-4 text-red-300">
