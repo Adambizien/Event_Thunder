@@ -16,7 +16,11 @@ import type { CommentItem } from '../../types/CommentTypes';
 import type { EventCategory } from '../../types/EventCategoryTypes';
 import type { CreateEventPayload, EventItem, EventStatus } from '../../types/EventTypes';
 import type { SoldEventTicketItem, TicketCurrency, UpsertTicketTypeInput } from '../../types/TicketTypes';
-import { formatCountdown, getOrganizerAccessState } from '../../utils/subscriptionAccess';
+import {
+  formatCountdown,
+  getOrganizerAccessState,
+  getOrganizerPlanLimits,
+} from '../../utils/subscriptionAccess';
 
 const statusLabels: Record<EventStatus, string> = {
   draft: 'Brouillon',
@@ -104,6 +108,7 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean>(Boolean(user.planId));
   const [isGracePeriod, setIsGracePeriod] = useState(false);
   const [gracePeriodEnd, setGracePeriodEnd] = useState<string | null>(null);
+  const [maxPublishedEvents, setMaxPublishedEvents] = useState(0);
   const [nowMs, setNowMs] = useState(Date.now());
   const [loadingAccess, setLoadingAccess] = useState(true);
   const [categories, setCategories] = useState<EventCategory[]>([]);
@@ -163,13 +168,16 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
       try {
         const subscriptions = await subscriptionService.getUserSubscriptions(user.id);
         const accessState = getOrganizerAccessState(subscriptions);
+        const planLimits = getOrganizerPlanLimits(subscriptions);
         setHasActiveSubscription(accessState.hasAccess || Boolean(user.planId));
         setIsGracePeriod(accessState.isGracePeriod);
         setGracePeriodEnd(accessState.gracePeriodEnd);
+        setMaxPublishedEvents(planLimits.maxEvents);
       } catch {
         setHasActiveSubscription(Boolean(user.planId));
         setIsGracePeriod(false);
         setGracePeriodEnd(null);
+        setMaxPublishedEvents(-1);
       } finally {
         setLoadingAccess(false);
       }
@@ -503,6 +511,21 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
     if (status === 'published' && hasDatePassed(endDateIso)) {
       setFormError(
         "Impossible de publier un événement dont la date de fin est inférieure à la date d'aujourd'hui.",
+      );
+      return;
+    }
+
+    const publishedEventsCount = events.filter(
+      (event) => event.status === 'published' && event.id !== editingEventId,
+    ).length;
+
+    if (
+      status === 'published' &&
+      maxPublishedEvents !== -1 &&
+      publishedEventsCount >= maxPublishedEvents
+    ) {
+      setFormError(
+        `Votre plan autorise ${maxPublishedEvents} événement(s) publié(s) simultanément. Passez un événement publié en brouillon, annulez-le ou choisissez un plan supérieur pour publier celui-ci.`,
       );
       return;
     }
@@ -1100,8 +1123,19 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
     );
   }
 
+  const publishedEventsCount = events.filter((event) => event.status === 'published').length;
+  const publishedEventsLimitLabel =
+    maxPublishedEvents === -1 ? 'Illimité' : `${publishedEventsCount}/${maxPublishedEvents}`;
+
   return (
     <div className="space-y-8">
+      <div className="inline-flex max-w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300 shadow-2xl backdrop-blur-lg">
+        <span className="font-semibold text-white">Quota du plan:</span>{' '}
+        <span className="ml-1">
+          {publishedEventsLimitLabel} événement(s) publié(s) simultanément.
+        </span>
+      </div>
+
       <AdminPageHeader
         title="Organisation d'événement"
         subtitle="Gérez vos événements et leur billetterie depuis votre espace organisateur"

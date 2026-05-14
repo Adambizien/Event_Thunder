@@ -197,11 +197,11 @@ const AdminPlans = () => {
                     {plan.currency ?? 'EUR'}/{plan.interval === 'monthly' ? 'mois' : 'an'}
                   </p>
                   <p>
-                    <span className="text-gray-400">Événements:</span>{' '}
+                    <span className="text-gray-400">Événements publiés simultanément:</span>{' '}
                     {plan.maxEvents === -1 ? 'Illimité' : plan.maxEvents}
                   </p>
                   <p>
-                    <span className="text-gray-400">Posts:</span>{' '}
+                    <span className="text-gray-400">Posts programmés simultanément:</span>{' '}
                     {plan.maxPosts === -1 ? 'Illimité' : plan.maxPosts}
                   </p>
                   <p><span className="text-gray-400">Ordre:</span> {plan.displayOrder ?? 0}</p>

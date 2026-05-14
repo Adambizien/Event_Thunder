@@ -104,7 +104,7 @@ const PlanFormModal = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Événements max (-1 = illimité)
+              Événements publiés simultanément (-1 = illimité)
             </label>
             <input
               type="number"
@@ -117,7 +117,7 @@ const PlanFormModal = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Posts max (-1 = illimité)
+              Posts programmés simultanément (-1 = illimité)
             </label>
             <input
               type="number"

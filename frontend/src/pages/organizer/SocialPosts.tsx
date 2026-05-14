@@ -15,7 +15,11 @@ import type {
   SocialNetwork,
   UpdatePostPayload,
 } from '../../types/PostTypes';
-import { formatCountdown, getOrganizerAccessState } from '../../utils/subscriptionAccess';
+import {
+  formatCountdown,
+  getOrganizerAccessState,
+  getOrganizerPlanLimits,
+} from '../../utils/subscriptionAccess';
 
 const toDateInputValue = (date: Date) => {
   const year = date.getFullYear();
@@ -125,6 +129,7 @@ const OrganizerSocialPosts = ({ user }: OrganizerSocialPostsProps) => {
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean>(Boolean(user.planId));
   const [isGracePeriod, setIsGracePeriod] = useState(false);
   const [gracePeriodEnd, setGracePeriodEnd] = useState<string | null>(null);
+  const [maxScheduledPosts, setMaxScheduledPosts] = useState(0);
   const [nowMs, setNowMs] = useState(Date.now());
   const [loadingAccess, setLoadingAccess] = useState(true);
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -169,13 +174,16 @@ const OrganizerSocialPosts = ({ user }: OrganizerSocialPostsProps) => {
       try {
         const subscriptions = await subscriptionService.getUserSubscriptions(user.id);
         const accessState = getOrganizerAccessState(subscriptions);
+        const planLimits = getOrganizerPlanLimits(subscriptions);
         setHasActiveSubscription(accessState.hasAccess || Boolean(user.planId));
         setIsGracePeriod(accessState.isGracePeriod);
         setGracePeriodEnd(accessState.gracePeriodEnd);
+        setMaxScheduledPosts(planLimits.maxPosts);
       } catch {
         setHasActiveSubscription(Boolean(user.planId));
         setIsGracePeriod(false);
         setGracePeriodEnd(null);
+        setMaxScheduledPosts(-1);
       } finally {
         setLoadingAccess(false);
       }
@@ -417,6 +425,21 @@ const OrganizerSocialPosts = ({ user }: OrganizerSocialPostsProps) => {
       }
     }
 
+    const scheduledPostsCount = posts.filter(
+      (post) => post.status === 'scheduled' && post.id !== editingPostId,
+    ).length;
+
+    if (
+      postMode === 'scheduled' &&
+      maxScheduledPosts !== -1 &&
+      scheduledPostsCount >= maxScheduledPosts
+    ) {
+      setFormError(
+        `Votre plan autorise ${maxScheduledPosts} post(s) programmé(s) simultanément. Publiez, annulez ou passez un post programmé en brouillon avant d'en programmer un nouveau.`,
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
       setFormError(null);
@@ -532,8 +555,19 @@ const OrganizerSocialPosts = ({ user }: OrganizerSocialPostsProps) => {
     );
   }
 
+  const scheduledPostsCount = posts.filter((post) => post.status === 'scheduled').length;
+  const scheduledPostsLimitLabel =
+    maxScheduledPosts === -1 ? 'Illimité' : `${scheduledPostsCount}/${maxScheduledPosts}`;
+
   return (
     <div className="space-y-8">
+      <div className="inline-flex max-w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300 shadow-2xl backdrop-blur-lg">
+        <span className="font-semibold text-white">Quota du plan:</span>{' '}
+        <span className="ml-1">
+          {scheduledPostsLimitLabel} post(s) programmé(s) simultanément.
+        </span>
+      </div>
+
       <AdminPageHeader
         title="Posts réseaux sociaux"
         subtitle="Planifie des publications avec confirmation par e-mail"

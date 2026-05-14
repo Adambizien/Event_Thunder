@@ -7,6 +7,12 @@ import type {
 const normalizeSubscription = (
   subscription: Record<string, unknown>,
 ): SubscriptionType => {
+  const rawPlan = (subscription.plan ?? {}) as Record<string, unknown>;
+  const normalizedPlan = {
+    ...rawPlan,
+    maxEvents: Number(rawPlan.maxEvents ?? rawPlan.max_events ?? 0),
+    maxPosts: Number(rawPlan.maxPosts ?? rawPlan.max_posts ?? 0),
+  };
   const payments: PaymentHistoryType[] = Array.isArray(subscription.payments)
     ? subscription.payments.map((payment) => {
         const paymentRecord = payment as Record<string, unknown>;
@@ -31,6 +37,7 @@ const normalizeSubscription = (
 
   return {
     ...(subscription as Omit<SubscriptionType, 'payments'>),
+    plan: normalizedPlan as SubscriptionType['plan'],
     payments,
   };
 };
