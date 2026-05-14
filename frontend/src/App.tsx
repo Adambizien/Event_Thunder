@@ -28,6 +28,8 @@ import AdminEvents from './pages/admin/Events';
 import AdminSocialPosts from './pages/admin/SocialPosts';
 import EventDetails from './pages/events/EventDetails';
 import EventsList from './pages/events/EventsList';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import TermsOfUse from './pages/legal/TermsOfUse';
 import ConfirmPost from './pages/posts/ConfirmPost';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
@@ -153,6 +155,8 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/events" element={<EventsList />} />
         <Route path="/events/:id" element={<EventDetails />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfUse />} />
         <Route path="/posts/confirm" element={<ConfirmPost />} />
         <Route 
           path="/login" 

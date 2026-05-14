@@ -192,7 +192,15 @@ const Login = ({ onLogin }: LoginProps) => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-400 text-xs leading-relaxed">
-            En continuant, vous acceptez nos Conditions de service et notre Politique de confidentialité.
+            En continuant, vous acceptez nos{' '}
+            <Link to="/terms" className="text-thunder-gold hover:text-thunder-orange underline">
+              Conditions d'utilisation
+            </Link>{' '}
+            et notre{' '}
+            <Link to="/privacy" className="text-thunder-gold hover:text-thunder-orange underline">
+              Politique de confidentialité
+            </Link>
+            .
           </p>
         </div>
       </div>
