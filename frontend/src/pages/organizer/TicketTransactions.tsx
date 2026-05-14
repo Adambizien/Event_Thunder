@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdminPageHeader from '../../components/AdminPageHeader';
 import RevenueLineChartCard from '../../components/RevenueLineChartCard';
 import TicketPurchaseCards, {
@@ -314,7 +314,7 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
 
-  const loadOverview = async () => {
+  const loadOverview = useCallback(async () => {
     const events = await eventService.fetchEvents();
     const organizerEvents = events.filter((event) => event.creator_id === user.id);
     const purchasesByEvent = await Promise.all(
@@ -328,7 +328,7 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
     );
 
     setPurchases(purchasesByEvent.flat());
-  };
+  }, [user.id]);
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -345,7 +345,7 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
     };
 
     void fetchOverview();
-  }, [user.id]);
+  }, [loadOverview]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();

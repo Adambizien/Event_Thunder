@@ -11,6 +11,8 @@ import { commentService } from '../../services/CommentService';
 import { eventCategoryService } from '../../services/EventCategoryService';
 import { eventService } from '../../services/EventService';
 import { ticketService } from '../../services/TicketService';
+import { userService } from '../../services/UserService';
+import type { User } from '../../types/AuthTypes';
 import type { CommentItem } from '../../types/CommentTypes';
 import type { EventCategory } from '../../types/EventCategoryTypes';
 import type { CreateEventPayload, EventItem, EventStatus } from '../../types/EventTypes';
@@ -96,10 +98,26 @@ const buildDefaultTicketType = (): TicketTypeFormItem => ({
   isActive: true,
 });
 
+const formatCreatorName = (creator?: EventItem['creator'] | User | null) => {
+  if (!creator) {
+    return '';
+  }
+
+  const fullName = `${creator.firstName ?? ''} ${creator.lastName ?? ''}`.trim();
+  return fullName || creator.email || '';
+};
+
+const formatEventCreator = (event: EventItem, usersById: Map<string, User>) => {
+  const creator = event.creator ?? usersById.get(event.creator_id);
+  const creatorName = formatCreatorName(creator);
+  return creatorName || `Utilisateur ${event.creator_id.slice(0, 8)}`;
+};
+
 const AdminEvents = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [hasSoldTicketsByEvent, setHasSoldTicketsByEvent] = useState<Record<string, boolean>>({});
   const [ticketTypeCountByEvent, setTicketTypeCountByEvent] = useState<Record<string, number>>({});
@@ -147,9 +165,10 @@ const AdminEvents = () => {
   const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const [loadedCategories, loadedEvents] = await Promise.all([
+      const [loadedCategories, loadedEvents, loadedUsers] = await Promise.all([
         eventCategoryService.fetchCategories(),
         eventService.fetchEvents(),
+        userService.fetchUsers().catch(() => []),
       ]);
 
       const countEntries = await Promise.all(
@@ -212,6 +231,7 @@ const AdminEvents = () => {
 
       setCategories(loadedCategories);
       setEvents(loadedEvents);
+      setUsers(loadedUsers);
       setCommentCounts(Object.fromEntries(countEntries));
       setHasSoldTicketsByEvent(Object.fromEntries(soldStatusEntries));
       setTicketTypeCountByEvent(Object.fromEntries(ticketTypeCountEntries));
@@ -225,6 +245,7 @@ const AdminEvents = () => {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       setCategories([]);
       setEvents([]);
+      setUsers([]);
       setHasSoldTicketsByEvent({});
       setTicketTypeCountByEvent({});
       setSoldTicketCountByEvent({});
@@ -575,9 +596,12 @@ const AdminEvents = () => {
     }
   };
 
+  const usersById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
+
   const filteredEvents = events
     .filter((event) => {
-      const haystack = `${event.title} ${event.category?.name || ''} ${event.location} ${statusLabels[event.status]}`.toLowerCase();
+      const creatorName = formatEventCreator(event, usersById);
+      const haystack = `${event.title} ${event.category?.name || ''} ${event.location} ${statusLabels[event.status]} ${creatorName} ${event.creator_id}`.toLowerCase();
       const searchWords = searchTerm
         .toLowerCase()
         .split(' ')
@@ -1108,6 +1132,7 @@ const AdminEvents = () => {
           <UniformTable
             headers={[
               'Titre',
+              'Créateur',
               'Catégorie',
               'Lieu',
               'Début',
@@ -1119,7 +1144,7 @@ const AdminEvents = () => {
               'Commentaires',
               'Actions',
             ]}
-            tableClassName="min-w-[1200px] w-full"
+            tableClassName="min-w-[1320px] w-full"
             headerCellClassName="px-4 py-3 text-left text-xs font-semibold text-gray-300 sm:px-6 sm:py-4 sm:text-sm"
           >
             {filteredEvents.map((event) => (
@@ -1128,6 +1153,12 @@ const AdminEvents = () => {
                   <div>
                     <p className="font-medium text-white">{event.title}</p>
                     <p className="text-xs text-gray-400">{event.id}</p>
+                  </div>
+                </td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">
+                  <div>
+                    <p className="font-medium text-white">{formatEventCreator(event, usersById)}</p>
+                    <p className="break-all text-xs text-gray-500">{event.creator_id}</p>
                   </div>
                 </td>
                 <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-300">{event.category?.name || '-'}</td>

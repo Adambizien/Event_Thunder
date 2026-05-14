@@ -8,6 +8,7 @@ const OrganizerLayout = () => {
   const menuItems = [
     { path: '/organizer', label: 'Tableau de bord' },
     { path: '/organizer/create-event', label: "Gestion d'événement" },
+    { path: '/organizer/social-posts', label: 'Gestion des posts' },
     { path: '/organizer/tickets', label: 'Gestion des tickets' },
   ];
 

@@ -3,6 +3,12 @@ export type EventStatus = 'draft' | 'published' | 'canceled' | 'completed';
 export type EventItem = {
   id: string;
   creator_id: string;
+  creator?: {
+    id: string;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
   title: string;
   description: string;
   category_id: string;

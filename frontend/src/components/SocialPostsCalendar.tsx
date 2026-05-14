@@ -11,6 +11,7 @@ type SocialPostsCalendarProps = {
   canEditPost: (post: PostItem) => boolean;
   canDeletePost: (post: PostItem) => boolean;
   deletingPostId: string | null;
+  showOwner?: boolean;
 };
 
 const statusLabel: Record<PostStatus, string> = {
@@ -152,6 +153,7 @@ const SocialPostsCalendar = ({
   canEditPost,
   canDeletePost,
   deletingPostId,
+  showOwner = true,
 }: SocialPostsCalendarProps) => {
   const [calendarMonth, setCalendarMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -282,9 +284,11 @@ const SocialPostsCalendar = ({
                     >
                       <div className="font-semibold">{formatTime(post.scheduled_at)}</div>
                       <div className="break-all">{truncate(post.content, 46)}</div>
-                      <div className="mt-1 truncate text-[11px] text-gray-200">
-                        {getOwnerEmail(post)}
-                      </div>
+                      {showOwner && (
+                        <div className="mt-1 truncate text-[11px] text-gray-200">
+                          {getOwnerEmail(post)}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {dayPosts.length > 3 && (
@@ -393,6 +397,7 @@ const SocialPostsCalendar = ({
                     cancellationReason={cancellationReason}
                     expiresAt={expiresAt}
                     remainingMs={remainingMs}
+                    showOwner={showOwner}
                   />
                 </article>
               );
