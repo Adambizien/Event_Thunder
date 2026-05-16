@@ -152,7 +152,7 @@ function AppContent() {
     <>
       <Header user={user} onLogout={handleLogout} />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home user={user} />} />
         <Route path="/events" element={<EventsList />} />
         <Route path="/events/:id" element={<EventDetails />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

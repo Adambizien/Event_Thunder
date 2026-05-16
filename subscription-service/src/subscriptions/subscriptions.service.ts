@@ -476,6 +476,22 @@ export class SubscriptionsService {
     );
   }
 
+  async getPublicActiveSubscriberIds(): Promise<{ userIds: string[] }> {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.active,
+      },
+      select: {
+        user_id: true,
+      },
+      distinct: ['user_id'],
+    });
+
+    return {
+      userIds: subscriptions.map((subscription) => subscription.user_id),
+    };
+  }
+
   async getInvoiceLinks(
     userId: string,
     stripeInvoiceId: string,

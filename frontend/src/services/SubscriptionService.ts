@@ -60,6 +60,12 @@ export const subscriptionService = {
       : [];
   },
 
+  getPublicActiveSubscriberIds: async (): Promise<string[]> => {
+    const response = await api.get('/api/subscriptions/public/active-subscriber-ids');
+    const userIds = response.data?.userIds;
+    return Array.isArray(userIds) ? userIds.map((userId) => String(userId)) : [];
+  },
+
   getPlans: async () => {
     const response = await api.get('/api/subscriptions/plans');
     return Array.isArray(response.data) ? response.data : [];

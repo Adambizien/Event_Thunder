@@ -53,11 +53,29 @@ export class ProxyController {
       return true;
     }
 
+    if (
+      path === '/api/subscriptions/public/active-subscriber-ids' &&
+      method === 'GET'
+    ) {
+      return true;
+    }
+
+    if (path === '/api/users/public/stats' && method === 'GET') {
+      return true;
+    }
+
     if (/^\/api\/events\/[^/]+$/.test(path) && method === 'GET') {
       return true;
     }
 
     if (/^\/api\/comments\/events\/[^/]+$/.test(path) && method === 'GET') {
+      return true;
+    }
+
+    if (
+      /^\/api\/comments\/events\/[^/]+\/count$/.test(path) &&
+      method === 'GET'
+    ) {
       return true;
     }
 

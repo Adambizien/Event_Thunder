@@ -39,6 +39,13 @@ export const userService = {
     return response.data;
   },
 
+  async fetchPublicStats(): Promise<{ totalUsers: number }> {
+    const response = await api.get('/api/users/public/stats');
+    return {
+      totalUsers: Number(response.data?.totalUsers ?? 0),
+    };
+  },
+
   async fetchUsers(): Promise<User[]> {
     const response = await api.get('/api/users');
     const data = response.data;

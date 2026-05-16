@@ -282,6 +282,11 @@ export class SubscriptionsController {
     return this.subscriptionsService.getAdminSubscriptionsOverview();
   }
 
+  @Get('public/active-subscriber-ids')
+  getPublicActiveSubscriberIds() {
+    return this.subscriptionsService.getPublicActiveSubscriberIds();
+  }
+
   @Get('invoices/:stripeInvoiceId')
   @UseGuards(AuthGuard)
   getInvoiceLinks(
