@@ -28,6 +28,8 @@ import AdminEvents from './pages/admin/Events';
 import AdminSocialPosts from './pages/admin/SocialPosts';
 import EventDetails from './pages/events/EventDetails';
 import EventsList from './pages/events/EventsList';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import TermsOfUse from './pages/legal/TermsOfUse';
 import ConfirmPost from './pages/posts/ConfirmPost';
 import { authService } from './services/AuthServices';
 import type { User } from './types/AuthTypes';
@@ -37,6 +39,8 @@ import MyTickets from './pages/tickets/MyTickets';
 import OrganizerLayout from './components/OrganizerLayout';
 import OrganizerDashboard from './pages/organizer/Dashboard';
 import OrganizerCreateEvent from './pages/organizer/CreateEvent';
+import OrganizerTicketTransactions from './pages/organizer/TicketTransactions';
+import OrganizerSocialPosts from './pages/organizer/SocialPosts';
 
 
 function AppContent() {
@@ -148,9 +152,11 @@ function AppContent() {
     <>
       <Header user={user} onLogout={handleLogout} />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home user={user} />} />
         <Route path="/events" element={<EventsList />} />
         <Route path="/events/:id" element={<EventDetails />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfUse />} />
         <Route path="/posts/confirm" element={<ConfirmPost />} />
         <Route 
           path="/login" 
@@ -223,6 +229,8 @@ function AppContent() {
         >
           <Route index element={<OrganizerDashboard user={user!} />} />
           <Route path="create-event" element={<OrganizerCreateEvent user={user!} />} />
+          <Route path="social-posts" element={<OrganizerSocialPosts user={user!} />} />
+          <Route path="tickets" element={<OrganizerTicketTransactions user={user!} />} />
         </Route>
       </Routes>
       {!isAdminRoute && !isOrganizerRoute && <Footer />}

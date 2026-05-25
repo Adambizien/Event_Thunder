@@ -15,6 +15,7 @@ interface Plan {
   description?: string;
   maxEvents: number;
   maxPosts: number;
+  ticketFeePercentage: number;
   displayOrder: number;
 }
 
@@ -628,10 +629,16 @@ const Subscription = () => {
               )}
               <div className="w-full mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                 <p>
-                  <span className="text-gray-400">Événements max:</span> {maxEventsLabel}
+                  <span className="text-gray-400">Événements publiés simultanément:</span>{' '}
+                  {maxEventsLabel}
                 </p>
                 <p>
-                  <span className="text-gray-400">Posts max:</span> {maxPostsLabel}
+                  <span className="text-gray-400">Posts programmés simultanément:</span>{' '}
+                  {maxPostsLabel}
+                </p>
+                <p>
+                  <span className="text-gray-400">Prélèvement sur tickets:</span>{' '}
+                  {plan.ticketFeePercentage ?? 0}%
                 </p>
               </div>
               {userSub && userSub.status === 'active' ? (

@@ -7,6 +7,7 @@ export class UpdatePlanDto {
   currency?: PlanCurrency;
   maxEvents?: number;
   maxPosts?: number;
+  ticketFeePercentage?: number;
   displayOrder?: number;
   description?: string | null;
 }

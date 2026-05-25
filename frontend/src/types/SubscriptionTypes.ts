@@ -10,6 +10,9 @@ export interface SubscriptionType {
     currency: string;
     interval: string;
     description?: string;
+    maxEvents: number;
+    maxPosts: number;
+    ticketFeePercentage: number;
   };
   status: 'active' | 'canceled';
   currentPeriodStart: string | null;

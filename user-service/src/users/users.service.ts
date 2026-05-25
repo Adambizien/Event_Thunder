@@ -50,6 +50,11 @@ export class UsersService {
     };
   }
 
+  async getPublicStats(): Promise<{ totalUsers: number }> {
+    const totalUsers = await this.prisma.user.count();
+    return { totalUsers };
+  }
+
   async create(
     createUserDto: CreateUserDto,
   ): Promise<{ user: UserResponseDto }> {

@@ -48,6 +48,12 @@ export class UsersController {
     return this.usersService.verify(verifyUserDto);
   }
 
+  @Get('public/stats')
+  @HttpCode(HttpStatus.OK)
+  async getPublicStats() {
+    return this.usersService.getPublicStats();
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.usersService.findById(id);

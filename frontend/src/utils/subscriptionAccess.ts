@@ -6,11 +6,50 @@ export type OrganizerAccessState = {
   gracePeriodEnd: string | null;
 };
 
+export type OrganizerPlanLimits = {
+  maxEvents: number;
+  maxPosts: number;
+};
+
 const toTimestamp = (value: string | null | undefined): number | null => {
   if (!value) return null;
   const time = new Date(value).getTime();
   if (Number.isNaN(time)) return null;
   return time;
+};
+
+const mergeLimit = (current: number, next: number) => {
+  if (current === -1 || next === -1) {
+    return -1;
+  }
+
+  return Math.max(current, next);
+};
+
+export const getOrganizerPlanLimits = (
+  subscriptions: SubscriptionType[],
+): OrganizerPlanLimits => {
+  const now = Date.now();
+  const accessibleSubscriptions = subscriptions.filter((subscription) => {
+    if (subscription.status === 'active') {
+      return true;
+    }
+
+    if (subscription.status !== 'canceled') {
+      return false;
+    }
+
+    const periodEnd = toTimestamp(subscription.currentPeriodEnd);
+    return typeof periodEnd === 'number' && periodEnd > now;
+  });
+
+  return accessibleSubscriptions.reduce<OrganizerPlanLimits>(
+    (limits, subscription) => ({
+      maxEvents: mergeLimit(limits.maxEvents, subscription.plan.maxEvents),
+      maxPosts: mergeLimit(limits.maxPosts, subscription.plan.maxPosts),
+    }),
+    { maxEvents: 0, maxPosts: 0 },
+  );
 };
 
 export const getOrganizerAccessState = (

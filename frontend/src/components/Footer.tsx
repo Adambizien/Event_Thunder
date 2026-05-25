@@ -8,7 +8,7 @@ const Footer = () => {
     <footer className="bg-thunder-navy border-t-2 border-thunder-gold mt-16">
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 gap-8 mb-8 md:grid-cols-4">
           {/* Brand Section */}
           <div className="flex flex-col">
             <div className="mb-4">
@@ -29,13 +29,13 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
-                  Connexion
+                <Link to="/events" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
+                  Événements
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
-                  S'inscrire
+                <Link to="/subscription" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
+                  Abonnements
                 </Link>
               </li>
             </ul>
@@ -50,16 +50,6 @@ const Footer = () => {
                   Contact
                 </a>
               </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
-                  FAQ
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
-                  Documentation
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -68,19 +58,14 @@ const Footer = () => {
             <h4 className="font-bold text-thunder-gold mb-4">Légal</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
+                <Link to="/terms" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
                   Conditions d'utilisation
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
-                  Politique de confidentialité
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
-                  Cookies
-                </a>
+                <Link to="/privacy" className="text-gray-400 hover:text-thunder-gold transition-colors text-sm">
+                  RGPD et confidentialité
+                </Link>
               </li>
             </ul>
           </div>
@@ -94,29 +79,13 @@ const Footer = () => {
               © {currentYear} Event Thunder. Tous droits réservés.
             </p>
 
-            {/* Social Links */}
-            <div className="flex items-center gap-6">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-thunder-gold transition-colors"
-                aria-label="Twitter"
-              >
-                X
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-thunder-gold transition-colors"
-                aria-label="GitHub"
-              >
-                GH
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-thunder-gold transition-colors"
-                aria-label="LinkedIn"
-              >
-                IN
-              </a>
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <Link to="/terms" className="hover:text-thunder-gold transition-colors">
+                CGU
+              </Link>
+              <Link to="/privacy" className="hover:text-thunder-gold transition-colors">
+                RGPD
+              </Link>
             </div>
           </div>
         </div>

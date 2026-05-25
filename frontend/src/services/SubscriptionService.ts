@@ -7,6 +7,15 @@ import type {
 const normalizeSubscription = (
   subscription: Record<string, unknown>,
 ): SubscriptionType => {
+  const rawPlan = (subscription.plan ?? {}) as Record<string, unknown>;
+  const normalizedPlan = {
+    ...rawPlan,
+    maxEvents: Number(rawPlan.maxEvents ?? rawPlan.max_events ?? 0),
+    maxPosts: Number(rawPlan.maxPosts ?? rawPlan.max_posts ?? 0),
+    ticketFeePercentage: Number(
+      rawPlan.ticketFeePercentage ?? rawPlan.ticket_fee_percentage ?? 0,
+    ),
+  };
   const payments: PaymentHistoryType[] = Array.isArray(subscription.payments)
     ? subscription.payments.map((payment) => {
         const paymentRecord = payment as Record<string, unknown>;
@@ -31,6 +40,7 @@ const normalizeSubscription = (
 
   return {
     ...(subscription as Omit<SubscriptionType, 'payments'>),
+    plan: normalizedPlan as SubscriptionType['plan'],
     payments,
   };
 };
@@ -48,6 +58,12 @@ export const subscriptionService = {
     return Array.isArray(response.data)
       ? response.data.map((subscription) => normalizeSubscription(subscription as Record<string, unknown>))
       : [];
+  },
+
+  getPublicActiveSubscriberIds: async (): Promise<string[]> => {
+    const response = await api.get('/api/subscriptions/public/active-subscriber-ids');
+    const userIds = response.data?.userIds;
+    return Array.isArray(userIds) ? userIds.map((userId) => String(userId)) : [];
   },
 
   getPlans: async () => {

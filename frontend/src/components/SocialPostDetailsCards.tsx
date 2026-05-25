@@ -11,6 +11,7 @@ type SocialPostDetailsCardsProps = {
   cancellationReason?: string | null;
   expiresAt?: Date | null;
   remainingMs?: number | null;
+  showOwner?: boolean;
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -75,6 +76,7 @@ const SocialPostDetailsCards = ({
   cancellationReason,
   expiresAt,
   remainingMs,
+  showOwner = true,
 }: SocialPostDetailsCardsProps) => {
   const ownerFullName = getOwnerFullName(post);
   const ownerEmail = getOwnerEmail(post);
@@ -82,14 +84,17 @@ const SocialPostDetailsCards = ({
   const detailCards: DetailCard[] = [
     { label: 'Type', value: networks },
     { label: 'Événement', value: eventName },
-    {
-      label: 'Propriétaire',
-      value: `Nom complet: ${ownerFullName}\nEmail: ${ownerEmail}\nID: ${ownerId}`,
-      fullWidth: true,
-    },
     { label: 'Créé le', value: formatDateTime(post.created_at) },
     { label: 'Mis à jour le', value: formatDateTime(post.updated_at) },
   ];
+
+  if (showOwner) {
+    detailCards.splice(2, 0, {
+      label: 'Propriétaire',
+      value: `Nom complet: ${ownerFullName}\nEmail: ${ownerEmail}\nID: ${ownerId}`,
+      fullWidth: true,
+    });
+  }
 
   if (post.status === 'published') {
     detailCards.push({

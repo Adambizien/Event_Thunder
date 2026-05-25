@@ -63,6 +63,34 @@ const formatDisplayName = (user: { id: string; firstName?: string; lastName?: st
   return `Utilisateur ${user.id.slice(0, 8)}`;
 };
 
+const formatEventCreator = (event: EventItem, currentUser: User | null) => {
+  const creator = (
+    event as EventItem & {
+      creator?: {
+        email?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+      } | null;
+    }
+  ).creator;
+  const fullName = `${creator?.firstName ?? ''} ${creator?.lastName ?? ''}`.trim();
+
+  if (fullName) {
+    return fullName;
+  }
+
+  if (creator?.email) {
+    return creator.email;
+  }
+
+  if (currentUser?.id === event.creator_id) {
+    const currentUserName = `${currentUser.firstName ?? ''} ${currentUser.lastName ?? ''}`.trim();
+    return currentUserName || currentUser.email;
+  }
+
+  return `Utilisateur ${event.creator_id.slice(0, 8)}`;
+};
+
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -358,6 +386,7 @@ const EventDetails = () => {
   }
 
   const banner = getStatusBanner(event.status);
+  const creatorName = formatEventCreator(event, currentUser);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-thunder-navy via-thunder-dark to-thunder-navy px-4 py-10">
@@ -386,6 +415,9 @@ const EventDetails = () => {
               </span>
               <span className="rounded-full border border-white/30 bg-black/30 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
                 {event.category?.name || 'Sans catégorie'}
+              </span>
+              <span className="rounded-full border border-white/30 bg-black/30 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                Créé par {creatorName}
               </span>
             </div>
 
@@ -436,6 +468,11 @@ const EventDetails = () => {
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-400">Date de début</p>
                   <p className="text-white">{formatDate(event.start_date)}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-400">Créateur</p>
+                  <p className="text-white">{creatorName}</p>
                 </div>
 
                 <div>

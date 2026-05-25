@@ -13,7 +13,23 @@ import { UpdateEventDto } from './dto/update-event.dto';
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
+  private async completeEndedEvents() {
+    await this.prisma.event.updateMany({
+      where: {
+        end_date: {
+          lte: new Date(),
+        },
+        status: EventStatus.published,
+      },
+      data: {
+        status: EventStatus.completed,
+      },
+    });
+  }
+
+  async getAll() {
+    await this.completeEndedEvents();
+
     return this.prisma.event.findMany({
       include: {
         category: true,
@@ -24,7 +40,9 @@ export class EventsService {
     });
   }
 
-  getPublicList() {
+  async getPublicList() {
+    await this.completeEndedEvents();
+
     return this.prisma.event.findMany({
       where: {
         status: {
@@ -41,6 +59,8 @@ export class EventsService {
   }
 
   async getOne(id: string, userId?: string, userRole?: string) {
+    await this.completeEndedEvents();
+
     const event = await this.prisma.event.findUnique({
       where: { id },
       include: {

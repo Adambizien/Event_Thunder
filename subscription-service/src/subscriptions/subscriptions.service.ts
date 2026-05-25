@@ -47,6 +47,7 @@ type PlanResponse = {
   stripePriceId: string;
   maxEvents: number;
   maxPosts: number;
+  ticketFeePercentage: number;
   displayOrder: number;
   description: string | null;
   createdAt: Date;
@@ -77,6 +78,7 @@ type PlanModel = {
   stripe_price_id: string;
   max_events: number;
   max_posts: number;
+  ticket_fee_percentage: number;
   display_order: number;
   description: string | null;
   created_at: Date;
@@ -135,6 +137,7 @@ export class SubscriptionsService {
     stripe_price_id: string;
     max_events: number;
     max_posts: number;
+    ticket_fee_percentage?: unknown;
     display_order: number;
     description: string | null;
     created_at: Date;
@@ -148,6 +151,7 @@ export class SubscriptionsService {
       stripe_price_id: plan.stripe_price_id,
       max_events: plan.max_events,
       max_posts: plan.max_posts,
+      ticket_fee_percentage: Number(plan.ticket_fee_percentage ?? 0),
       display_order: plan.display_order,
       description: plan.description,
       created_at: plan.created_at,
@@ -214,6 +218,7 @@ export class SubscriptionsService {
       stripePriceId: plan.stripe_price_id,
       maxEvents: plan.max_events,
       maxPosts: plan.max_posts,
+      ticketFeePercentage: plan.ticket_fee_percentage,
       displayOrder: plan.display_order,
       description: plan.description,
       createdAt: plan.created_at,
@@ -272,6 +277,7 @@ export class SubscriptionsService {
         stripe_price_id: stripePriceId,
         max_events: dto.maxEvents,
         max_posts: dto.maxPosts,
+        ticket_fee_percentage: dto.ticketFeePercentage ?? 0,
         display_order: dto.displayOrder ?? 0,
         description: dto.description ?? null,
       },
@@ -298,6 +304,8 @@ export class SubscriptionsService {
     const nextCurrency = dto.currency ?? plan.currency;
     const nextMaxEvents = dto.maxEvents ?? plan.max_events;
     const nextMaxPosts = dto.maxPosts ?? plan.max_posts;
+    const nextTicketFeePercentage =
+      dto.ticketFeePercentage ?? plan.ticket_fee_percentage;
     const nextDisplayOrder = dto.displayOrder ?? plan.display_order;
     const nextDescription = dto.description ?? plan.description;
 
@@ -331,6 +339,7 @@ export class SubscriptionsService {
         currency: nextCurrency,
         max_events: nextMaxEvents,
         max_posts: nextMaxPosts,
+        ticket_fee_percentage: nextTicketFeePercentage,
         display_order: nextDisplayOrder,
         description: nextDescription,
         stripe_price_id: stripePriceId,
@@ -465,6 +474,22 @@ export class SubscriptionsService {
     return subscriptions.map((subscription) =>
       this.toSubscriptionResponse(subscription),
     );
+  }
+
+  async getPublicActiveSubscriberIds(): Promise<{ userIds: string[] }> {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.active,
+      },
+      select: {
+        user_id: true,
+      },
+      distinct: ['user_id'],
+    });
+
+    return {
+      userIds: subscriptions.map((subscription) => subscription.user_id),
+    };
   }
 
   async getInvoiceLinks(
