@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import TicketPurchaseCards, {
   type TicketPurchaseCardData,
 } from '../../components/TicketPurchaseCards';
+import { eventService } from '../../services/EventService';
 import { ticketService } from '../../services/TicketService';
+import type { EventItem } from '../../types/EventTypes';
 import type { TicketPurchase } from '../../types/TicketTypes';
 
 const ticketPurchaseStatusLabels: Record<string, string> = {
@@ -20,6 +22,7 @@ const toTicketPurchaseStatusLabel = (status?: string | null) => {
 
 const MyTickets = () => {
   const [purchases, setPurchases] = useState<TicketPurchase[]>([]);
+  const [eventsById, setEventsById] = useState<Record<string, EventItem>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
@@ -34,7 +37,16 @@ const MyTickets = () => {
     const load = async () => {
       try {
         setLoading(true);
-        await loadTickets();
+        const [ticketsData, events] = await Promise.all([
+          ticketService.getMyTickets(),
+          eventService.fetchPublicEvents().catch(() => []),
+        ]);
+        setPurchases(
+          Array.isArray(ticketsData.purchases) ? ticketsData.purchases : [],
+        );
+        setEventsById(
+          Object.fromEntries(events.map((event) => [event.id, event])),
+        );
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -53,9 +65,15 @@ const MyTickets = () => {
   );
 
   const purchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
-    return purchases.map((purchase) => ({
-      id: purchase.id,
-      eventId: purchase.items[0]?.ticket_type?.event_id,
+    return purchases.map((purchase) => {
+      const eventId = purchase.items[0]?.ticket_type?.event_id;
+      const event = eventId ? eventsById[eventId] : undefined;
+
+      return {
+        id: purchase.id,
+        eventId,
+        eventStatus: event?.status,
+        eventEndDate: event?.end_date,
       stripePaymentIntentId: purchase.stripe_payment_intent_id,
       createdAt: purchase.paid_at ?? purchase.created_at,
       refundedAt:
@@ -90,8 +108,9 @@ const MyTickets = () => {
               ? 'Utilisé'
               : 'Valide',
       })),
-    }));
-  }, [purchases]);
+      };
+    });
+  }, [eventsById, purchases]);
 
   const handleOpenInvoice = async (stripePaymentIntentId: string) => {
     if (!stripePaymentIntentId) {

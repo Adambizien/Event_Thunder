@@ -482,6 +482,15 @@ describe('TicketsService', () => {
         tickets: [{ used: true }],
       }),
     );
+    httpGet.mockReturnValue(
+      of({
+        data: {
+          creator_id: 'owner-1',
+          status: 'published',
+          end_date: '2099-01-01T10:00:00.000Z',
+        },
+      }),
+    );
 
     await expect(
       service.requestPurchaseRefund(
@@ -505,6 +514,73 @@ describe('TicketsService', () => {
         'Bearer token',
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('refuse le remboursement des tickets dun evenement termine', async () => {
+    prisma.ticketPurchase.findUnique.mockResolvedValue(
+      makePurchase({ user_id: 'owner-1', tickets: [{ used: false }] }),
+    );
+    httpGet.mockReturnValue(
+      of({
+        data: {
+          creator_id: 'owner-1',
+          status: 'completed',
+          end_date: '2026-01-01T10:00:00.000Z',
+        },
+      }),
+    );
+
+    await expect(
+      service.requestPurchaseRefund(
+        'purchase-1',
+        'owner-1',
+        false,
+        'Bearer token',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(httpPost).not.toHaveBeenCalled();
+  });
+
+  it('autorise un admin a rembourser un ticket dun evenement termine', async () => {
+    prisma.ticketPurchase.findUnique.mockResolvedValue(
+      makePurchase({ user_id: 'owner-1', tickets: [{ used: false }] }),
+    );
+    httpGet.mockReturnValue(
+      of({
+        data: {
+          creator_id: 'owner-1',
+          status: 'completed',
+          end_date: '2026-01-01T10:00:00.000Z',
+        },
+      }),
+    );
+    httpPost.mockReturnValue(
+      of({
+        data: {
+          refundId: 're_123',
+          status: 'succeeded',
+          amount: 5000,
+          currency: 'eur',
+        },
+      }),
+    );
+
+    await expect(
+      service.requestPurchaseRefund(
+        'purchase-1',
+        'admin-1',
+        true,
+        'Bearer token',
+      ),
+    ).resolves.toEqual({
+      refundId: 're_123',
+      status: 'succeeded',
+      amount: 5000,
+      currency: 'eur',
+    });
+
+    expect(httpPost).toHaveBeenCalled();
   });
 
   it('retourne les liens facture seulement pour owner ou admin', async () => {

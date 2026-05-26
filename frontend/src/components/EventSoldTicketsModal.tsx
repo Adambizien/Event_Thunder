@@ -16,6 +16,7 @@ interface EventSoldTicketsModalProps {
   onOpenInvoice: (stripePaymentIntentId: string) => void;
   onOpenEvent: (eventId: string) => void;
   onRefundPurchase: (purchaseId: string) => void;
+  allowRefundCompletedEvents?: boolean;
 }
 
 const EventSoldTicketsModal = ({
@@ -33,6 +34,7 @@ const EventSoldTicketsModal = ({
   onOpenInvoice,
   onOpenEvent,
   onRefundPurchase,
+  allowRefundCompletedEvents = false,
 }: EventSoldTicketsModalProps) => {
   return (
     <Modal
@@ -78,6 +80,7 @@ const EventSoldTicketsModal = ({
                 refundingPurchaseId={refundingSoldTicketPurchaseId}
                 onOpenInvoice={onOpenInvoice}
                 onRefundPurchase={onRefundPurchase}
+                allowRefundCompletedEvents={allowRefundCompletedEvents}
                 canRefundPurchase={(purchase) =>
                   String(purchase.status ?? '').toLowerCase() === 'paid'
                 }

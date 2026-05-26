@@ -81,6 +81,12 @@ type BillingRefundResponse = {
   currency: string;
 };
 
+type EventDetails = {
+  creator_id?: string;
+  status?: string;
+  end_date?: string | Date | null;
+};
+
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
@@ -715,13 +721,20 @@ export class TicketsService {
     }
 
     const eventId = purchase.items[0]?.ticket_type?.event_id;
+    const event = eventId
+      ? await this.fetchEventDetails(eventId, authorization)
+      : null;
     const isOwner = purchase.user_id === userId;
-    const isEventCreator = eventId
-      ? await this.isEventCreator(eventId, userId, authorization)
-      : false;
+    const isEventCreator = event?.creator_id === userId;
 
     if (!isAdmin && !isOwner && !isEventCreator) {
       throw new ForbiddenException('Remboursement non autorisé');
+    }
+
+    if (!isAdmin && this.isEventCompleted(event)) {
+      throw new BadRequestException(
+        'Remboursement impossible: l’événement est terminé',
+      );
     }
 
     if (purchase.tickets.some((ticket) => ticket.used)) {
@@ -1015,13 +1028,21 @@ export class TicketsService {
     userId: string,
     authorization: string,
   ): Promise<boolean> {
+    const event = await this.fetchEventDetails(eventId, authorization);
+    return event?.creator_id === userId;
+  }
+
+  private async fetchEventDetails(
+    eventId: string,
+    authorization: string,
+  ): Promise<EventDetails | null> {
     const eventBaseUrl =
       this.configService.get<string>('EVENT_SERVICE_URL') ??
       'http://event-service:3000';
 
     try {
       const { data } = await firstValueFrom(
-        this.httpService.get<{ creator_id?: string }>(
+        this.httpService.get<EventDetails>(
           `${eventBaseUrl}/api/events/${encodeURIComponent(eventId)}`,
           {
             headers: {
@@ -1031,15 +1052,32 @@ export class TicketsService {
         ),
       );
 
-      return data?.creator_id === userId;
+      return data ?? null;
     } catch (error) {
       this.logger.warn(
-        `Impossible de vérifier le créateur de l'événement ${eventId}: ${
+        `Impossible de récupérer l'événement ${eventId}: ${
           error instanceof Error ? error.message : 'erreur inconnue'
         }`,
       );
+      return null;
+    }
+  }
+
+  private isEventCompleted(event: EventDetails | null): boolean {
+    if (!event) {
       return false;
     }
+
+    if (String(event.status ?? '').toLowerCase() === 'completed') {
+      return true;
+    }
+
+    if (!event.end_date) {
+      return false;
+    }
+
+    const endDate = new Date(event.end_date);
+    return !Number.isNaN(endDate.getTime()) && endDate <= new Date();
   }
 
   private toPrismaDecimal(value: number) {
