@@ -10,6 +10,7 @@ import { eventService } from '../../services/EventService';
 import { subscriptionService } from '../../services/SubscriptionService';
 import { ticketService } from '../../services/TicketService';
 import type { User } from '../../types/AuthTypes';
+import type { EventItem } from '../../types/EventTypes';
 import type { TicketPurchase, SoldEventTicketItem } from '../../types/TicketTypes';
 
 type PeriodMode = 'month' | 'year' | 'all';
@@ -306,6 +307,7 @@ interface OrganizerTicketTransactionsProps {
 const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps) => {
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const [purchases, setPurchases] = useState<TicketPurchase[]>([]);
+  const [eventsById, setEventsById] = useState<Record<string, EventItem>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
@@ -336,6 +338,9 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
     setTicketFeePercentage(activeSubscription?.plan.ticketFeePercentage ?? null);
 
     const organizerEvents = events.filter((event) => event.creator_id === user.id);
+    setEventsById(
+      Object.fromEntries(organizerEvents.map((event) => [event.id, event])),
+    );
     const purchasesByEvent = await Promise.all(
       organizerEvents.map(async (event) => {
         const response = await ticketService
@@ -504,9 +509,15 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
     displayedPurchases[0]?.currency ?? purchases[0]?.currency ?? 'EUR';
 
   const purchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
-    return displayedPurchases.map((purchase) => ({
-      id: purchase.id,
-      eventId: purchase.items[0]?.ticket_type?.event_id,
+    return displayedPurchases.map((purchase) => {
+      const eventId = purchase.items[0]?.ticket_type?.event_id;
+      const event = eventId ? eventsById[eventId] : undefined;
+
+      return {
+        id: purchase.id,
+        eventId,
+        eventStatus: event?.status,
+        eventEndDate: event?.end_date,
       stripePaymentIntentId: purchase.stripe_payment_intent_id,
       createdAt: purchase.paid_at ?? purchase.created_at,
       refundedAt:
@@ -542,8 +553,9 @@ const OrganizerTicketTransactions = ({ user }: OrganizerTicketTransactionsProps)
               ? 'Utilisé'
               : 'Valide',
       })),
-    }));
-  }, [displayedPurchases]);
+      };
+    });
+  }, [displayedPurchases, eventsById]);
 
   const periodDescription = getPeriodDescription(periodMode, selectedMonth, selectedYear);
 

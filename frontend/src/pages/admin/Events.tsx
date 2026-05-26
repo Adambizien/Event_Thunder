@@ -739,6 +739,8 @@ const AdminEvents = () => {
       return {
         id: purchaseGroup.purchase.id,
         eventId: selectedEventForSoldTickets?.id,
+        eventStatus: selectedEventForSoldTickets?.status,
+        eventEndDate: selectedEventForSoldTickets?.end_date,
         stripePaymentIntentId: purchaseGroup.purchase.stripe_payment_intent_id,
         createdAt: purchaseGroup.purchase.paid_at ?? purchaseGroup.createdAt,
         refundedAt:
@@ -775,7 +777,12 @@ const AdminEvents = () => {
         })),
       };
     });
-  }, [groupedSoldTicketPurchases, selectedEventForSoldTickets?.id]);
+  }, [
+    groupedSoldTicketPurchases,
+    selectedEventForSoldTickets?.end_date,
+    selectedEventForSoldTickets?.id,
+    selectedEventForSoldTickets?.status,
+  ]);
 
   const closeCommentsModal = () => {
     setSelectedEventForComments(null);
@@ -1117,6 +1124,7 @@ const AdminEvents = () => {
         onRefundPurchase={(purchaseId) => {
           void handleRefundSoldTicketPurchase(purchaseId);
         }}
+        allowRefundCompletedEvents
       />
 
       <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl backdrop-blur-lg">

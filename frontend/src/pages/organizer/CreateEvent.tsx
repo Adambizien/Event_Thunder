@@ -810,6 +810,8 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
       return {
         id: purchaseGroup.purchase.id,
         eventId: selectedEventForSoldTickets?.id,
+        eventStatus: selectedEventForSoldTickets?.status,
+        eventEndDate: selectedEventForSoldTickets?.end_date,
         stripePaymentIntentId: purchaseGroup.purchase.stripe_payment_intent_id,
         createdAt: purchaseGroup.purchase.paid_at ?? purchaseGroup.createdAt,
         refundedAt:
@@ -846,7 +848,12 @@ const OrganizerCreateEvent = ({ user }: OrganizerCreateEventProps) => {
         })),
       };
     });
-  }, [groupedSoldTicketPurchases, selectedEventForSoldTickets?.id]);
+  }, [
+    groupedSoldTicketPurchases,
+    selectedEventForSoldTickets?.end_date,
+    selectedEventForSoldTickets?.id,
+    selectedEventForSoldTickets?.status,
+  ]);
 
   const closeCommentsModal = () => {
     setSelectedEventForComments(null);

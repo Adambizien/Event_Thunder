@@ -19,6 +19,8 @@ type TicketGeneratedItem = {
 export type TicketPurchaseCardData = {
   id: string;
   eventId?: string;
+  eventStatus?: string;
+  eventEndDate?: string | null;
   stripePaymentIntentId: string;
   createdAt: string;
   refundedAt?: string;
@@ -43,6 +45,7 @@ type TicketPurchaseCardsProps = {
   refundingPurchaseId?: string | null;
   onRefundPurchase?: (purchaseId: string) => void;
   canRefundPurchase?: (purchase: TicketPurchaseCardData) => boolean;
+  allowRefundCompletedEvents?: boolean;
   emptyMessage: string;
   emptySearchMessage?: string;
   dateLabel?: string;
@@ -65,6 +68,19 @@ const formatCurrency = (amount: number, currency: string) => {
   }).format(amount);
 };
 
+const isEventCompleted = (purchase: TicketPurchaseCardData) => {
+  if (String(purchase.eventStatus ?? '').toLowerCase() === 'completed') {
+    return true;
+  }
+
+  if (!purchase.eventEndDate) {
+    return false;
+  }
+
+  const endDate = new Date(purchase.eventEndDate);
+  return !Number.isNaN(endDate.getTime()) && endDate <= new Date();
+};
+
 const TicketPurchaseCards = ({
   purchases,
   openingInvoiceId,
@@ -73,6 +89,7 @@ const TicketPurchaseCards = ({
   refundingPurchaseId,
   onRefundPurchase,
   canRefundPurchase,
+  allowRefundCompletedEvents = false,
   emptyMessage,
   emptySearchMessage,
   dateLabel = 'Achat le',
@@ -88,11 +105,17 @@ const TicketPurchaseCards = ({
 
   return (
     <div className="space-y-6">
-      {purchases.map((purchase) => (
-        <section
-          key={purchase.id}
-          className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
-        >
+      {purchases.map((purchase) => {
+        const canShowRefundButton =
+          onRefundPurchase &&
+          (allowRefundCompletedEvents || !isEventCompleted(purchase)) &&
+          (canRefundPurchase ? canRefundPurchase(purchase) : true);
+
+        return (
+          <section
+            key={purchase.id}
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-lg"
+          >
           {String(purchase.status ?? '').toLowerCase() === 'refunded' && (
             <p className="mb-3 rounded-md border border-amber-300/40 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-100">
               Cet achat a été remboursé. Les tickets associés sont désactivés.
@@ -122,8 +145,7 @@ const TicketPurchaseCards = ({
                   ? 'Ouverture...'
                   : 'Voir la facture'}
               </button>
-              {onRefundPurchase &&
-                (canRefundPurchase ? canRefundPurchase(purchase) : true) && (
+              {canShowRefundButton && (
                   <button
                     type="button"
                     onClick={() => onRefundPurchase(purchase.id)}
@@ -224,8 +246,9 @@ const TicketPurchaseCards = ({
               </div>
             </div>
           </div>
-        </section>
-      ))}
+          </section>
+        );
+      })}
     </div>
   );
 };

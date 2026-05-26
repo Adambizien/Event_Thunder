@@ -5,7 +5,9 @@ import TicketPurchaseCards, {
   type TicketPurchaseCardData,
 } from '../../components/TicketPurchaseCards';
 import TopRevenueCard from '../../components/TopRevenueCard';
+import { eventService } from '../../services/EventService';
 import { ticketService } from '../../services/TicketService';
+import type { EventItem } from '../../types/EventTypes';
 import type { TicketPurchase } from '../../types/TicketTypes';
 
 type PeriodMode = 'month' | 'year' | 'all';
@@ -199,6 +201,7 @@ const StatCard = ({
 const AdminTicketTransactions = () => {
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const [purchases, setPurchases] = useState<TicketPurchase[]>([]);
+  const [eventsById, setEventsById] = useState<Record<string, EventItem>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingInvoiceId, setOpeningInvoiceId] = useState<string | null>(null);
@@ -210,8 +213,12 @@ const AdminTicketTransactions = () => {
   const [search, setSearch] = useState('');
 
   const loadOverview = async () => {
-    const data = await ticketService.getAdminTicketsOverview();
+    const [data, events] = await Promise.all([
+      ticketService.getAdminTicketsOverview(),
+      eventService.fetchEvents().catch(() => []),
+    ]);
     setPurchases(Array.isArray(data.purchases) ? data.purchases : []);
+    setEventsById(Object.fromEntries(events.map((event) => [event.id, event])));
   };
 
   useEffect(() => {
@@ -361,9 +368,15 @@ const AdminTicketTransactions = () => {
     displayedPurchases[0]?.currency ?? purchases[0]?.currency ?? 'EUR';
 
   const purchaseCards = useMemo<TicketPurchaseCardData[]>(() => {
-    return displayedPurchases.map((purchase) => ({
-      id: purchase.id,
-      eventId: purchase.items[0]?.ticket_type?.event_id,
+    return displayedPurchases.map((purchase) => {
+      const eventId = purchase.items[0]?.ticket_type?.event_id;
+      const event = eventId ? eventsById[eventId] : undefined;
+
+      return {
+        id: purchase.id,
+        eventId,
+        eventStatus: event?.status,
+        eventEndDate: event?.end_date,
       stripePaymentIntentId: purchase.stripe_payment_intent_id,
       createdAt: purchase.paid_at ?? purchase.created_at,
       refundedAt:
@@ -399,8 +412,9 @@ const AdminTicketTransactions = () => {
               ? 'Utilisé'
               : 'Valide',
       })),
-    }));
-  }, [displayedPurchases]);
+      };
+    });
+  }, [displayedPurchases, eventsById]);
 
   const periodDescription = getPeriodDescription(periodMode, selectedMonth, selectedYear);
 
@@ -660,6 +674,7 @@ const AdminTicketTransactions = () => {
             onRefundPurchase={(purchaseId) => {
               void handleRefundPurchase(purchaseId);
             }}
+            allowRefundCompletedEvents
             canRefundPurchase={(purchase) =>
               String(purchase.status ?? '').toLowerCase() === 'paid'
             }
