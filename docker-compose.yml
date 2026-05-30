@@ -55,7 +55,7 @@ services:
     environment:
       PORT: 3000
       RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
-      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_EXCHANGE: eventthunder.events
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       USER_SERVICE_URL: ${USER_SERVICE_URL}
@@ -152,7 +152,7 @@ services:
       AI_API_KEY_FILE: /run/secrets/ai_api_key
       AI_MODEL: ${AI_MODEL}
       RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
-      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_EXCHANGE: eventthunder.events
       POST_CRON_SECRET_FILE: /run/secrets/post_cron_secret
       NODE_ENV: ${NODE_ENV}
     secrets:
@@ -181,8 +181,8 @@ services:
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
       RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
-      RABBITMQ_EXCHANGE: billing.events
-      RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.billing.events
+      RABBITMQ_EXCHANGE: eventthunder.events
+      RABBITMQ_SUBSCRIPTION_QUEUE: subscription-service.eventthunder.events
       NODE_ENV: ${NODE_ENV}
     secrets:
       - postgres_user
@@ -207,8 +207,8 @@ services:
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
       RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
-      RABBITMQ_EXCHANGE: billing.events
-      RABBITMQ_TICKETING_QUEUE: ticketing-service.billing.events
+      RABBITMQ_EXCHANGE: eventthunder.events
+      RABBITMQ_TICKETING_QUEUE: ticketing-service.eventthunder.events
       NODE_ENV: ${NODE_ENV}
     secrets:
       - postgres_user
@@ -227,7 +227,7 @@ services:
     environment:
       PORT: 3000
       RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
-      RABBITMQ_EXCHANGE: billing.events
+      RABBITMQ_EXCHANGE: eventthunder.events
       NODE_ENV: ${NODE_ENV}
       STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
       STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
@@ -269,8 +269,8 @@ services:
     environment:
       PORT: 3000
       RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
-      RABBITMQ_EXCHANGE: billing.events
-      RABBITMQ_MAILING_QUEUE: mailing-service.billing.events
+      RABBITMQ_EXCHANGE: eventthunder.events
+      RABBITMQ_MAILING_QUEUE: mailing-service.eventthunder.events
       RESEND_API_KEY_FILE: /run/secrets/resend_api_key
       MAIL_FROM: ${MAIL_FROM}
       PRODUCT_NAME: ${PRODUCT_NAME}

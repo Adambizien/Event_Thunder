@@ -40,10 +40,11 @@ export class RabbitmqConsumerService
       this.configService.get<string>('RABBITMQ_URL') ??
       'amqp://rabbitmq:5672';
     this.exchange =
-      this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
+      this.configService.get<string>('RABBITMQ_EXCHANGE') ??
+      'eventthunder.events';
     this.queueName =
       this.configService.get<string>('RABBITMQ_SUBSCRIPTION_QUEUE') ??
-      'subscription-service.billing.events';
+      'subscription-service.eventthunder.events';
     this.retryDelayMs = Number(
       this.configService.get<string>('RABBITMQ_RETRY_DELAY_MS') ?? 5000,
     );
