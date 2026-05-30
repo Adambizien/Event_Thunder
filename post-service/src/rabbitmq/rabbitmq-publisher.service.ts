@@ -23,7 +23,8 @@ export class RabbitmqPublisherService
 
   constructor(private readonly configService: ConfigService) {
     this.exchange =
-      this.configService.get<string>('RABBITMQ_EXCHANGE') ?? 'billing.events';
+      this.configService.get<string>('RABBITMQ_EXCHANGE') ??
+      'eventthunder.events';
     this.rabbitUrl =
       readSecret('RABBITMQ_URL') ??
       this.configService.get<string>('RABBITMQ_URL') ??
