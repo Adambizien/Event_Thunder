@@ -1,4 +1,4 @@
-# [Event Thunder](https://eventthunder.bizienadam.fr) - Guide de mise en production
+# [Event Thunder](https://eventthunder.bizienadam.fr/) - Guide de mise en production
 
 ## Présentation du projet
 
