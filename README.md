@@ -1,4 +1,4 @@
-# Event Thunder - Guide de mise en production
+# [Event Thunder](https://example.com) - Guide de mise en production
 
 ## Présentation du projet
 
